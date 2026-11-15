@@ -131,14 +131,14 @@ export function LoadScreen() {
                 <path className="mdone" d="M70 160 C 180 150, 260 118, 360 110 S 450 96, 492 84" />
                 <path className="mrest" d="M492 84 C 560 66, 630 52, 690 42" />
               </svg>
-              <span className="mpin" style={{ left: "70px", top: "160px" }} data-k="ok"></span>
-              <span className="mlab" style={{ left: "58px", top: "172px" }}><span>{LP.oLab}</span></span>
-              <span className="mpin" style={{ left: "690px", top: "42px" }} data-k={LP.dK}></span>
-              <span className="mlab" style={{ left: "560px", top: "16px" }}><span>{LP.dLab}</span></span>
+              <span className="mpin" style={{ left: "calc(70 / 770 * 100%)", top: "160px" }} data-k="ok"></span>
+              <span className="mlab" style={{ left: "calc(58 / 770 * 100%)", top: "172px" }}><span>{LP.oLab}</span></span>
+              <span className="mpin" style={{ left: "calc(690 / 770 * 100%)", top: "42px" }} data-k={LP.dK}></span>
+              <span className="mlab" style={{ left: "calc(560 / 770 * 100%)", top: "16px" }}><span>{LP.dLab}</span></span>
               {LP.moving ? (
                 <>
-                  <span className="mtruck" style={{ left: "492px", top: "84px" }}><Icon className="s12 fill" d="M12 2l7 19-7-4-7 4z" /></span>
-                  <span className="mlab" style={{ left: "440px", top: "104px" }}><span>{LP.tLab}</span></span>
+                  <span className="mtruck" style={{ left: "calc(492 / 770 * 100%)", top: "84px" }}><Icon className="s12 fill" d="M12 2l7 19-7-4-7 4z" /></span>
+                  <span className="mlab" style={{ left: "calc(440 / 770 * 100%)", top: "104px" }}><span>{LP.tLab}</span></span>
                 </>
               ) : null}
             </div>

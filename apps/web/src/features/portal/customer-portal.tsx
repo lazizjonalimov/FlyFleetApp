@@ -102,10 +102,10 @@ export function CustomerPortal() {
                 <path className="mdone" d="M70 160 C 180 150, 260 118, 360 110 S 450 96, 492 84" />
                 <path className="mrest" d="M492 84 C 560 66, 630 52, 690 42" />
               </svg>
-              <span className="mpin" style={{ left: "70px", top: "160px" }} data-k="ok"></span>
-              <span className="mpin" style={{ left: "690px", top: "42px" }} data-k="brand"></span>
-              <span className="mtruck" style={{ left: "492px", top: "84px" }}><Icon className="s12 fill" d="M12 2l7 19-7-4-7 4z" /></span>
-              <span className="mlab" style={{ left: "440px", top: "104px" }}>Near Ardmore, OK · 11:18</span>
+              <span className="mpin" style={{ left: "calc(70 / 940 * 100%)", top: "160px" }} data-k="ok"></span>
+              <span className="mpin" style={{ left: "calc(690 / 940 * 100%)", top: "42px" }} data-k="brand"></span>
+              <span className="mtruck" style={{ left: "calc(492 / 940 * 100%)", top: "84px" }}><Icon className="s12 fill" d="M12 2l7 19-7-4-7 4z" /></span>
+              <span className="mlab" style={{ left: "calc(440 / 940 * 100%)", top: "104px" }}>Near Ardmore, OK · 11:18</span>
             </div>
             <div className="pgrid2">
               <div className="card" style={{ padding: "12px 14px", boxShadow: "none" }}>
