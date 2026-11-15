@@ -127,11 +127,16 @@
    * utility (a later layer) still wins over this.
    */
   .ff,
-  .ff *,
+  .ff *:not(svg, svg *),
   .ff *::before,
   .ff *::after,
   .ff ::placeholder {
     all: revert;
+  }
+  /* Not `all` for SVG: that would also discard what its attributes set (path data, sizes, fills). */
+  .ff svg {
+    display: revert;
+    vertical-align: revert;
   }
 }
 

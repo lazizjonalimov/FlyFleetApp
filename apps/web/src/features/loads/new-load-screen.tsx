@@ -201,11 +201,9 @@ export function NewLoadScreen() {
               <div className="banner" data-k="ok">
                 <Icon className="s14 b" d="M5 12l5 5 9-10" />
                 <div>
-                  Reference
-                  {" "}
+                  {"Reference "}
                   <b className="mono">PO 88213</b>
-                  {" "}
-                  is unique for Owens Corning.
+                  {" is unique for Owens Corning."}
                 </div>
               </div>
               {fin ? (
@@ -259,11 +257,9 @@ export function NewLoadScreen() {
       </div>
       <div className="nlfoot">
         <span className="fs12 mu">
-          Saving creates load
-          {" "}
+          {"Saving creates load "}
           <b className="mono tx">FF-24890</b>
-          {" "}
-          as a Draft. Nothing is sent to drivers until you dispatch.
+          {" as a Draft. Nothing is sent to drivers until you dispatch."}
         </span>
         <span className="sp"></span>
         <button className="btn">

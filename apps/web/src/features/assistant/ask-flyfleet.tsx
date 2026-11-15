@@ -23,12 +23,12 @@ export function AskFlyFleet() {
       <div className="aiscope">
         <span className="r g6">
           <Icon className="s12" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
-          Using:{" "}<span>{AI.uses}</span>
+          {"Using: "}<span>{AI.uses}</span>
         </span>
         {AI.hidden ? (
           <span className="r g6">
             <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
-            Hidden for your role:{" "}<span>{AI.hidden}</span>
+            {"Hidden for your role: "}<span>{AI.hidden}</span>
           </span>
         ) : null}
       </div>

@@ -384,7 +384,7 @@ export function OwnerFormScreen() {
                       <input id="of-login" className="inp" defaultValue={OF.loginEmail} placeholder="name@example.com" />
                     </div>
                     <div className="fld">
-                      <span className="lbl">Preset ·{" "}<span>{OF.permN}</span></span>
+                      <span className="lbl">{"Preset · "}<span>{OF.permN}</span></span>
                       <div className="seg" role="group" aria-label="Permission presets">
                         {OF.presets.map((pr, i) => (
                           <button key={i} className={pr.on} onClick={pr.go}><span>{pr.l}</span></button>

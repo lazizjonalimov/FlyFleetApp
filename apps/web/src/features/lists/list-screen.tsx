@@ -195,7 +195,7 @@ export function ListScreen() {
       </div>
       {L.bulk ? (
         <div className="bulk" role="region" aria-label="Bulk actions">
-          <span className="w5 num" style={{ marginRight: "10px" }}>{tx(L.selN)}{" "}selected</span>
+          <span className="w5 num" style={{ marginRight: "10px" }}>{tx(L.selN)}{" selected"}</span>
           <span style={{ width: "1px", height: "20px", background: "#2A3550", marginRight: "4px" }}></span>
           {L.bulkActs?.map((ba, i) => (
             <button key={i}><span>{ba}</span></button>

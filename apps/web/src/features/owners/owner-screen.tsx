@@ -416,7 +416,7 @@ export function OwnerScreen() {
                               {hb.segs.map((sg, i2) => (
                                 <i key={i2} data-v={sg.k} style={{ width: sg.w }} title={sg.t}></i>
                               ))}
-                              <b><span>{hb.v}</span>{" "}a mile</b>
+                              <b><span>{hb.v}</span>{" a mile"}</b>
                             </span>
                           </div>
                         ))}
@@ -881,7 +881,7 @@ export function OwnerScreen() {
               <div className="ch">
                 <div className="f1 c">
                   <h2 className="h2">What this owner can see</h2>
-                  <span className="fs12 mu"><span>{OW.acc.n}</span>{" "}· changes apply on their next click</span>
+                  <span className="fs12 mu"><span>{OW.acc.n}</span>{" · changes apply on their next click"}</span>
                 </div>
                 <div className="seg" role="group" aria-label="Presets">
                   {OW.acc.presets.map((pr, i) => (

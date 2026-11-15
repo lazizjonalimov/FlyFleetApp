@@ -210,7 +210,7 @@ export function DashboardScreen() {
                           {p.tip ? (
                             <span className={clsx("vtip", p.tcls)} style={{ bottom: "100%" }}>
                               <b><span>{p.amt}</span></b>
-                              <span><span>{p.n}</span>{" "}·{" "}<span>{p.pct}</span></span>
+                              <span><span>{p.n}</span>{" · "}<span>{p.pct}</span></span>
                             </span>
                           ) : null}
                         </button>
@@ -334,7 +334,7 @@ export function DashboardScreen() {
                     <div key={i2} className="c g6">
                       <div className="r jb fs13">
                         <span className="w5"><span>{f.label}</span></span>
-                        <span className="fs12 mu num"><span>{f.total}</span>{" "}total</span>
+                        <span className="fs12 mu num"><span>{f.total}</span>{" total"}</span>
                       </div>
                       <div className="segbar">
                         {f.segs.map((sg, i3) => (

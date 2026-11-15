@@ -125,8 +125,7 @@ export function TeamScreen() {
             <span className="dot" data-k="warn"></span>
             <span className="fs13">
               <b>2 unsaved changes</b>
-              {" "}
-              to Dispatcher · affects 9 members
+              {" to Dispatcher · affects 9 members"}
             </span>
             <span className="sp"></span>
             <span className="fs12 mu">Saving re-checks open sessions and live subscriptions</span>
@@ -144,21 +143,17 @@ export function TeamScreen() {
               <div className="r g8 ast">
                 <span className="tag" data-k="ok">+ grant</span>
                 <span className="t2">
-                  Fleet alerts ›
-                  {" "}
+                  {"Fleet alerts › "}
                   <b>Assign/manage</b>
-                  {" "}
-                  — acknowledge speeding alerts on night shift
+                  {" — acknowledge speeding alerts on night shift"}
                 </span>
               </div>
               <div className="r g8 ast">
                 <span className="tag" data-k="bad">− revoke</span>
                 <span className="t2">
-                  Loads ›
-                  {" "}
+                  {"Loads › "}
                   <b>Export</b>
-                  {" "}
-                  — exports include customer rates history
+                  {" — exports include customer rates history"}
                 </span>
               </div>
             </div>

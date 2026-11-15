@@ -12,8 +12,7 @@ export function PreviewBar() {
       <Icon className="s14" d={I.eye} />
       <span className="f1">
         <b>Previewing as Jordan Lee</b>
-        {" "}
-        · Dispatcher in Team A. You see only Team A’s 14 trucks and their loads, exactly as Jordan does; nothing you do here is saved as Jordan.
+        {" · Dispatcher in Team A. You see only Team A’s 14 trucks and their loads, exactly as Jordan does; nothing you do here is saved as Jordan."}
       </span>
       <button className="btn sm" onClick={exitPreview}>Exit preview</button>
     </div>

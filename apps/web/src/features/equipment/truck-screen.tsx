@@ -30,7 +30,7 @@ export function TruckScreen() {
             </span>
             <span className="tag" data-k={TK.owner.k}><span>{TK.ownTag}</span></span>
           </div>
-          <p className="sub"><span>{TK.now.loc}</span>{" "}·{" "}<span>{TK.now.fresh}</span>{" "}·{" "}<span>{TK.now.odo}</span></p>
+          <p className="sub"><span>{TK.now.loc}</span>{" · "}<span>{TK.now.fresh}</span>{" · "}<span>{TK.now.odo}</span></p>
         </div>
         <div className="r g8">
           <button className="btn" onClick={TK.assign}>
@@ -118,7 +118,7 @@ export function TruckScreen() {
                     <div className="fs13 w5"><span>{a.n}</span></div>
                     <div className="fs12 mu"><span>{a.how}</span></div>
                   </div>
-                  <span className="fs12 t3 num nw"><span>{a.from}</span>{" "}–{" "}<span>{a.to}</span></span>
+                  <span className="fs12 t3 num nw"><span>{a.from}</span>{" – "}<span>{a.to}</span></span>
                 </div>
               ))}
             </section>
@@ -133,7 +133,7 @@ export function TruckScreen() {
                   <span className="mono fs12 w5"><span>{m.wo}</span></span>
                   <div className="f1 mw0">
                     <div className="fs13 ell"><span>{m.w}</span></div>
-                    <div className="fs12 mu ell"><span>{m.shop}</span>{" "}·{" "}<span>{m.d}</span></div>
+                    <div className="fs12 mu ell"><span>{m.shop}</span>{" · "}<span>{m.d}</span></div>
                   </div>
                   <span className="badge" data-k={m.k}>
                     <i></i>

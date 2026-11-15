@@ -128,7 +128,7 @@ export function SafetyScreen() {
                   <div className="fs13 w5"><span>{q.t}</span></div>
                   <div className="fs12 mu"><span>{q.who}</span></div>
                   <div className="r g6 fs11 mu" style={{ marginTop: "3px" }}>
-                    <span className="tag" data-k={q.ck}>OCR{" "}<span>{q.conf}</span></span>
+                    <span className="tag" data-k={q.ck}>{"OCR "}<span>{q.conf}</span></span>
                     <span>{q.src}</span>
                   </div>
                 </div>

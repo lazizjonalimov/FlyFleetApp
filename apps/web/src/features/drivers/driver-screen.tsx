@@ -186,7 +186,7 @@ export function DriverScreen() {
             <div className="cb c g10">
               <dl className="kv">
                 <dt>License number</dt>
-                <dd className="mono">••••{" "}<span>{DP.lic}</span></dd>
+                <dd className="mono">{"•••• "}<span>{DP.lic}</span></dd>
                 <dt>Date of birth</dt>
                 <dd className="mu">Hidden</dd>
                 <dt>Medical examiner</dt>

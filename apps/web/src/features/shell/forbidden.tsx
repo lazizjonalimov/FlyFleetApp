@@ -11,9 +11,9 @@ export function Forbidden() {
     <div className="forb">
       <div className="c g8" style={{ alignItems: "center", maxWidth: "420px", textAlign: "center" }}>
         <span className="forbic"><Icon className="s20" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" /></span>
-        <h1 className="fs16 w6" style={{ marginTop: "6px" }}>You don’t have access to{" "}<span>{FB.mod}</span></h1>
+        <h1 className="fs16 w6" style={{ marginTop: "6px" }}>{"You don’t have access to "}<span>{FB.mod}</span></h1>
         <p className="fs13 mu pre">
-          Your role (<span>{user.role}</span>) doesn’t include{" "}
+          Your role (<span>{user.role}</span>{") doesn’t include "}
           <span className="mono t2"><span>{FB.perm}</span></span>
           {". If you need it, ask a Main Admin to change your role in Team & access."}
         </p>

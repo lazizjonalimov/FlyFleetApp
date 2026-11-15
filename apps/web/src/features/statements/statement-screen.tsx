@@ -24,13 +24,13 @@ export function StatementScreen() {
             <b><span>{SM.n}</span></b>
           </div>
           <div className="r g10">
-            <h1 className="h1">Owner settlement ·{" "}<span>{SM.n}</span></h1>
+            <h1 className="h1">{"Owner settlement · "}<span>{SM.n}</span></h1>
             <span className="badge" data-k={SM.sk}>
               <i></i>
               <span>{SM.st}</span>
             </span>
           </div>
-          <p className="sub"><span>{SM.period}</span>{" "}·{" "}<span>{SM.pays}</span></p>
+          <p className="sub"><span>{SM.period}</span>{" · "}<span>{SM.pays}</span></p>
         </div>
         <div className="r g8">
           <button className="btn" onClick={SM.toOwner}>
@@ -105,7 +105,7 @@ export function StatementScreen() {
                     {sc.not.map((nt, i2) => (
                       <div key={i2} className="r g12">
                         <span className="f1 fs12 t2">
-                          <span>{nt.a}</span>{" "}·{" "}
+                          <span>{nt.a}</span>{" · "}
                           <span className="mu"><span>{nt.d}</span></span>
                         </span>
                         <span className="mono fs12 t3 nw"><span>{nt.v}</span></span>

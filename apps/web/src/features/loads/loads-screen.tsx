@@ -115,10 +115,9 @@ export function LoadsScreen() {
           </div>
           <div className="tfoot">
             <span className="num">
-              Showing
-              {" "}
+              {"Showing "}
               <b className="tx w5"><span>{LT.range}</span></b>
-              {" "}of{" "}<span>{LT.total}</span>
+              {" of "}<span>{LT.total}</span>
             </span>
             <span className="sp"></span>
             <span>Rows per page</span>
@@ -140,7 +139,7 @@ export function LoadsScreen() {
       </div>
       {LT.bulk ? (
         <div className="bulk">
-          <span className="w5 num" style={{ marginRight: "10px" }}><span>{LT.selN}</span>{" "}selected</span>
+          <span className="w5 num" style={{ marginRight: "10px" }}><span>{LT.selN}</span>{" selected"}</span>
           <span style={{ width: "1px", height: "20px", background: "#2A3550", marginRight: "4px" }}></span>
           <button>Assign driver</button>
           <button>Change status</button>

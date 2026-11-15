@@ -73,8 +73,7 @@ export function StatesGallery() {
           <span className="forbic"><Icon className="s20" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" /></span>
           <div className="fs14 w6">You don’t have access to Invoices</div>
           <p className="fs12 mu pre">
-            Your role doesn’t include
-            {" "}
+            {"Your role doesn’t include "}
             <span className="mono">finance.invoices.read</span>
             .
           </p>
@@ -160,11 +159,9 @@ export function StatesGallery() {
           <div className="toast">
             <Icon className="s14 b" d="M5 12l5 5 9-10" />
             <span className="f1">
-              Load
-              {" "}
+              {"Load "}
               <b className="mono">FF-24890</b>
-              {" "}
-              created as Draft
+              {" created as Draft"}
             </span>
             <button className="lnk" style={{ color: "#8DA9FB" }}>View</button>
           </div>

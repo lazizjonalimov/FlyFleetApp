@@ -160,8 +160,7 @@ export function DocReviewScreen() {
               <Icon className="s14 b" d="M5 12l5 5 9-10" />
               <div>
                 <b>Matches FF-24782.</b>
-                {" "}
-                BOL and load numbers match, consignee matches stop 2.
+                {" BOL and load numbers match, consignee matches stop 2."}
               </div>
             </div>
             {DR.fields.map((f, i) => (
@@ -176,7 +175,7 @@ export function DocReviewScreen() {
                 <input className={clsx("inp", f.mono)} defaultValue={f.v} aria-label={f.l} style={{ height: "32px" }} />
                 <div className="r g8">
                   <span className="bar" data-k={f.k} style={{ height: "4px" }}><span style={{ width: f.pct }}></span></span>
-                  <span className="fs11 mu num nw"><span>{f.conf}</span>{" "}confidence</span>
+                  <span className="fs11 mu num nw"><span>{f.conf}</span>{" confidence"}</span>
                 </div>
                 {f.note ? (
                   <div className="c g6">

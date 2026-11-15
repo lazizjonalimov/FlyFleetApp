@@ -110,7 +110,7 @@ export function ReportsScreen() {
                           ) : null}
                           <span className="lntip" style={{ top: pt.y }}>
                             <b><span>{pt.v}</span></b>
-                            <span>Week of{" "}<span>{pt.l}</span></span>
+                            <span>{"Week of "}<span>{pt.l}</span></span>
                             {pt.tip ? (
                               <span>{tx(pt.tip)}</span>
                             ) : null}
@@ -129,8 +129,7 @@ export function ReportsScreen() {
                   <div className="cb c g10 fs12 t2" style={{ lineHeight: "17px" }}>
                     <p>
                       <b>On time</b>
-                      {" "}
-                      — arrival event at a delivery stop at or before the end of its appointment window, or within 15 minutes of a fixed appointment.
+                      {" — arrival event at a delivery stop at or before the end of its appointment window, or within 15 minutes of a fixed appointment."}
                     </p>
                     <dl className="kv" style={{ fontSize: "12px" }}>
                       <dt>Sources</dt>
@@ -232,7 +231,7 @@ export function ReportsScreen() {
                                 ) : null}
                                 <span className="lntip" style={{ top: pt.y }}>
                                   <b><span>{pt.v}</span></b>
-                                  <span>Week of{" "}<span>{pt.l}</span></span>
+                                  <span>{"Week of "}<span>{pt.l}</span></span>
                                   {pt.tip ? (
                                     <span><span>{pt.tip}</span></span>
                                   ) : null}
@@ -324,12 +323,9 @@ export function ReportsScreen() {
                 <div className="cb c g8 fs12 t2" style={{ lineHeight: "17px" }}>
                   <p>
                     <b>MPG</b>
-                    {" "}
-                    — miles driven (GPS, CSV imports and manual trips) divided by gallons bought on fuel cards and receipts in the same period.
-                    {" "}
+                    {" — miles driven (GPS, CSV imports and manual trips) divided by gallons bought on fuel cards and receipts in the same period. "}
                     <b>Fuel cost per mile</b>
-                    {" "}
-                    — the week’s average diesel price divided by that week’s MPG.
+                    {" — the week’s average diesel price divided by that week’s MPG."}
                   </p>
                   <dl className="kv" style={{ fontSize: "12px" }}>
                     <dt>Sources</dt>

@@ -38,7 +38,7 @@ export function OwnerPortal() {
           <div className="banner" data-k="info">
             <Icon d={I.eye} />
             <div className="f1">
-              <div className="bt">Previewing{" "}<span>{OP.uname}</span>’s portal</div>
+              <div className="bt">{"Previewing "}<span>{OP.uname}</span>’s portal</div>
               <div>This is exactly what they see with today’s permissions. Change them on the owner’s Access tab.</div>
             </div>
             <button className="btn sm" onClick={OP.exit}>Back to access settings</button>

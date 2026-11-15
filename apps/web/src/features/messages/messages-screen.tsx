@@ -75,8 +75,7 @@ export function MessagesScreen() {
             </div>
             <div className="fs12 mu">
               <span className="mono">T-1121</span>
-              {" "}
-              · FF-24839 Lewisville → Austin · driver since 2019
+              {" · FF-24839 Lewisville → Austin · driver since 2019"}
             </div>
           </div>
           <button className="btn sm icon" aria-label="Call driver">
@@ -112,7 +111,7 @@ export function MessagesScreen() {
                         </span>
                       ) : null}
                     </div>
-                    <span className="fs11 mu"><span>{mm.meta}</span>{" "}·{" "}<span>{mm.t}</span></span>
+                    <span className="fs11 mu"><span>{mm.meta}</span>{" · "}<span>{mm.t}</span></span>
                   </div>
                 </div>
               ) : null}
@@ -121,7 +120,7 @@ export function MessagesScreen() {
                   <div className="c g2" style={{ maxWidth: "62%", alignItems: "flex-end" }}>
                     <div className="mb out2"><span>{mm.body}</span></div>
                     <span className="fs11 mu r g4">
-                      <span>{mm.meta}</span>{" "}·{" "}<span>{mm.t}</span>
+                      <span>{mm.meta}</span>{" · "}<span>{mm.t}</span>
                       <Icon className="s12 b" d="M5 12l5 5 9-10" />
                     </span>
                   </div>
@@ -239,8 +238,7 @@ export function MessagesScreen() {
             <span className="tag" data-k="ok">Acknowledged 11:19</span>
           </div>
           <div className="cb fs12 t3">
-            SPD-0412 · 76 mph peak · driver replied in Telegram.
-            {" "}
+            {"SPD-0412 · 76 mph peak · driver replied in Telegram. "}
             <button className="lnk" onClick={goTracking}>View on map</button>
           </div>
         </section>

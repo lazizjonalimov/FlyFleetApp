@@ -138,11 +138,9 @@ export function TrackingScreen() {
             <button className="btn ghost icon sm" aria-label="Close vehicle panel"><Icon d="M18 6L6 18M6 6l12 12" /></button>
           </div>
           <div className="fs13 t3" style={{ padding: "2px 16px 0" }}>
-            Jamal Carter ·
-            {" "}
+            {"Jamal Carter · "}
             <button className="lnk" style={{ fontSize: "13px" }} onClick={M.openLoad}>FF-24839</button>
-            {" "}
-            Lewisville → Austin
+            {" Lewisville → Austin"}
           </div>
           <div className="mstats">
             <div>

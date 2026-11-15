@@ -33,10 +33,8 @@ export function LoadDrawer() {
             <button className="btn ghost icon" aria-label="More actions"><Icon className="dots" d="M5 12h.01M12 12h.01M19 12h.01" /></button>
             <button className="btn ghost icon" onClick={closeDrawer} aria-label="Close"><Icon d="M18 6L6 18M6 6l12 12" /></button>
           </div>
-          <h2 style={{ margin: "10px 0 2px", fontSize: "18px", lineHeight: "24px", fontWeight: "600", letterSpacing: "-0.01em" }}>
-            {tx(DL.pu)}{" "}→{" "}{tx(DL.del)}
-          </h2>
-          <div className="fs13 mu">{tx(DL.cust)}{" "}·{" "}{tx(DL.ref)}{" "}·{" "}{tx(DL.miF)}{" "}mi ·{" "}{tx(DL.eq)}</div>
+          <h2 style={{ margin: "10px 0 2px", fontSize: "18px", lineHeight: "24px", fontWeight: "600", letterSpacing: "-0.01em" }}>{tx(DL.pu)}{" → "}{tx(DL.del)}</h2>
+          <div className="fs13 mu">{tx(DL.cust)}{" · "}{tx(DL.ref)}{" · "}{tx(DL.miF)}{" mi · "}{tx(DL.eq)}</div>
           {DL.alert ? (
             <div className="banner" data-k={DL.aK} style={{ marginTop: "14px" }}>
               <Icon d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" />
@@ -82,7 +80,7 @@ export function LoadDrawer() {
                 <div style={{ paddingBottom: "16px" }} className="mw0">
                   <div className="over" style={{ letterSpacing: ".04em" }}><span>{s.type}</span></div>
                   <div className="fs14 w5"><span>{s.fac}</span></div>
-                  <div className="fs12 mu num"><span>{s.city}</span>{" "}· Appt{" "}<span>{s.appt}</span></div>
+                  <div className="fs12 mu num"><span>{s.city}</span>{" · Appt "}<span>{s.appt}</span></div>
                 </div>
                 <div className="fs12 w5 tc num nw rt" data-k={s.sk} style={{ paddingTop: "16px" }}><span>{s.stTxt}</span></div>
               </div>
@@ -117,9 +115,8 @@ export function LoadDrawer() {
                 ))}
                 <div className="r jb fs13 w6" style={{ padding: "10px 12px", background: "var(--sf2)" }}>
                   <span>
-                    Estimated total
-                    {" "}
-                    <span className="fs12 mu" style={{ fontWeight: "400" }}>·{" "}{tx(DL.rpm)}/mi · not yet invoiced</span>
+                    {"Estimated total "}
+                    <span className="fs12 mu" style={{ fontWeight: "400" }}>{"· "}{tx(DL.rpm)}/mi · not yet invoiced</span>
                   </span>
                   <span className="mono num">{tx(DL.total)}</span>
                 </div>

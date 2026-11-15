@@ -99,7 +99,7 @@ export function DispatchScreen() {
                     <Icon className="s12 mu" d="M5 12h14M13 6l6 6-6 6" />
                     <span className="ell"><span>{q.b}</span></span>
                   </div>
-                  <div className="fs12 mu num"><span>{q.when}</span>{" "}·{" "}<span>{q.mi}</span>{" "}mi ·{" "}<span>{q.eq}</span></div>
+                  <div className="fs12 mu num"><span>{q.when}</span>{" · "}<span>{q.mi}</span>{" mi · "}<span>{q.eq}</span></div>
                   <div className="r jb fs12" style={{ marginTop: "3px", paddingTop: "7px", borderTop: "1px solid var(--bd2)" }}>
                     <span className="t3 ell"><span>{q.cust}</span></span>
                     {q.rateF ? (
@@ -191,11 +191,9 @@ export function DispatchScreen() {
                   <div className="f1">
                     <div className="bt">Ben Okafor was just assigned elsewhere</div>
                     <div>
-                      Alex Rivera assigned him to
-                      {" "}
+                      {"Alex Rivera assigned him to "}
                       <b className="mono">FF-24873</b>
-                      {" "}
-                      12 seconds ago (15:00 → 03:00), which overlaps this load. Nothing was saved — your other choices are kept.
+                      {" 12 seconds ago (15:00 → 03:00), which overlaps this load. Nothing was saved — your other choices are kept."}
                     </div>
                     <div className="r g8" style={{ marginTop: "8px" }}>
                       <button className="btn sm">
@@ -263,7 +261,7 @@ export function DispatchScreen() {
                     <div className="f1">
                       <div className="fs13 w5">
                         <span className="mono"><span>{e.unit}</span></span>
-                        {" "}·{" "}<span>{e.kind}</span>
+                        {" · "}<span>{e.kind}</span>
                       </div>
                       <div className="fs12 mu ell"><span>{e.sub}</span></div>
                     </div>

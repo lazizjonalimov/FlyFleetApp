@@ -67,7 +67,7 @@ export function AddModal() {
             {MD.bulk ? (
               <div className="bulkln">
                 <span className="eqic"><Icon className="s14" d={I.sheet} /></span>
-                <span className="f1">{tx(MD.bulkT)}{" "}Bring them in from a CSV or Excel file.</span>
+                <span className="f1">{tx(MD.bulkT)}{" Bring them in from a CSV or Excel file."}</span>
                 <button className="btn sm" onClick={MD.bulkGo}>Import a spreadsheet</button>
               </div>
             ) : null}
@@ -473,7 +473,7 @@ export function AddModal() {
                       <div key={i} className={clsx("vcard", v.cls)}>
                         <div className="r g6">
                           <span className="mono fs12 w6 tx"><span>{v.code}</span></span>
-                          <span className="tag" data-k="mu">Unit{" "}<span>{v.unit}</span>{" "}·{" "}<span>{v.uid}</span></span>
+                          <span className="tag" data-k="mu">{"Unit "}<span>{v.unit}</span>{" · "}<span>{v.uid}</span></span>
                           <span className="sp"></span>
                           {v.oos ? (
                             <span className="tag" data-k="bad">Out of service</span>
@@ -532,7 +532,7 @@ export function AddModal() {
                       {f.hasConf ? (
                         <div className="r g8">
                           <span className="bar" data-k={f.k} style={{ height: "4px" }}><span style={{ width: f.pct }}></span></span>
-                          <span className="fs11 mu num nw"><span>{f.conf}</span>{" "}confidence</span>
+                          <span className="fs11 mu num nw"><span>{f.conf}</span>{" confidence"}</span>
                         </div>
                       ) : null}
                       {f.note ? (
@@ -562,9 +562,8 @@ export function AddModal() {
                     ))}
                     <div className="r jb fs13 w6" style={{ padding: "10px 12px", background: "var(--sf2)" }}>
                       <span>
-                        Total
-                        {" "}
-                        <span className="fs12 mu" style={{ fontWeight: "400" }}>·{" "}{tx(MD.terms)}</span>
+                        {"Total "}
+                        <span className="fs12 mu" style={{ fontWeight: "400" }}>{"· "}{tx(MD.terms)}</span>
                       </span>
                       <span className="mono num">{tx(MD.total)}</span>
                     </div>
@@ -759,7 +758,7 @@ export function AddModal() {
               </div>
               {MD.iss?.map((r, i) => (
                 <div key={i} className="wl" style={{ alignItems: "flex-start" }}>
-                  <span className="mono fs12 mu" style={{ width: "48px", flex: "none", paddingTop: "1px" }}>Row{" "}<span>{r.row}</span></span>
+                  <span className="mono fs12 mu" style={{ width: "48px", flex: "none", paddingTop: "1px" }}>{"Row "}<span>{r.row}</span></span>
                   <div className="f1">
                     <div className="fs13 w5"><span>{r.name}</span></div>
                     <div className="r g6 ast fs12 tc" data-k={r.k} style={{ marginTop: "3px" }}>
