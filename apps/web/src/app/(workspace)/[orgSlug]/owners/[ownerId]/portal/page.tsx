@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { OWN5 } from "@/features/console/model/console-model";
+import { OUTSIDE_OWNER_IDS } from "@/features/console/records";
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return OWN5.filter((owner) => owner.id !== "LSF").map((owner) => ({ ownerId: owner.id }));
+  return OUTSIDE_OWNER_IDS.map((ownerId) => ({ ownerId }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/[orgSlug]/owners/[ownerId]/portal">): Promise<Metadata> {

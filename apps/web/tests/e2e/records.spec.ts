@@ -126,6 +126,14 @@ test("statements: driver pay and owner settlements, down to one statement", asyn
   await expect(page.getByRole("heading", { name: "Owner settlement · Tom Reyes" })).toBeVisible();
 });
 
+test("a trailer on an owner's settlement opens the trailer's record", async ({ page }) => {
+  await open(page, "/finance/statements/PC?role=owner");
+  await page.locator("button.idl", { hasText: "TR-5341" }).first().click();
+  await expect(page).toHaveURL(new RegExp(`${W}/equipment/trucks/TR-5341\\?role=owner$`));
+  await expect(page.locator("h1")).toHaveText("TR-5341");
+  await expect(page.locator(".main")).toContainText("Pecan Creek Equipment LLC");
+});
+
 test("a driver's row opens the profile with the qualification file", async ({ page }) => {
   await open(page, "/drivers");
   await page.locator(".trow", { hasText: "Marcus Bell" }).first().click();

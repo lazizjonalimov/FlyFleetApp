@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { DRIVERS } from "@/features/console/model/console-model";
+import { DRIVER_SLUGS } from "@/features/console/records";
 import { driverSlug } from "@/features/console/routes";
 import { DriverScreen } from "@/features/drivers/driver-screen";
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return DRIVERS.map((d) => ({ driver: driverSlug(d.n) }));
+  return DRIVER_SLUGS.map((driver) => ({ driver }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/[orgSlug]/drivers/[driver]">): Promise<Metadata> {

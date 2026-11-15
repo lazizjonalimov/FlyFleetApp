@@ -26,6 +26,7 @@ src/features/console/          the console itself:
   view.ts                        the type of what they produce (ConsoleView)
   console-provider.tsx           holds interface state, reads the address, gives screens the view
   routes.ts                      which address is which screen, and back
+  records.ts                     which records have a page of their own
   console-frame.tsx              the shell: sidebar, top bar, the screen, overlays
 src/features/<area>/           the screens of one area
 src/components/                parts several screens share: icon, table cells, dropdown
@@ -60,7 +61,8 @@ sorting, form values) is state that survives moving between screens.
 | `/portal`, `/owner-portal`, `/states` | Customer portal, an equipment owner's portal, interface states |
 
 A state change that moves you is carried out as a navigation, so Back, reload and shared links work. An
-address that names no screen or record is a 404.
+address that names no screen or record is a 404. A unit's record is at `/equipment/trucks/<unit>` whether it is
+a truck or a trailer, as in the design.
 
 ### Who is signed in, and how it looks
 
@@ -113,6 +115,9 @@ The browser never calls the API directly and never holds the API token.
   time zone, validate forms and upload documents.
 - `src/proxy.ts` sets the content security policy and frame protection on every page. The redirect of
   signed-out visitors to sign-in returns there when there is a session to check.
+- The first application's interface libraries stay installed for that work: the shadcn/ui setup
+  (`components.json`, `src/lib/utils.ts`), TanStack Query and Table, React Hook Form. The console uses none of
+  them; its components are the design's own.
 
 ## Commands
 

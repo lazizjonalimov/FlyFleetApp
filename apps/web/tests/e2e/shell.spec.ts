@@ -19,7 +19,7 @@ test("sign in, choose the organization, sign out", async ({ page }) => {
 });
 
 test("a different account goes back from the organizations to the form", async ({ page }) => {
-  await page.goto("/login");
+  await open(page, "/login");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: "Use a different account" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();

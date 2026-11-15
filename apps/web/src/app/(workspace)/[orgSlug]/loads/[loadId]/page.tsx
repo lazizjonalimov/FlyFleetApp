@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { LOADS } from "@/features/console/model/console-model";
+import { LOAD_IDS } from "@/features/console/records";
 import { LoadScreen } from "@/features/loads/load-screen";
 
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return LOADS.map((load) => ({ loadId: load.id }));
+  return LOAD_IDS.map((loadId) => ({ loadId }));
 }
 
 export async function generateMetadata({ params }: PageProps<"/[orgSlug]/loads/[loadId]">): Promise<Metadata> {
