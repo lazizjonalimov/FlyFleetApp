@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { LoadWizard } from "@/features/loads/load-wizard";
+import { NewLoadScreen } from "@/features/loads/new-load-screen";
 
 export const metadata: Metadata = { title: "New load" };
 
 export default function NewLoadPage() {
-  return <LoadWizard />;
+  return <NewLoadScreen />;
 }

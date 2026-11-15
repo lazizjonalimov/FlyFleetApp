@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ReportsIndex } from "@/features/reports/reports-index";
+import { ReportsScreen } from "@/features/reports/reports-screen";
 
 export const metadata: Metadata = { title: "Reports" };
 
-export default function Page() {
-  return <ReportsIndex />;
+export default function ReportsPage() {
+  return <ReportsScreen />;
 }

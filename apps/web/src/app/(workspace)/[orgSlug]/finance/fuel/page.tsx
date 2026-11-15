@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { FuelPage } from "@/features/expenses/fuel-page";
+import { FuelScreen } from "@/features/fuel/fuel-screen";
 
-export const metadata: Metadata = { title: "Fuel" };
+export const metadata: Metadata = { title: "Fuel & IFTA" };
 
-export default function Page() {
-  return <FuelPage />;
+export default function FuelPage() {
+  return <FuelScreen />;
 }

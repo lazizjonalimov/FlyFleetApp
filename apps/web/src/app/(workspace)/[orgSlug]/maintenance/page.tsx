@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { WorkOrdersList } from "@/features/maintenance/work-orders-list";
+import { MaintenanceScreen } from "@/features/maintenance/maintenance-screen";
 
 export const metadata: Metadata = { title: "Maintenance" };
 
-export default function Page() {
-  return <WorkOrdersList />;
+export default function MaintenancePage() {
+  return <MaintenanceScreen />;
 }

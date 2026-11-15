@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { UnitsList } from "@/features/equipment/units-list";
+import { ListScreen } from "@/features/lists/list-screen";
 
 export const metadata: Metadata = { title: "Trucks" };
 
 export default function TrucksPage() {
-  return <UnitsList kind="truck" />;
+  return <ListScreen />;
 }

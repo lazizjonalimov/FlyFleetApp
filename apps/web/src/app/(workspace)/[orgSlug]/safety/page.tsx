@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { SafetyPage } from "@/features/safety/safety-page";
+import { SafetyScreen } from "@/features/safety/safety-screen";
 
-export const metadata: Metadata = { title: "Safety" };
+export const metadata: Metadata = { title: "Compliance" };
 
-export default function Page() {
-  return <SafetyPage />;
+export default function SafetyPage() {
+  return <SafetyScreen />;
 }

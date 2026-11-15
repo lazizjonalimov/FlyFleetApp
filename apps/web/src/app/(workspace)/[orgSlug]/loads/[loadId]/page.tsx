@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
-import { LoadDetailPage } from "@/features/loads/load-detail";
+import { LOADS } from "@/features/console/model/console-model";
+import { LoadScreen } from "@/features/loads/load-screen";
 
-export const metadata: Metadata = { title: "Load" };
+export const dynamicParams = false;
 
-export default async function LoadPage({ params }: PageProps<"/[orgSlug]/loads/[loadId]">) {
-  return <LoadDetailPage id={(await params).loadId} />;
+export function generateStaticParams() {
+  return LOADS.map((load) => ({ loadId: load.id }));
+}
+
+export async function generateMetadata({ params }: PageProps<"/[orgSlug]/loads/[loadId]">): Promise<Metadata> {
+  const { loadId } = await params;
+  return { title: loadId };
+}
+
+export default function LoadPage() {
+  return <LoadScreen />;
 }

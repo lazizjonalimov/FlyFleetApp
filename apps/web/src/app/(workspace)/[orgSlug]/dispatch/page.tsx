@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { DispatchBoard } from "@/features/dispatch/board";
+import { DispatchScreen } from "@/features/dispatch/dispatch-screen";
 
-export const metadata: Metadata = { title: "Dispatch" };
+export const metadata: Metadata = { title: "Dispatch board" };
 
 export default function DispatchPage() {
-  return <DispatchBoard />;
+  return <DispatchScreen />;
 }

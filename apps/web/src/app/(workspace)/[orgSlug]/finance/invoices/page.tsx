@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { InvoicesList } from "@/features/finance/invoices-list";
+import { ListScreen } from "@/features/lists/list-screen";
 
 export const metadata: Metadata = { title: "Invoices" };
 
-export default function Page() {
-  return <InvoicesList />;
+export default function InvoicesPage() {
+  return <ListScreen />;
 }

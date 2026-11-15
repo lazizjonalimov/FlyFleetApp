@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { CustomersList } from "@/features/customers/customers-list";
+import { ListScreen } from "@/features/lists/list-screen";
 
 export const metadata: Metadata = { title: "Customers" };
 
 export default function CustomersPage() {
-  return <CustomersList />;
+  return <ListScreen />;
 }

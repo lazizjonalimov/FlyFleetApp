@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { LoadsList } from "@/features/loads/loads-list";
+import { LoadsScreen } from "@/features/loads/loads-screen";
 
 export const metadata: Metadata = { title: "Loads" };
 
 export default function LoadsPage() {
-  return <LoadsList />;
+  return <LoadsScreen />;
 }

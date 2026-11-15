@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { DriversList } from "@/features/drivers/drivers-list";
+import { ListScreen } from "@/features/lists/list-screen";
 
 export const metadata: Metadata = { title: "Drivers" };
 
 export default function DriversPage() {
-  return <DriversList />;
+  return <ListScreen />;
 }

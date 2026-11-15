@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { AuditLog } from "@/features/administration/audit-log";
+import { ListScreen } from "@/features/lists/list-screen";
 
 export const metadata: Metadata = { title: "Audit log" };
 
-export default function Page() {
-  return <AuditLog />;
+export default function AuditLogPage() {
+  return <ListScreen />;
 }
