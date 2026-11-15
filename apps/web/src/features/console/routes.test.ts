@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { driverSlug, hrefOf, parseLocation, propsFromQuery, touchesLocation } from "@/features/console/routes";
+import { driverSlug, hrefOf, parseLocation, propsFromQuery, sameScreenHref, touchesLocation } from "@/features/console/routes";
 
 const query = (text = "") => new URLSearchParams(text);
 const DRIVERS = ["Marcus Bell", "Ana Ruiz", "Ken Ito"];
@@ -47,6 +47,20 @@ describe("the address of a screen", () => {
   it("treats every platform section as the organizations list, and equipment as trucks", () => {
     expect(hrefOf({ screen: "platform3" }, {}, query())).toBe("/lone-star-freight/platform");
     expect(hrefOf({ screen: "equipment" }, {}, query())).toBe("/lone-star-freight/equipment/trucks");
+  });
+});
+
+describe("a change that stays on the screen", () => {
+  const at = "/lone-star-freight/loads";
+
+  it("keeps everything the address asked for and brings the drawer up to date", () => {
+    expect(sameScreenHref(at, query("role=dispatcher&preselect=true"), { screen: "loads", drawer: "FF-24855" })).toBe(`${at}?role=dispatcher&preselect=true&drawer=FF-24855`);
+    expect(sameScreenHref(at, query("preselect=true&drawer=FF-24855"), { screen: "loads", drawer: "FF-24790" })).toBe(`${at}?preselect=true&drawer=FF-24790`);
+    expect(sameScreenHref(at, query("preselect=true&drawer=FF-24855"), { screen: "loads", drawer: null })).toBe(`${at}?preselect=true`);
+  });
+
+  it("has no drawer on a screen without one", () => {
+    expect(sameScreenHref("/lone-star-freight/owners/CT", query("ownerTab=eq&drawer=FF-1"), { screen: "owner", drawer: "FF-1" })).toBe("/lone-star-freight/owners/CT?ownerTab=eq");
   });
 });
 

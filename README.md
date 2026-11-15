@@ -6,10 +6,27 @@ A web-based transportation management system (TMS) for trucking companies, built
 from day one. One owner profile can run **up to ten companies**, each with its own books, and switch between
 them in one click.
 
-> **Status.** All twelve steps of the build order are built: the API covers everything in the table below
-> and the web application has a screen for every part of it, from sign-in and companies to dispatch,
-> maintenance, invoicing, driver pay, reports and the audit log. Everything is covered by API, unit and
-> browser tests. Progress is tracked in [docs/roadmap.md](docs/roadmap.md).
+> **Status.** The API covers everything in the table below. The web console is **Design 1.0**: the FlyFleet
+> design built screen for screen, running on the Lone Star Freight workspace built into it. Its screens are
+> not connected to the API yet. Progress is tracked in [docs/roadmap.md](docs/roadmap.md).
+
+## The web console today
+
+The console at app.flyfleet.io is the design, one to one: the same design system in light and dark, 38
+screens, and the same roles deciding what each person sees.
+
+| Area | Screens |
+| --- | --- |
+| Overview | Role-aware dashboard with financials for roles that may see money, My tasks |
+| Operations | Dispatch board with the assignment panel and conflict handling, Loads with saved views, bulk actions and the detail drawer, the load's page, the guided new-load form, Live fleet map, Fleet alerts, Messages |
+| Directory | Customers, Drivers and the driver profile, Owners with the nine-tab owner record, add and edit owner |
+| Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks and the truck record, Trailers, Maintenance board |
+| Finance and analytics | Invoices, Statements (driver pay and owner settlements) and the settlement statement, Fuel & IFTA (purchases, mileage, quarterly return, tax rates), Reports |
+| Administration | Team & access with the permission matrix, Dispatch teams, Integrations, Fleet alert policy, Audit log, Platform |
+| Everywhere | Search (⌘K), notifications, Ask FlyFleet, Create, add by photo or by hand, spreadsheet import |
+| Outside the console | Sign-in and organization choice, customer portal, equipment owner's portal |
+
+How it is built, its addresses, and how to view it as each role: [apps/web/README.md](apps/web/README.md).
 
 ## What the API does today
 
@@ -28,15 +45,16 @@ them in one click.
 | Insight | Role-aware dashboard, exceptions list, global search, revenue, driver, truck and aging reports with CSV export |
 | Driver access | A driver sees and updates only the loads they are hauling, and can add the proof of delivery |
 
-Not built yet: the driver mobile app, the
-customer portal, maps, ELD, notifications, and the AWS infrastructure.
+Not built yet: the driver mobile app, the website, ELD, and the AWS infrastructure. In the API: the customer
+and owner portals, live tracking, messages, equipment owners and their settlements, IFTA, dispatch teams and
+the assistant, which the console already shows from its built-in workspace.
 
 ## Architecture in one minute
 
 ```mermaid
 flowchart TB
   subgraph Clients
-    web["Web app · Next.js<br/>(apps/web)"]
+    web["Web console · Next.js<br/>(apps/web)"]
     mobile["Driver app<br/>(planned)"]
     portal["Customer portal<br/>(planned)"]
   end
@@ -71,14 +89,25 @@ You need Docker, and for development Python 3.12 or newer (developed on 3.13) an
 Run these on the computer where you want to use the app: `localhost` in the addresses below means that
 machine.
 
+### The console on its own
+
+The console needs nothing else running:
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+Open http://localhost:3000, continue through sign-in and choose **Lone Star Freight**.
+
 ### Everything in containers
 
 ```bash
 docker compose --profile app up --build
 ```
 
-Open http://localhost:3000 and choose **Create an account**. API documentation is at
-http://localhost:8000/api/docs.
+The console is at http://localhost:3000 and the API documentation at http://localhost:8000/api/docs.
 
 ### For development (hot reload)
 
@@ -132,8 +161,12 @@ permissions for every role, and the API contract.
 cd apps/web && npm run lint && npm run typecheck && npm test
 ```
 
-End-to-end, in a real browser, with the API and a built web app running (first time only:
+End-to-end, in a real browser, against a built and running web app (first time only:
 `npx playwright install chromium`):
+
+```bash
+cd apps/web && npm run build && npm run start
+```
 
 ```bash
 cd apps/web && npm run e2e
@@ -166,7 +199,7 @@ Web (`apps/web/.env.local`, see `apps/web/.env.example`):
 ## Repository layout
 
 ```
-apps/web/            Next.js web application (see apps/web/README.md)
+apps/web/            The web console, Next.js (see apps/web/README.md)
 backend/
   app/core/          Config, database and tenancy, auth, permissions, errors, paging, idempotency, storage
   app/modules/       One package per business module: models, schemas, router, and service where rules live
@@ -179,6 +212,9 @@ docs/                Architecture, decisions, roadmap, the implementation audit
 
 ## Known limitations
 
+- **The console is not connected to the API.** It shows the workspace built into it, the same on every
+  visit, and nothing entered in it is saved. The API client and the session routes are in place for
+  connecting it screen by screen.
 - **Sign-in is local email and password** with signed tokens. Cognito, MFA, password reset by email and
   invitations by email are deferred to the deployment phase
   ([decision 0003](docs/decisions/0003-local-adapters-until-deployment.md)). An administrator sets a

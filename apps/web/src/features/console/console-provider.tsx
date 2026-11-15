@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConsoleLogic, DRIVERS, stopTimers, type ConsoleProps, type ConsoleState, type ConsoleUpdate } from "./model/console-model";
-import { hrefOf, parseLocation, propsFromQuery, STATIC_PATHS, touchesLocation } from "./routes";
+import { hrefOf, parseLocation, propsFromQuery, sameScreenHref, STATIC_PATHS, touchesLocation } from "./routes";
 import type { ConsoleView } from "./view";
 
 const ConsoleContext = createContext<ConsoleView | null>(null);
@@ -16,6 +16,13 @@ export function useConsole(): ConsoleView {
 }
 
 const DRIVER_NAMES = DRIVERS.map((driver) => driver.n);
+
+/**
+ * The address the tab is on its way to, until it gets there. A click often runs two handlers that ask for the
+ * same move (a link inside a row that is itself a link); the tab must move once. One tab has one address, so
+ * this is kept for the tab rather than per component.
+ */
+let heading: string | null = null;
 const NO_QUERY = new URLSearchParams();
 type Query = { get(name: string): string | null; toString(): string };
 
@@ -37,6 +44,10 @@ function Console({ query, children }: { query: Query; children: React.ReactNode 
   const props = useMemo<ConsoleProps>(() => ({ ...propsFromQuery(new URLSearchParams(search)), ...location.props }), [search, location]);
   const state = useMemo<ConsoleState>(() => ({ ...store, ...location.state }), [store, location]);
 
+  useEffect(() => {
+    heading = null;
+  }, [pathname, search]);
+
   // Each render's handlers act on that render's state, like any other React callback.
   const dispatch = useCallback(
     (update: ConsoleUpdate) => {
@@ -44,15 +55,19 @@ function Console({ query, children }: { query: Query; children: React.ReactNode 
       const apply = () => setStore((previous) => ({ ...previous, ...patch }));
       if (!touchesLocation(patch)) return apply();
 
-      const here = pathname + (search ? `?${search}` : "");
-      const target = hrefOf({ ...state, ...patch }, props, new URLSearchParams(search));
-      if (target === here) return apply();
+      const here = window.location.pathname + window.location.search;
+      const next = { ...state, ...patch };
+      const target = hrefOf(next, props, new URLSearchParams(search));
       if (target.split("?")[0] === pathname) {
-        // same screen, different drawer: the address changes without a round trip
+        // Staying on the screen: everything its address said still holds, and only the drawer can differ.
+        // The address changes without a round trip.
+        const same = sameScreenHref(pathname, new URLSearchParams(search), next);
         apply();
-        window.history.pushState(null, "", target);
+        if (same !== here) window.history.pushState(null, "", same);
         return;
       }
+      if (target === heading) return apply();
+      heading = target;
       // the screen stays as it is until the next one is ready, then state and address change together
       startTransition(() => {
         apply();

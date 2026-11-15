@@ -82,8 +82,8 @@ jobs:
       - run: npm run build
 
   # Boots the real stack the way production runs it (migrations as the owner, the API as the restricted
-  # role, a production build of the web app) and drives it: first over HTTP with the demo script, which
-  # touches every module, then in a real browser.
+  # role, a production build of the web app) and drives it: the API over HTTP with the demo script, which
+  # touches every module, and the console in a real browser.
   e2e:
     name: End-to-end (real server, real browser)
     needs: [backend, web]

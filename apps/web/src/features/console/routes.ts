@@ -162,5 +162,17 @@ export function hrefOf(state: ConsoleState, props: ConsoleProps, current: Query)
   return `/${ORG_SLUG}/${path}${search ? `?${search}` : ""}`;
 }
 
+/**
+ * The address after a change that stays on the same screen. Unlike a move to another screen, everything the
+ * current address asks for is kept; only the open drawer is brought up to date.
+ */
+export function sameScreenHref(pathname: string, current: URLSearchParams, state: ConsoleState): string {
+  const query = new URLSearchParams(current);
+  if (state.screen === "loads" && typeof state.drawer === "string" && state.drawer) query.set("drawer", state.drawer);
+  else query.delete("drawer");
+  const search = query.toString();
+  return `${pathname}${search ? `?${search}` : ""}`;
+}
+
 /** Fixed addresses, for prefetching what the sidebar leads to. */
 export const STATIC_PATHS: string[] = Object.values(PATHS).map((path) => `/${ORG_SLUG}/${path}`);

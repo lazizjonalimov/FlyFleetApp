@@ -1,7 +1,42 @@
 # Roadmap
 
+## Design 1.0: the web console
+
+The console was rebuilt from the FlyFleet design, screen for screen, and checked against it: all 96 console
+artboards of the design render identically at the design's size, and the same structure and layout hold
+across roughly 1,500 further states (every screen for every role, tab, record and dialog).
+
+It runs on the Lone Star Freight workspace built into it. The table below is where each part of it stands
+against the API: "API today" means the API already has the records the screen shows; the rest needs the API
+built first.
+
+| Console | API today |
+| --- | --- |
+| Sign-in, choosing an organization | Yes: sign-in, companies, switching |
+| Dashboard, My tasks | Partly: dashboard and exceptions; no tasks |
+| Dispatch board and assignment | Yes |
+| Loads, the load's page, new load | Yes |
+| Live fleet, Fleet alerts, Fleet alert policy | No: needs telematics |
+| Messages | No |
+| Customers, Drivers, Trucks, Trailers | Yes; no equipment owners or team drivers |
+| Owners, owner record, owner settlements, owner portal | No |
+| Compliance, Inspections, Documents and review | Yes; no reading of documents from photos |
+| Maintenance | Yes |
+| Invoices | Yes |
+| Statements: driver pay | Yes |
+| Fuel & IFTA | Partly: fuel purchases by state and truck; no IFTA miles, returns or rates |
+| Reports | Partly: revenue, drivers, trucks, receivables aging |
+| Team & access, Audit log | Yes; no dispatch teams |
+| Integrations, Platform, Ask FlyFleet, customer portal | No |
+
+Next for the console: connect it to the API a screen at a time, starting with the ones marked Yes; then the
+driver mobile app and the website from the same design.
+
+## The API and the first web application
+
 Status against the build order in the engineering instructions. "Done" means built, tested and working in
-this repository. The web column is the screens; the API column is the rules behind them.
+this repository. The API column is the rules; the Web column is the first web application, which Design 1.0
+replaces and which remains on the `main` branch.
 
 | # | Step | API | Web |
 | --- | --- | --- | --- |
