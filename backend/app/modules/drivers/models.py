@@ -17,6 +17,13 @@ class Driver(Base, IdMixin, TenantScoped, TimestampMixin):
     __tablename__ = "drivers"
     # Optional link to a sign-in (role=driver) so the driver app can find "my" assignments.
     user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # The person this driver profile belongs to. Name, phone and email are kept in step with the person.
+    person_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    # Who employs the driver: the carrier (NULL) or an owner who hired them for their own trucks.
+    employer_owner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Who pays the driver: carrier (driver statement), owner (outside FlyFleet) or carrier_for_owner (a driver
+    # statement here, charged back to the owner, itemized).
+    pay_by: Mapped[str] = mapped_column(String(20), default="carrier", server_default="carrier")
     first_name: Mapped[str] = mapped_column(String(80))
     last_name: Mapped[str] = mapped_column(String(80))
     phone: Mapped[str | None] = mapped_column(String(40))
@@ -30,6 +37,9 @@ class Driver(Base, IdMixin, TenantScoped, TimestampMixin):
     cdl_state: Mapped[str | None] = mapped_column(String(2))
     cdl_class: Mapped[str | None] = mapped_column(String(1))
     cdl_expiry: Mapped[date | None] = mapped_column(Date)
+    # Letters as printed on the licence, e.g. "N, H"; restrictions likewise.
+    endorsements: Mapped[str | None] = mapped_column(String(20))
+    restrictions: Mapped[str | None] = mapped_column(String(40))
     medical_cert_expiry: Mapped[date | None] = mapped_column(Date)
     # How the driver is paid; used to draft settlements.
     pay_type: Mapped[str] = mapped_column(String(20), default="per_mile", server_default="per_mile")
@@ -44,6 +54,13 @@ class Driver(Base, IdMixin, TenantScoped, TimestampMixin):
                              name="fk_drivers_membership"),
         ForeignKeyConstraint(["organization_id", "terminal_id"], ["terminals.organization_id", "terminals.id"],
                              name="fk_drivers_terminal"),
+        ForeignKeyConstraint(["organization_id", "person_id"], ["persons.organization_id", "persons.id"],
+                             name="fk_drivers_person"),
+        ForeignKeyConstraint(["organization_id", "employer_owner_id"], ["owners.organization_id", "owners.id"],
+                             name="fk_drivers_employer_owner"),
+        UniqueConstraint("organization_id", "person_id", name="uq_drivers_person"),
+        CheckConstraint("pay_by IN ('carrier','owner','carrier_for_owner')", name="pay_by_valid"),
+        CheckConstraint("pay_by = 'carrier' OR employer_owner_id IS NOT NULL", name="owner_pay_needs_owner"),
         Index("ix_drivers_org_created", "organization_id", "created_at", "id"),
         Index("ix_drivers_org_name", "organization_id", "last_name", "first_name", "id"),
         CheckConstraint("status IN ('active','inactive','terminated')", name="status_valid"),

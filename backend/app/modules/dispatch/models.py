@@ -14,6 +14,8 @@ class DispatchAssignment(Base, IdMixin, TenantScoped, TimestampMixin):
     __tablename__ = "dispatch_assignments"
     load_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     driver_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    # The second seat of a team, from the truck's seat assignment when the load was assigned.
+    co_driver_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     vehicle_id: Mapped[uuid.UUID] = mapped_column(Uuid)
     trailer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     status: Mapped[str] = mapped_column(String(15), default="active", server_default="active")
@@ -24,6 +26,8 @@ class DispatchAssignment(Base, IdMixin, TenantScoped, TimestampMixin):
         UniqueConstraint("organization_id", "id"),
         ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
                              name="fk_assign_load"),
+        ForeignKeyConstraint(["organization_id", "co_driver_id"], ["drivers.organization_id", "drivers.id"],
+                             name="fk_dispatch_assignments_co_driver"),
         ForeignKeyConstraint(["organization_id", "driver_id"], ["drivers.organization_id", "drivers.id"],
                              name="fk_assign_driver"),
         ForeignKeyConstraint(["organization_id", "vehicle_id"], ["vehicles.organization_id", "vehicles.id"],

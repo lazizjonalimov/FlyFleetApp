@@ -22,6 +22,7 @@ from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.organizations import schemas as s
 from app.modules.organizations.auth_router import add_organization
 from app.modules.organizations.models import Account, AuditLog, Membership, Organization, Terminal
+from app.modules.people.models import Person
 
 router = APIRouter(prefix="/account", tags=["account"])
 
@@ -92,6 +93,8 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
                 source["addresses"] = list(src.scalars(select(CustomerAddress)))
             if "drivers" in wanted:
                 source["drivers"] = list(src.scalars(select(Driver)))
+                source["persons"] = list(src.scalars(select(Person).where(
+                    Person.id.in_([d.person_id for d in source["drivers"]]))))
                 source["qualifications"] = list(src.scalars(select(DriverQualification)))
             if "vehicles" in wanted:
                 source["vehicles"] = list(src.scalars(select(Vehicle)))
@@ -147,10 +150,17 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
             copied["customers"] = len(customer_ids)
 
         driver_ids: dict[uuid.UUID, uuid.UUID] = {}
+        persons = {x.id: x for x in source.get("persons", [])}
         for d in source.get("drivers", []):
+            # Each driver brings their person record. Links to owners stay behind: owners aren't copied.
+            person = persons[d.person_id]
+            person_copy = _clone(person, new_id, user_id=person.user_id if person.user_id in members else None)
+            dst.add(person_copy)
+            dst.flush()
             # Keep the link to the driver's sign-in only if that person came across with the team.
             clone = _clone(d, new_id, terminal_id=terminal(d.terminal_id),
-                           user_id=d.user_id if d.user_id in members else None)
+                           user_id=d.user_id if d.user_id in members else None, person_id=person_copy.id,
+                           employer_owner_id=None, pay_by="carrier")
             driver_ids[d.id] = clone.id
             dst.add(clone)
         dst.flush()

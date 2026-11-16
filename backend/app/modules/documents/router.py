@@ -37,13 +37,15 @@ from app.modules.loads import service as loads
 from app.modules.loads.models import Load
 from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import User
+from app.modules.owners.models import Owner
 from app.modules.safety.rules import WARN_DAYS
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 DocumentType = Literal["bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance",
-                       "registration", "inspection", "maintenance", "invoice", "other"]
-EntityType = Literal["load", "driver", "vehicle", "trailer", "customer", "invoice", "work_order", "expense"]
+                       "registration", "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card",
+                       "ach_authorization", "other"]
+EntityType = Literal["load", "driver", "vehicle", "trailer", "customer", "invoice", "work_order", "expense", "owner"]
 
 # What a document can be attached to: the record, the permission needed to see that record, its display name.
 ENTITIES = {
@@ -55,9 +57,12 @@ ENTITIES = {
     "invoice": (Invoice, "invoices.read", lambda x: x.invoice_number or "Draft invoice"),
     "work_order": (WorkOrder, "maintenance.read", lambda x: f"Work order {x.number}"),
     "expense": (Expense, "expenses.read", lambda x: f"{x.category.capitalize()} expense, {x.incurred_on.isoformat()}"),
+    "owner": (Owner, "owners.read", lambda x: x.legal_name or x.dba or "Owner"),
 }
 # Scans of personal identity documents: only roles that may see the numbers on them may see the scans.
 SENSITIVE = ("license", "medical")
+# Carry an owner's tax ID or bank account: only roles that may see those may see the scans.
+OWNER_SENSITIVE = ("w9", "ach_authorization")
 # Reviewed by safety before they count. Proof of delivery is reviewed through the load instead.
 COMPLIANCE = ("license", "medical", "insurance", "registration", "inspection")
 # What a driver may add to a load they are hauling.
@@ -105,6 +110,7 @@ class DocumentOut(BaseModel):
     reviewed_by_name: str | None
     reviewed_at: datetime | None
     expires_on: date | None
+    in_portal: bool = False
     uploaded_by_name: str | None
     created_at: datetime
     links: list[LinkOut]
@@ -124,6 +130,7 @@ class UploadIntentOut(BaseModel):
 class DocumentPatch(BaseModel):
     filename: str | None = Field(default=None, min_length=1, max_length=255)
     expires_on: date | None = None
+    in_portal: bool | None = Field(default=None, description="Whether an owner's portal users can open it")
 
 
 class ReviewIn(BaseModel):
@@ -164,13 +171,15 @@ def _check_entity(db: Session, p: Principal, entity_type: str, entity_id: uuid.U
         raise Invalid(f"{entity_type.capitalize()} not found", field="entity_id")
     if doc_type in SENSITIVE and not _see_sensitive(p):
         raise Forbidden("Your role does not allow handling licence or medical documents")
+    if doc_type in OWNER_SENSITIVE and not p.can("owners.sensitive.read"):
+        raise Forbidden("Your role does not allow handling tax or bank documents")
 
 
 def _get(db: Session, p: Principal, document_id: uuid.UUID, *, uploaded: bool = True) -> Document:
     doc = db.get(Document, document_id)
     if doc is None or (uploaded and doc.upload_status != "uploaded"):
         raise NotFound("Document not found")
-    if doc.type in SENSITIVE and not _see_sensitive(p):
+    if (doc.type in SENSITIVE and not _see_sensitive(p)) or (doc.type in OWNER_SENSITIVE and not p.can("owners.sensitive.read")):
         raise NotFound("Document not found")  # hidden rather than refused: its existence is not disclosed
     return doc
 
@@ -195,7 +204,7 @@ def _present(db: Session, docs: list[Document]) -> list[DocumentOut]:
         id=d.id, type=d.type, filename=d.filename, content_type=d.content_type, size_bytes=d.size_bytes,
         upload_status=d.upload_status, scan_status=d.scan_status, review_status=d.review_status,
         review_note=d.review_note, reviewed_by_name=names.get(d.reviewed_by), reviewed_at=d.reviewed_at,
-        expires_on=d.expires_on, uploaded_by_name=names.get(d.uploaded_by), created_at=d.created_at,
+        expires_on=d.expires_on, in_portal=d.in_portal, uploaded_by_name=names.get(d.uploaded_by), created_at=d.created_at,
         links=by_doc.get(d.id, [])) for d in docs]
 
 
@@ -295,6 +304,8 @@ def list_documents(params: Annotated[DocumentListParams, Query()],
     stmt = select(Document).where(Document.upload_status == "uploaded")
     if not _see_sensitive(p):
         stmt = stmt.where(Document.type.notin_(SENSITIVE))
+    if not p.can("owners.sensitive.read"):
+        stmt = stmt.where(Document.type.notin_(OWNER_SENSITIVE))
     if params.entity_type or params.entity_id:
         link = select(DocumentLink.id).where(DocumentLink.document_id == Document.id)
         if params.entity_type:

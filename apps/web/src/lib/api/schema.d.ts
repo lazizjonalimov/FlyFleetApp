@@ -808,6 +808,40 @@ export interface paths {
         patch: operations["update__api_v1_drivers__parent_id__qualifications__item_id__patch"];
         trace?: never;
     };
+    "/api/v1/equipment/ownership-transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change who owns a truck or trailer from a date; the shares must add up to 100% */
+        post: operations["transfer_api_v1_equipment_ownership_transfers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/equipment/ownerships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ownership history of a truck or trailer, or of an owner */
+        get: operations["list_ownerships_api_v1_equipment_ownerships_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/expenses": {
         parameters: {
             query?: never;
@@ -1496,6 +1530,269 @@ export interface paths {
         patch: operations["update_organization_api_v1_organization_patch"];
         trace?: never;
     };
+    "/api/v1/owners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Owners */
+        get: operations["list_owners_api_v1_owners_get"];
+        put?: never;
+        /**
+         * Create Owner
+         * @description Add an owner with their units, agreements, contacts and portal access, all at once.
+         */
+        post: operations["create_owner_api_v1_owners_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/portal-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The owner portal's permissions and presets */
+        get: operations["portal_catalogue_api_v1_owners_portal_permissions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Summary */
+        get: operations["get_summary_api_v1_owners_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Owner */
+        get: operations["get_owner_api_v1_owners__owner_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Owner */
+        patch: operations["update_owner_api_v1_owners__owner_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Loads, revenue split, costs and net for a range; monthly series for the charts */
+        get: operations["get_activity_api_v1_owners__owner_id__activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/agreements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Agreement */
+        post: operations["add_agreement_api_v1_owners__owner_id__agreements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/agreements/{agreement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Agreement */
+        patch: operations["update_agreement_api_v1_owners__owner_id__agreements__agreement_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents about the owner and their units; each shown in the portal or not */
+        get: operations["get_documents_api_v1_owners__owner_id__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/fuel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuel and expenses on the owner's units, who paid each, and fixed weekly chargebacks */
+        get: operations["get_fuel_api_v1_owners__owner_id__fuel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The owner's trucks: the load each is on and where it last reported from */
+        get: operations["get_live_api_v1_owners__owner_id__live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Work orders on the owner's units with who pays under each agreement, and what is coming up */
+        get: operations["get_maintenance_api_v1_owners__owner_id__maintenance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/portal-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Portal Permissions
+         * @description Turn the portal on or off and set its 12 permissions, or a preset. Applies on the owner's next click.
+         */
+        put: operations["set_portal_permissions_api_v1_owners__owner_id__portal_permissions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/portal-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Portal User */
+        post: operations["add_portal_user_api_v1_owners__owner_id__portal_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/portal-users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Portal User */
+        delete: operations["remove_portal_user_api_v1_owners__owner_id__portal_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owners/{owner_id}/sensitive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show tax ID, bank details and birth date (recorded in the audit log) */
+        post: operations["reveal_api_v1_owners__owner_id__sensitive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments": {
         parameters: {
             query?: never;
@@ -1566,6 +1863,193 @@ export interface paths {
          * @description Undo a payment recorded by mistake. The record stays; the invoices it paid are open again.
          */
         post: operations["reverse_payment_api_v1_payments__payment_id__reverse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find people by name, email or phone */
+        get: operations["search_api_v1_persons_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** People who are probably the one being entered */
+        get: operations["matches_api_v1_persons_matches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/{person_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Person */
+        get: operations["get_person_api_v1_persons__person_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/persons/{person_id}/distinctions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that a likely duplicate is a different person, with the reason */
+        post: operations["declare_different_api_v1_persons__person_id__distinctions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_v1_portal_owner_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activity */
+        get: operations["activity_api_v1_portal_owner_activity_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents */
+        get: operations["documents_api_v1_portal_owner_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/equipment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Equipment */
+        get: operations["equipment_api_v1_portal_owner_equipment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/fuel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuel */
+        get: operations["fuel_api_v1_portal_owner_fuel_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live */
+        get: operations["live_api_v1_portal_owner_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/owner/maintenance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Maintenance */
+        get: operations["maintenance_api_v1_portal_owner_maintenance_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2145,6 +2629,41 @@ export interface paths {
         patch: operations["update__api_v1_vehicles__item_id__patch"];
         trace?: never;
     };
+    "/api/v1/vehicles/{vehicle_id}/seat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set who drives a truck: a primary driver and, for a team, a co-driver and the split */
+        put: operations["set_seat_api_v1_vehicles__vehicle_id__seat_put"];
+        post?: never;
+        /** Nobody drives this truck from today */
+        delete: operations["clear_seat_api_v1_vehicles__vehicle_id__seat_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vehicles/{vehicle_id}/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who has driven a truck: the current seat assignment first */
+        get: operations["get_seats_api_v1_vehicles__vehicle_id__seats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2244,6 +2763,176 @@ export interface components {
             quantity: number | string;
             /** Unit Price */
             unit_price: number | string;
+        };
+        /** AgreementIn */
+        AgreementIn: {
+            /**
+             * Accessorials To Owner
+             * @default false
+             */
+            accessorials_to_owner: boolean;
+            /** Document Id */
+            document_id?: string | null;
+            /**
+             * Driver Pay By
+             * @default carrier
+             * @enum {string}
+             */
+            driver_pay_by: "carrier" | "owner" | "carrier_for_owner" | "owner_drives";
+            /**
+             * Effective From
+             * @description Defaults to the unit's start date
+             */
+            effective_from?: string | null;
+            /** Effective To */
+            effective_to?: string | null;
+            /**
+             * Eld Weekly
+             * @default 0
+             */
+            eld_weekly: number | string;
+            /** Fsc Pct */
+            fsc_pct?: number | string | null;
+            /**
+             * Fuel Paid By
+             * @default owner
+             * @enum {string}
+             */
+            fuel_paid_by: "owner" | "carrier";
+            /**
+             * Insurance Weekly
+             * @default 0
+             */
+            insurance_weekly: number | string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "owner_operator_lease" | "equipment_lease" | "fleet_lease" | "rental";
+            /**
+             * Maintenance Paid By
+             * @default owner
+             * @enum {string}
+             */
+            maintenance_paid_by: "owner" | "carrier";
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occupational Weekly
+             * @default 0
+             */
+            occupational_weekly: number | string;
+            /** Owner Pct */
+            owner_pct?: number | string | null;
+            /** Per Mile */
+            per_mile?: number | string | null;
+            /** Per Trailer Week */
+            per_trailer_week?: number | string | null;
+            /**
+             * Plates Weekly
+             * @default 0
+             */
+            plates_weekly: number | string;
+            /** Reference */
+            reference?: string | null;
+            /** Signed On */
+            signed_on?: string | null;
+        };
+        /** AgreementOut */
+        AgreementOut: {
+            /** Accessorials To Owner */
+            accessorials_to_owner: boolean;
+            /** Document Id */
+            document_id: string | null;
+            /** Driver Pay By */
+            driver_pay_by: string;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /** Eld Weekly */
+            eld_weekly: string;
+            /** Fsc Pct */
+            fsc_pct: string | null;
+            /** Fuel Paid By */
+            fuel_paid_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Insurance Weekly */
+            insurance_weekly: string;
+            /** Kind */
+            kind: string;
+            /** Maintenance Paid By */
+            maintenance_paid_by: string;
+            /** Notes */
+            notes: string | null;
+            /** Occupational Weekly */
+            occupational_weekly: string;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Owner Pct */
+            owner_pct: string | null;
+            /** Per Mile */
+            per_mile: string | null;
+            /** Per Trailer Week */
+            per_trailer_week: string | null;
+            /** Plates Weekly */
+            plates_weekly: string;
+            /** Reference */
+            reference: string | null;
+            /** Signed On */
+            signed_on: string | null;
+            /**
+             * Units
+             * @default 0
+             */
+            units: number;
+        };
+        /** AgreementUpdate */
+        AgreementUpdate: {
+            /** Accessorials To Owner */
+            accessorials_to_owner?: boolean | null;
+            /** Document Id */
+            document_id?: string | null;
+            /** Driver Pay By */
+            driver_pay_by?: ("carrier" | "owner" | "carrier_for_owner" | "owner_drives") | null;
+            /** Effective To */
+            effective_to?: string | null;
+            /** Eld Weekly */
+            eld_weekly?: number | string | null;
+            /** Fsc Pct */
+            fsc_pct?: number | string | null;
+            /** Fuel Paid By */
+            fuel_paid_by?: ("owner" | "carrier") | null;
+            /** Insurance Weekly */
+            insurance_weekly?: number | string | null;
+            /** Maintenance Paid By */
+            maintenance_paid_by?: ("owner" | "carrier") | null;
+            /** Notes */
+            notes?: string | null;
+            /** Occupational Weekly */
+            occupational_weekly?: number | string | null;
+            /** Owner Pct */
+            owner_pct?: number | string | null;
+            /** Per Mile */
+            per_mile?: number | string | null;
+            /** Per Trailer Week */
+            per_trailer_week?: number | string | null;
+            /** Plates Weekly */
+            plates_weekly?: number | string | null;
+            /** Reference */
+            reference?: string | null;
+            /** Signed On */
+            signed_on?: string | null;
         };
         /** AllocationIn */
         AllocationIn: {
@@ -2515,6 +3204,28 @@ export interface components {
             /** Type */
             type?: ("detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "other") | null;
         };
+        /** Chargeback */
+        Chargeback: {
+            /** Agreement Kind */
+            agreement_kind: string;
+            /** Label */
+            label: string;
+            /** Unit Number */
+            unit_number: string;
+            /** Weekly */
+            weekly: string;
+        };
+        /** ChecklistItem */
+        ChecklistItem: {
+            /** Detail */
+            detail?: string | null;
+            /** Done */
+            done: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
         /** CompaniesOut */
         CompaniesOut: {
             /**
@@ -2641,6 +3352,45 @@ export interface components {
             phone?: string | null;
             /** Title */
             title?: string | null;
+        };
+        /** ContactIn */
+        ContactIn: {
+            /**
+             * Is Primary
+             * @default false
+             */
+            is_primary: boolean;
+            /** Note */
+            note?: string | null;
+            person?: components["schemas"]["PersonIn"] | null;
+            /** Person Id */
+            person_id?: string | null;
+            /**
+             * Signs
+             * @default false
+             */
+            signs: boolean;
+            /** Title */
+            title?: string | null;
+        };
+        /** ContactOut */
+        ContactOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Primary */
+            is_primary: boolean;
+            /** Note */
+            note: string | null;
+            person: components["schemas"]["PersonLite"];
+            /** Portal */
+            portal?: ("active" | "invited") | null;
+            /** Signs */
+            signs: boolean;
+            /** Title */
+            title: string | null;
         };
         /** ContactRead */
         ContactRead: {
@@ -2958,6 +3708,16 @@ export interface components {
             /** Severity */
             severity: string;
         };
+        /** DistinctionIn */
+        DistinctionIn: {
+            /**
+             * Other Person Id
+             * Format: uuid
+             */
+            other_person_id: string;
+            /** Reason */
+            reason: string;
+        };
         /** DocumentOut */
         DocumentOut: {
             /** Content Type */
@@ -2976,6 +3736,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * In Portal
+             * @default false
+             */
+            in_portal: boolean;
             /** Links */
             links: components["schemas"]["LinkOut"][];
             /** Review Note */
@@ -3003,6 +3768,11 @@ export interface components {
             expires_on?: string | null;
             /** Filename */
             filename?: string | null;
+            /**
+             * In Portal
+             * @description Whether an owner's portal users can open it
+             */
+            in_portal?: boolean | null;
         };
         /** DriverCreate */
         DriverCreate: {
@@ -3015,6 +3785,11 @@ export interface components {
             /** Cdl State */
             cdl_state?: string | null;
             /**
+             * Date Of Birth
+             * @description Kept on the person, encrypted
+             */
+            date_of_birth?: string | null;
+            /**
              * Driver Type
              * @default company
              * @enum {string}
@@ -3024,6 +3799,13 @@ export interface components {
             email?: string | null;
             /** Employee Number */
             employee_number?: string | null;
+            /**
+             * Employer Owner Id
+             * @description An owner who hired this driver
+             */
+            employer_owner_id?: string | null;
+            /** Endorsements */
+            endorsements?: string | null;
             /** First Name */
             first_name: string;
             /** Hire Date */
@@ -3035,6 +3817,12 @@ export interface components {
             /** Notes */
             notes?: string | null;
             /**
+             * Pay By
+             * @default carrier
+             * @enum {string}
+             */
+            pay_by: "carrier" | "owner" | "carrier_for_owner";
+            /**
              * Pay Rate
              * @default 0
              */
@@ -3045,8 +3833,15 @@ export interface components {
              * @enum {string}
              */
             pay_type: "per_mile" | "percent" | "flat";
+            /**
+             * Person Id
+             * @description A person already on file: linked, not copied
+             */
+            person_id?: string | null;
             /** Phone */
             phone?: string | null;
+            /** Restrictions */
+            restrictions?: string | null;
             /**
              * Status
              * @default active
@@ -3118,16 +3913,29 @@ export interface components {
              */
             created_at: string;
             current_load: components["schemas"]["OtherLoad"] | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
             /** Driver Type */
             driver_type: string;
             /** Email */
             email: string | null;
             /** Employee Number */
             employee_number: string | null;
+            /** Employer Owner Id */
+            employer_owner_id: string | null;
+            /** Employer Owner Name */
+            employer_owner_name?: string | null;
+            /** Endorsements */
+            endorsements: string | null;
             /** First Name */
             first_name: string;
             /** Full Name */
             full_name: string;
+            /**
+             * Has Date Of Birth
+             * @default false
+             */
+            has_date_of_birth: boolean;
             /** Hire Date */
             hire_date: string | null;
             /**
@@ -3141,18 +3949,55 @@ export interface components {
             medical_cert_expiry: string | null;
             /** Notes */
             notes: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
+            /** Pay By */
+            pay_by: string;
             /** Pay Rate */
             pay_rate: string | null;
             /** Pay Type */
             pay_type: string | null;
+            /**
+             * Person Id
+             * Format: uuid
+             */
+            person_id: string;
             /** Phone */
             phone: string | null;
+            /** Restrictions */
+            restrictions: string | null;
             /** Status */
             status: string;
             /** Terminal Id */
             terminal_id: string | null;
+            unit?: components["schemas"]["SeatRef"] | null;
             /** User Id */
             user_id: string | null;
+        };
+        /** DriverRef */
+        DriverRef: {
+            /**
+             * Employer
+             * @default carrier
+             * @enum {string}
+             */
+            employer: "carrier" | "owner" | "self";
+            /** Employer Owner Id */
+            employer_owner_id?: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Pay By
+             * @default carrier
+             */
+            pay_by: string;
+            /** Status */
+            status?: string | null;
         };
         /** DriverTransition */
         DriverTransition: {
@@ -3180,12 +4025,18 @@ export interface components {
             cdl_number?: string | null;
             /** Cdl State */
             cdl_state?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
             /** Driver Type */
             driver_type?: ("company" | "owner_operator" | "contractor") | null;
             /** Email */
             email?: string | null;
             /** Employee Number */
             employee_number?: string | null;
+            /** Employer Owner Id */
+            employer_owner_id?: string | null;
+            /** Endorsements */
+            endorsements?: string | null;
             /** First Name */
             first_name?: string | null;
             /** Hire Date */
@@ -3196,12 +4047,16 @@ export interface components {
             medical_cert_expiry?: string | null;
             /** Notes */
             notes?: string | null;
+            /** Pay By */
+            pay_by?: ("carrier" | "owner" | "carrier_for_owner") | null;
             /** Pay Rate */
             pay_rate?: number | string | null;
             /** Pay Type */
             pay_type?: ("per_mile" | "percent" | "flat") | null;
             /** Phone */
             phone?: string | null;
+            /** Restrictions */
+            restrictions?: string | null;
             /** Status */
             status?: ("active" | "inactive" | "terminated") | null;
             /** Terminal Id */
@@ -3422,6 +4277,44 @@ export interface components {
             /** Vendor */
             vendor: string | null;
         };
+        /** ExpenseRow */
+        ExpenseRow: {
+            /** Amount */
+            amount: string;
+            /** Category */
+            category: string;
+            /** Driver Name */
+            driver_name: string | null;
+            /** Gallons */
+            gallons: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incurred On
+             * Format: date
+             */
+            incurred_on: string;
+            /** Jurisdiction */
+            jurisdiction: string | null;
+            /** On Settlement */
+            on_settlement: boolean;
+            /** Paid With */
+            paid_with: string | null;
+            /**
+             * Payer
+             * @enum {string}
+             */
+            payer: "owner" | "carrier";
+            /** Settlement Id */
+            settlement_id?: string | null;
+            /** Unit Number */
+            unit_number: string | null;
+            /** Vendor */
+            vendor: string | null;
+        };
         /**
          * ExpenseSummary
          * @description Spending in a date range (default: this month so far).
@@ -3583,6 +4476,18 @@ export interface components {
             trucks_on_load: number;
             /** Trucks Unavailable */
             trucks_unavailable: number;
+        };
+        /** FuelMonth */
+        FuelMonth: {
+            /** Carrier */
+            carrier: string;
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Owner */
+            owner: string;
         };
         /**
          * FuelSummary
@@ -3931,7 +4836,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner";
         };
         /** LinkOut */
         LinkOut: {
@@ -3944,7 +4849,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner";
             /**
              * Id
              * Format: uuid
@@ -3952,6 +4857,28 @@ export interface components {
             id: string;
             /** Label */
             label: string | null;
+        };
+        /** LiveUnit */
+        LiveUnit: {
+            /** Driver Name */
+            driver_name: string | null;
+            /** Lane */
+            lane: string | null;
+            /** Load Number */
+            load_number: string | null;
+            /** Place */
+            place: string | null;
+            /** Seen At */
+            seen_at: string | null;
+            /** Status */
+            status: string;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Unit Number */
+            unit_number: string;
         };
         /** LoadCreate */
         LoadCreate: {
@@ -4156,6 +5083,65 @@ export interface components {
             /** Weight Lbs */
             weight_lbs: number | null;
         };
+        /** LoadSplitOut */
+        LoadSplitOut: {
+            /** Accessorials */
+            accessorials: string;
+            /** Agreement Kind */
+            agreement_kind: string;
+            /** Carrier Share */
+            carrier_share: string;
+            /**
+             * Customer Name
+             * @description Left out in the owner portal
+             */
+            customer_name?: string | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Delivered At */
+            delivered_at: string | null;
+            /** Destination */
+            destination: string | null;
+            /** Driver Name */
+            driver_name: string | null;
+            /** Driver Pay */
+            driver_pay: string;
+            /** Fuel Surcharge */
+            fuel_surcharge: string;
+            /** Line Haul */
+            line_haul: string;
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Load Number */
+            load_number: string;
+            /** Miles */
+            miles: number;
+            /** On Time */
+            on_time: boolean | null;
+            /** Origin */
+            origin: string | null;
+            /** Owner Gross */
+            owner_gross: string;
+            /** Pickup At */
+            pickup_at: string | null;
+            /** Revenue */
+            revenue: string;
+            /** Status */
+            status: string;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Unit Number */
+            unit_number: string;
+        };
         /** LoadUpdate */
         LoadUpdate: {
             /** Bol Number */
@@ -4334,6 +5320,34 @@ export interface components {
             /** Request Id */
             request_id?: string | null;
         };
+        /** MonthOut */
+        MonthOut: {
+            /** By Unit */
+            by_unit: {
+                [key: string]: string;
+            };
+            /**
+             * Month
+             * Format: date
+             */
+            month: string;
+            /** Net */
+            net: string;
+            /** Owner Gross */
+            owner_gross: string;
+            /** Revenue */
+            revenue: string;
+        };
+        /** NotDuplicate */
+        NotDuplicate: {
+            /**
+             * Person Id
+             * Format: uuid
+             */
+            person_id: string;
+            /** Reason */
+            reason: string;
+        };
         /** NoteIn */
         NoteIn: {
             /** Body */
@@ -4464,6 +5478,532 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** OwnerActivity */
+        OwnerActivity: {
+            /** Active Loads */
+            active_loads: number;
+            /** By Unit */
+            by_unit: components["schemas"]["UnitFigures"][];
+            /** Carrier Share */
+            carrier_share: string;
+            /** Costs */
+            costs: {
+                [key: string]: string;
+            };
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Load Rows */
+            load_rows: components["schemas"]["LoadSplitOut"][];
+            /** Loads */
+            loads: number;
+            /** Miles */
+            miles: number;
+            /** Months */
+            months: components["schemas"]["MonthOut"][];
+            /** Net */
+            net: string;
+            /** On Time */
+            on_time: components["schemas"]["WeekOnTime"][];
+            /** Owner Costs */
+            owner_costs: string;
+            /** Owner Gross */
+            owner_gross: string;
+            /** Rental Gross */
+            rental_gross: string;
+            /** Revenue */
+            revenue: string;
+            /** Trucks */
+            trucks: number;
+            /** Trucks On Loads */
+            trucks_on_loads: number;
+            /** Units */
+            units: number;
+        };
+        /** OwnerCreate */
+        OwnerCreate: {
+            /** Account Number */
+            account_number?: string | null;
+            /** Ach Authorized */
+            ach_authorized?: boolean | null;
+            /** Bank Name */
+            bank_name?: string | null;
+            /** Business Type */
+            business_type?: ("llc" | "corporation" | "partnership" | "sole_proprietor") | null;
+            /** City */
+            city?: string | null;
+            /** Contacts */
+            contacts?: components["schemas"]["ContactIn"][];
+            /** Dba */
+            dba?: string | null;
+            /** Ein */
+            ein?: string | null;
+            /** Email */
+            email?: string | null;
+            /**
+             * Entity Type
+             * @enum {string}
+             */
+            entity_type: "individual" | "business";
+            /** Escrow Opening Balance */
+            escrow_opening_balance?: number | string | null;
+            /** Escrow Target */
+            escrow_target?: number | string | null;
+            /** Escrow Weekly */
+            escrow_weekly?: number | string | null;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Not Duplicates */
+            not_duplicates?: components["schemas"]["NotDuplicate"][];
+            /** Notes */
+            notes?: string | null;
+            /** Owner Since */
+            owner_since?: string | null;
+            /** Pay Day */
+            pay_day?: ("monday" | "tuesday" | "wednesday" | "thursday" | "friday") | null;
+            /** Pay Frequency */
+            pay_frequency?: ("weekly" | "biweekly") | null;
+            /** Payment Method */
+            payment_method?: ("ach" | "check") | null;
+            person?: components["schemas"]["PersonIn"] | null;
+            /**
+             * Person Id
+             * @description An individual who is already on file (linked, not copied)
+             */
+            person_id?: string | null;
+            /** @description Changes to the linked person's details */
+            person_updates?: components["schemas"]["PersonIn"] | null;
+            /** Phone */
+            phone?: string | null;
+            /** Portal Enabled */
+            portal_enabled?: boolean | null;
+            /** Portal Permissions */
+            portal_permissions?: string[] | null;
+            /** Portal Preset */
+            portal_preset?: ("full" | "monitor" | "bookkeeper") | null;
+            /** Portal Users */
+            portal_users?: components["schemas"]["PortalUserIn"][];
+            /** Postal Code */
+            postal_code?: string | null;
+            /** Routing Number */
+            routing_number?: string | null;
+            /** State */
+            state?: string | null;
+            /**
+             * Status
+             * @default onboarding
+             * @enum {string}
+             */
+            status: "onboarding" | "active" | "suspended" | "ended";
+            /** Street */
+            street?: string | null;
+            /** Units */
+            units?: components["schemas"]["UnitIn"][];
+        };
+        /** OwnerDetail */
+        OwnerDetail: {
+            /** Account Last4 */
+            account_last4: string | null;
+            /** Ach Authorized */
+            ach_authorized: boolean;
+            /** Active Loads */
+            active_loads: number;
+            /** Agreement Kinds */
+            agreement_kinds: string[];
+            /** Agreements */
+            agreements: components["schemas"]["AgreementOut"][];
+            /** Bank Name */
+            bank_name: string | null;
+            /** Business Type */
+            business_type: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "owner_operator" | "non_operating";
+            /** Checklist */
+            checklist: components["schemas"]["ChecklistItem"][];
+            /** City */
+            city: string | null;
+            /** Contact Name */
+            contact_name: string | null;
+            /** Contact Title */
+            contact_title: string | null;
+            /** Contacts */
+            contacts: components["schemas"]["ContactOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dba */
+            dba: string | null;
+            /** Documents */
+            documents: number;
+            /** Ein Last4 */
+            ein_last4: string | null;
+            /** Email */
+            email: string | null;
+            /** Employee Role */
+            employee_role?: string | null;
+            /** End Reason */
+            end_reason: string | null;
+            /** Ended On */
+            ended_on: string | null;
+            /** Entity Type */
+            entity_type: string;
+            /** Escrow Balance */
+            escrow_balance: string;
+            /** Escrow Target */
+            escrow_target: string;
+            /** Escrow Weekly */
+            escrow_weekly: string;
+            /** Has Routing */
+            has_routing: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Legal Name */
+            legal_name: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /** Owner Since */
+            owner_since: string | null;
+            /** Past Units */
+            past_units: components["schemas"]["UnitOut"][];
+            /** Pay Day */
+            pay_day: string;
+            /** Pay Frequency */
+            pay_frequency: string;
+            /** Payment Method */
+            payment_method: string;
+            person: components["schemas"]["PersonLite"] | null;
+            /** Phone */
+            phone: string | null;
+            /** Portal Enabled */
+            portal_enabled: boolean;
+            /** Portal Permissions */
+            portal_permissions: string[];
+            /** Portal Preset */
+            portal_preset: string | null;
+            /** Portal Users */
+            portal_users: number;
+            /** Portal Users List */
+            portal_users_list: components["schemas"]["PortalUserOut"][];
+            /** Postal Code */
+            postal_code: string | null;
+            /** State */
+            state: string | null;
+            /** Status */
+            status: string;
+            /** Street */
+            street: string | null;
+            /** Tax Id Last4 */
+            tax_id_last4: string | null;
+            /** Trailers */
+            trailers: number;
+            /** Trucks */
+            trucks: number;
+            /** Units */
+            units: components["schemas"]["UnitOut"][];
+        };
+        /** OwnerDocument */
+        OwnerDocument: {
+            /**
+             * Attached Kind
+             * @enum {string}
+             */
+            attached_kind: "owner" | "truck" | "trailer";
+            /** Attached To */
+            attached_to: string;
+            /** Expires On */
+            expires_on: string | null;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** In Portal */
+            in_portal: boolean;
+            /** Review Status */
+            review_status: string;
+            /** Type */
+            type: string;
+            /**
+             * Uploaded At
+             * Format: date-time
+             */
+            uploaded_at: string;
+        };
+        /** OwnerFuel */
+        OwnerFuel: {
+            /** Carrier Paid */
+            carrier_paid: string;
+            /** Chargebacks */
+            chargebacks: components["schemas"]["Chargeback"][];
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Fuel */
+            fuel: components["schemas"]["ExpenseRow"][];
+            /** Fuel Total */
+            fuel_total: string;
+            /** Gallons */
+            gallons: string;
+            /** Months */
+            months: components["schemas"]["FuelMonth"][];
+            /** Other */
+            other: components["schemas"]["ExpenseRow"][];
+            /** Owner Paid */
+            owner_paid: string;
+        };
+        /** OwnerMaintenance */
+        OwnerMaintenance: {
+            /** Upcoming */
+            upcoming: components["schemas"]["UpcomingItem"][];
+            /** Work Orders */
+            work_orders: components["schemas"]["WorkOrderRow"][];
+        };
+        /** OwnerRow */
+        OwnerRow: {
+            /** Active Loads */
+            active_loads: number;
+            /** Agreement Kinds */
+            agreement_kinds: string[];
+            /** Business Type */
+            business_type: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "owner_operator" | "non_operating";
+            /** City */
+            city: string | null;
+            /** Contact Name */
+            contact_name: string | null;
+            /** Contact Title */
+            contact_title: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Dba */
+            dba: string | null;
+            /** Email */
+            email: string | null;
+            /** Employee Role */
+            employee_role?: string | null;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Owner Since */
+            owner_since: string | null;
+            /** Phone */
+            phone: string | null;
+            /** Portal Enabled */
+            portal_enabled: boolean;
+            /** Portal Users */
+            portal_users: number;
+            /** State */
+            state: string | null;
+            /** Status */
+            status: string;
+            /** Trailers */
+            trailers: number;
+            /** Trucks */
+            trucks: number;
+        };
+        /** OwnerSensitive */
+        OwnerSensitive: {
+            /** Account Number */
+            account_number: string | null;
+            /** Date Of Birth */
+            date_of_birth: string | null;
+            /** Ein */
+            ein: string | null;
+            /** Routing Number */
+            routing_number: string | null;
+            /** Tax Id */
+            tax_id: string | null;
+        };
+        /** OwnerSummary */
+        OwnerSummary: {
+            /** Active */
+            active: number;
+            /** Businesses */
+            businesses: number;
+            /** Carrier Trailers */
+            carrier_trailers: number;
+            /** Carrier Trucks */
+            carrier_trucks: number;
+            /** Ended */
+            ended: number;
+            /** Fleet Trailers */
+            fleet_trailers: number;
+            /** Fleet Trucks */
+            fleet_trucks: number;
+            /** Individuals */
+            individuals: number;
+            /** Non Operating */
+            non_operating: number;
+            /** Onboarding */
+            onboarding: number;
+            /** Onboarding Trucks */
+            onboarding_trucks: number;
+            /** Owned Trailers */
+            owned_trailers: number;
+            /** Owned Trucks */
+            owned_trucks: number;
+            /** Owner Operators */
+            owner_operators: number;
+            /** Suspended */
+            suspended: number;
+            /** Tabs */
+            tabs: {
+                [key: string]: number;
+            };
+            /** Total */
+            total: number;
+        };
+        /** OwnerUpdate */
+        OwnerUpdate: {
+            /** Account Number */
+            account_number?: string | null;
+            /** Ach Authorized */
+            ach_authorized?: boolean | null;
+            /** Bank Name */
+            bank_name?: string | null;
+            /** Business Type */
+            business_type?: ("llc" | "corporation" | "partnership" | "sole_proprietor") | null;
+            /** City */
+            city?: string | null;
+            /**
+             * Contacts
+             * @description Replaces the contacts
+             */
+            contacts?: components["schemas"]["ContactIn"][] | null;
+            /** Dba */
+            dba?: string | null;
+            /**
+             * Effective On
+             * @description When unit changes take effect (default today)
+             */
+            effective_on?: string | null;
+            /** Ein */
+            ein?: string | null;
+            /** Email */
+            email?: string | null;
+            /** End Reason */
+            end_reason?: string | null;
+            /** Ended On */
+            ended_on?: string | null;
+            /** Escrow Opening Balance */
+            escrow_opening_balance?: number | string | null;
+            /** Escrow Target */
+            escrow_target?: number | string | null;
+            /** Escrow Weekly */
+            escrow_weekly?: number | string | null;
+            /** Legal Name */
+            legal_name?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Owner Since */
+            owner_since?: string | null;
+            /** Pay Day */
+            pay_day?: ("monday" | "tuesday" | "wednesday" | "thursday" | "friday") | null;
+            /** Pay Frequency */
+            pay_frequency?: ("weekly" | "biweekly") | null;
+            /** Payment Method */
+            payment_method?: ("ach" | "check") | null;
+            /** @description An individual owner's own details */
+            person?: components["schemas"]["PersonIn"] | null;
+            /** Phone */
+            phone?: string | null;
+            /** Portal Enabled */
+            portal_enabled?: boolean | null;
+            /** Portal Permissions */
+            portal_permissions?: string[] | null;
+            /** Portal Preset */
+            portal_preset?: ("full" | "monitor" | "bookkeeper") | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** Routing Number */
+            routing_number?: string | null;
+            /** State */
+            state?: string | null;
+            /** Status */
+            status?: ("onboarding" | "active" | "suspended" | "ended") | null;
+            /** Street */
+            street?: string | null;
+            /**
+             * Units
+             * @description Reconciles the units: removed ones end today and keep their history
+             */
+            units?: components["schemas"]["UnitIn"][] | null;
+        };
+        /** OwnershipOut */
+        OwnershipOut: {
+            /** Agreement Id */
+            agreement_id: string | null;
+            /** Agreement Kind */
+            agreement_kind?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Owner Id */
+            owner_id: string | null;
+            /** Owner Name */
+            owner_name?: string | null;
+            /** Reason */
+            reason: string | null;
+            /** Share Pct */
+            share_pct: string;
+            /** Trailer Id */
+            trailer_id: string | null;
+            /** Vehicle Id */
+            vehicle_id: string | null;
+        };
         /** PageInfo */
         PageInfo: {
             /**
@@ -4536,6 +6076,13 @@ export interface components {
         Page_LoadListItem_: {
             /** Items */
             items: components["schemas"]["LoadListItem"][];
+            meta: components["schemas"]["Meta"];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** Page[OwnerRow] */
+        Page_OwnerRow_: {
+            /** Items */
+            items: components["schemas"]["OwnerRow"][];
             meta: components["schemas"]["Meta"];
             page: components["schemas"]["PageInfo"];
         };
@@ -4754,6 +6301,192 @@ export interface components {
             key: string;
             /** Label */
             label: string;
+        };
+        /** PersonIn */
+        PersonIn: {
+            /** City */
+            city?: string | null;
+            /** Date Of Birth */
+            date_of_birth?: string | null;
+            /** Email */
+            email?: string | null;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+            /** Phone */
+            phone?: string | null;
+            /** Postal Code */
+            postal_code?: string | null;
+            /** State */
+            state?: string | null;
+            /** Street */
+            street?: string | null;
+            /**
+             * Tax Id
+             * @description SSN or EIN; stored encrypted
+             */
+            tax_id?: string | null;
+        };
+        /** PersonLite */
+        PersonLite: {
+            /** City */
+            city?: string | null;
+            /** Email */
+            email: string | null;
+            /** First Name */
+            first_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Name */
+            last_name: string;
+            /** Phone */
+            phone: string | null;
+            /** State */
+            state?: string | null;
+            /** Tax Id Last4 */
+            tax_id_last4: string | null;
+            /** User Id */
+            user_id?: string | null;
+        };
+        /** PersonMatch */
+        PersonMatch: {
+            person: components["schemas"]["PersonOut"];
+            /** Reasons */
+            reasons: string[];
+        };
+        /** PersonOut */
+        PersonOut: {
+            /** City */
+            city: string | null;
+            /** Email */
+            email: string | null;
+            /** First Name */
+            first_name: string;
+            /**
+             * Has Date Of Birth
+             * @default false
+             */
+            has_date_of_birth: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Name */
+            last_name: string;
+            /** Phone */
+            phone: string | null;
+            /**
+             * Roles
+             * @default []
+             */
+            roles: components["schemas"]["PersonRole"][];
+            /** State */
+            state: string | null;
+            /** Tax Id Last4 */
+            tax_id_last4: string | null;
+        };
+        /** PersonRole */
+        PersonRole: {
+            /** Id */
+            id?: string | null;
+            /** Label */
+            label: string;
+            /** Member Role */
+            member_role?: string | null;
+            /** Of */
+            of?: string | null;
+            /** Role */
+            role: string;
+            /** Status */
+            status?: string | null;
+        };
+        /** PortalHome */
+        PortalHome: {
+            /** Company */
+            company: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Labels */
+            labels: {
+                [key: string]: string;
+            };
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Owner Name */
+            owner_name: string;
+            /** Permissions */
+            permissions: string[];
+            /** Preview */
+            preview: boolean;
+            /** Read Only */
+            read_only: boolean;
+            /** Status */
+            status: string;
+            /** Viewer Name */
+            viewer_name: string;
+        };
+        /** PortalPermissionsIn */
+        PortalPermissionsIn: {
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Permissions */
+            permissions?: string[] | null;
+            /** Preset */
+            preset?: ("full" | "monitor" | "bookkeeper") | null;
+        };
+        /** PortalUserIn */
+        PortalUserIn: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Password
+             * @description Temporary password, needed only for a new sign-in
+             */
+            password?: string | null;
+            /** Person Id */
+            person_id?: string | null;
+        };
+        /** PortalUserOut */
+        PortalUserOut: {
+            /** Active */
+            active: boolean;
+            /** Email */
+            email: string;
+            /**
+             * Existing Account
+             * @description They already had a FlyFleet sign-in and keep their password
+             * @default false
+             */
+            existing_account: boolean;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Invited At
+             * Format: date-time
+             */
+            invited_at: string;
+            /** Last Sign In At */
+            last_sign_in_at?: string | null;
+            /** Signed In */
+            signed_in: boolean;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** PreferenceIn */
         PreferenceIn: {
@@ -4993,7 +6726,7 @@ export interface components {
          * Role
          * @enum {string}
          */
-        Role: "owner" | "admin" | "dispatcher" | "safety_manager" | "fleet_manager" | "accountant" | "viewer" | "driver" | "customer";
+        Role: "owner" | "admin" | "dispatcher" | "safety_manager" | "fleet_manager" | "accountant" | "viewer" | "driver" | "customer" | "owner_portal";
         /** RoleMatrixOut */
         RoleMatrixOut: {
             /** Groups */
@@ -5087,6 +6820,78 @@ export interface components {
              * @enum {string}
              */
             type: "load" | "customer" | "driver" | "vehicle" | "trailer" | "invoice" | "work_order";
+        };
+        /** SeatIn */
+        SeatIn: {
+            /** Co Driver Id */
+            co_driver_id?: string | null;
+            /**
+             * Driver Id
+             * Format: uuid
+             */
+            driver_id: string;
+            /** Effective From */
+            effective_from?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Team Split
+             * @default equal
+             * @enum {string}
+             */
+            team_split: "equal" | "miles";
+        };
+        /** SeatOut */
+        SeatOut: {
+            co_driver: components["schemas"]["DriverRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            driver: components["schemas"]["DriverRef"];
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string | null;
+            /** Team Split */
+            team_split: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
+        /** SeatRef */
+        SeatRef: {
+            /** Partner Id */
+            partner_id?: string | null;
+            /** Partner Name */
+            partner_name?: string | null;
+            /**
+             * Seat
+             * @enum {string}
+             */
+            seat: "primary" | "co_driver";
+            /** Team Split */
+            team_split?: string | null;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** SessionOut */
         SessionOut: {
@@ -5590,6 +7395,8 @@ export interface components {
             length_ft?: number | null;
             /** Make */
             make?: string | null;
+            /** Model */
+            model?: string | null;
             /** Notes */
             notes?: string | null;
             /**
@@ -5612,6 +7419,8 @@ export interface components {
             status: "active" | "in_maintenance" | "out_of_service" | "retired";
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Tracker */
+            tracker?: string | null;
             /**
              * Type
              * @default dry_van
@@ -5627,6 +7436,9 @@ export interface components {
         };
         /** TrailerRead */
         TrailerRead: {
+            /** Blocked Reason */
+            blocked_reason?: string | null;
+            co_driver?: components["schemas"]["UnitDriver"] | null;
             compliance: components["schemas"]["Compliance"];
             /**
              * Created At
@@ -5634,6 +7446,7 @@ export interface components {
              */
             created_at: string;
             current_load: components["schemas"]["OtherLoad"] | null;
+            driver?: components["schemas"]["UnitDriver"] | null;
             /**
              * Id
              * Format: uuid
@@ -5645,10 +7458,18 @@ export interface components {
             insurance_expiry?: string | null;
             /** Length Ft */
             length_ft?: number | null;
+            location?: components["schemas"]["UnitPlace"] | null;
             /** Make */
             make?: string | null;
+            /** Model */
+            model?: string | null;
             /** Notes */
             notes?: string | null;
+            /**
+             * Owners
+             * @default []
+             */
+            owners: components["schemas"]["UnitOwner"][];
             /**
              * Ownership
              * @default owned
@@ -5667,8 +7488,12 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            /** Team Split */
+            team_split?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Tracker */
+            tracker?: string | null;
             /**
              * Type
              * @default dry_van
@@ -5692,6 +7517,8 @@ export interface components {
             length_ft?: number | null;
             /** Make */
             make?: string | null;
+            /** Model */
+            model?: string | null;
             /** Notes */
             notes?: string | null;
             /** Ownership */
@@ -5706,6 +7533,8 @@ export interface components {
             status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Tracker */
+            tracker?: string | null;
             /** Type */
             type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
             /** Unit Number */
@@ -5714,6 +7543,34 @@ export interface components {
             vin?: string | null;
             /** Year */
             year?: number | null;
+        };
+        /** TransferIn */
+        TransferIn: {
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Reason */
+            reason: string;
+            /** Rows */
+            rows: components["schemas"]["TransferRow"][];
+            /** Trailer Id */
+            trailer_id?: string | null;
+            /** Vehicle Id */
+            vehicle_id?: string | null;
+        };
+        /** TransferRow */
+        TransferRow: {
+            /** Agreement Id */
+            agreement_id?: string | null;
+            /**
+             * Owner Id
+             * @description Empty for the carrier itself
+             */
+            owner_id?: string | null;
+            /** Share Pct */
+            share_pct: number | string;
         };
         /** TransitionIn */
         TransitionIn: {
@@ -5752,6 +7609,183 @@ export interface components {
             mpg: string | null;
             vehicle: components["schemas"]["Ref"];
         };
+        /** UnitDriver */
+        UnitDriver: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** UnitFigures */
+        UnitFigures: {
+            /** Carrier Share */
+            carrier_share: string;
+            /** Driver Name */
+            driver_name: string | null;
+            /** Driver Pay */
+            driver_pay: string;
+            /** Fuel */
+            fuel: string;
+            /** Kind */
+            kind: string;
+            /** Loads */
+            loads: number;
+            /** Miles */
+            miles: number;
+            /** Other Costs */
+            other_costs: string;
+            /** Owner Costs */
+            owner_costs: string;
+            /** Owner Gross */
+            owner_gross: string;
+            /** Owner Net */
+            owner_net: string;
+            /** Revenue */
+            revenue: string;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Unit Number */
+            unit_number: string;
+        };
+        /**
+         * UnitIn
+         * @description One row of "Equipment and ownership": how much they own, since when, under which agreement, and who
+         *     drives it.
+         */
+        UnitIn: {
+            agreement?: components["schemas"]["AgreementIn"] | null;
+            /** Agreement Id */
+            agreement_id?: string | null;
+            /**
+             * Driver Id
+             * @description Seat the driver now (set in Dispatch otherwise)
+             */
+            driver_id?: string | null;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /**
+             * Share Pct
+             * @default 100
+             */
+            share_pct: number | string;
+            /** Trailer Id */
+            trailer_id?: string | null;
+            /** Vehicle Id */
+            vehicle_id?: string | null;
+            /**
+             * Who Drives
+             * @description Trucks: the owner, a carrier driver, or the owner's hire
+             */
+            who_drives?: ("owner" | "carrier" | "owner_hire") | null;
+        };
+        /** UnitOut */
+        UnitOut: {
+            /** Agreement Id */
+            agreement_id: string | null;
+            /** Agreement Kind */
+            agreement_kind: string | null;
+            /** Blocked Reason */
+            blocked_reason?: string | null;
+            co_driver?: components["schemas"]["DriverRef"] | null;
+            /**
+             * Dispatchable
+             * @default true
+             */
+            dispatchable: boolean;
+            driver?: components["schemas"]["DriverRef"] | null;
+            /**
+             * Effective From
+             * Format: date
+             */
+            effective_from: string;
+            /** Effective To */
+            effective_to: string | null;
+            /** Inspection Expiry */
+            inspection_expiry?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "truck" | "trailer";
+            /** Make */
+            make: string | null;
+            /** Model */
+            model: string | null;
+            /** Odometer */
+            odometer?: number | null;
+            /**
+             * On Load
+             * @description Load number the unit is on now
+             */
+            on_load?: string | null;
+            /**
+             * Ownership Id
+             * Format: uuid
+             */
+            ownership_id: string;
+            /** Plate */
+            plate: string | null;
+            /** Plate State */
+            plate_state: string | null;
+            /** Registration Expiry */
+            registration_expiry?: string | null;
+            /** Share Pct */
+            share_pct: string;
+            /** Status */
+            status: string;
+            /** Team Split */
+            team_split?: string | null;
+            /** Trailer Type */
+            trailer_type?: string | null;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Unit Number */
+            unit_number: string;
+            /** Vin */
+            vin: string | null;
+            /** Who Drives */
+            who_drives?: ("owner" | "carrier" | "owner_hire") | null;
+            /** Year */
+            year: number | null;
+        };
+        /** UnitOwner */
+        UnitOwner: {
+            /** Agreement Kind */
+            agreement_kind: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Share Pct */
+            share_pct: string;
+            /**
+             * Since
+             * Format: date
+             */
+            since: string;
+        };
+        /** UnitPlace */
+        UnitPlace: {
+            /** Place */
+            place: string | null;
+            /** Seen At */
+            seen_at: string | null;
+        };
         /** UnitRef */
         UnitRef: {
             /**
@@ -5769,6 +7803,20 @@ export interface components {
              */
             type: "vehicle" | "trailer";
         };
+        /** UpcomingItem */
+        UpcomingItem: {
+            /** Days */
+            days: number;
+            /**
+             * Due On
+             * Format: date
+             */
+            due_on: string;
+            /** Label */
+            label: string;
+            /** Unit Number */
+            unit_number: string;
+        };
         /** UploadIntentIn */
         UploadIntentIn: {
             /** Content Type */
@@ -5782,7 +7830,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner";
             /** Expires On */
             expires_on?: string | null;
             /** Filename */
@@ -5793,7 +7841,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "other";
+            type: "bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "other";
         };
         /** UploadIntentOut */
         UploadIntentOut: {
@@ -5820,6 +7868,12 @@ export interface components {
         };
         /** VehicleCreate */
         VehicleCreate: {
+            /** Body */
+            body?: string | null;
+            /** Fuel Capacity Gal */
+            fuel_capacity_gal?: number | null;
+            /** Gvwr */
+            gvwr?: number | null;
             /** Inspection Expiry */
             inspection_expiry?: string | null;
             /** Insurance Expiry */
@@ -5842,6 +7896,8 @@ export interface components {
             plate?: string | null;
             /** Plate State */
             plate_state?: string | null;
+            /** Registered Owner */
+            registered_owner?: string | null;
             /** Registration Expiry */
             registration_expiry?: string | null;
             /**
@@ -5850,6 +7906,8 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            /** Telematics Device */
+            telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
             /** Unit Number */
@@ -5861,6 +7919,11 @@ export interface components {
         };
         /** VehicleRead */
         VehicleRead: {
+            /** Blocked Reason */
+            blocked_reason?: string | null;
+            /** Body */
+            body?: string | null;
+            co_driver?: components["schemas"]["UnitDriver"] | null;
             compliance: components["schemas"]["Compliance"];
             /**
              * Created At
@@ -5868,6 +7931,11 @@ export interface components {
              */
             created_at: string;
             current_load: components["schemas"]["OtherLoad"] | null;
+            driver?: components["schemas"]["UnitDriver"] | null;
+            /** Fuel Capacity Gal */
+            fuel_capacity_gal?: number | null;
+            /** Gvwr */
+            gvwr?: number | null;
             /**
              * Id
              * Format: uuid
@@ -5877,6 +7945,7 @@ export interface components {
             inspection_expiry?: string | null;
             /** Insurance Expiry */
             insurance_expiry?: string | null;
+            location?: components["schemas"]["UnitPlace"] | null;
             /** Make */
             make?: string | null;
             /** Model */
@@ -5885,6 +7954,11 @@ export interface components {
             notes?: string | null;
             /** Odometer */
             odometer?: number | null;
+            /**
+             * Owners
+             * @default []
+             */
+            owners: components["schemas"]["UnitOwner"][];
             /**
              * Ownership
              * @default owned
@@ -5895,6 +7969,8 @@ export interface components {
             plate?: string | null;
             /** Plate State */
             plate_state?: string | null;
+            /** Registered Owner */
+            registered_owner?: string | null;
             /** Registration Expiry */
             registration_expiry?: string | null;
             /**
@@ -5903,6 +7979,10 @@ export interface components {
              * @enum {string}
              */
             status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            /** Team Split */
+            team_split?: string | null;
+            /** Telematics Device */
+            telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
             /** Unit Number */
@@ -5914,6 +7994,12 @@ export interface components {
         };
         /** VehicleUpdate */
         VehicleUpdate: {
+            /** Body */
+            body?: string | null;
+            /** Fuel Capacity Gal */
+            fuel_capacity_gal?: number | null;
+            /** Gvwr */
+            gvwr?: number | null;
             /** Inspection Expiry */
             inspection_expiry?: string | null;
             /** Insurance Expiry */
@@ -5932,10 +8018,14 @@ export interface components {
             plate?: string | null;
             /** Plate State */
             plate_state?: string | null;
+            /** Registered Owner */
+            registered_owner?: string | null;
             /** Registration Expiry */
             registration_expiry?: string | null;
             /** Status */
             status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
+            /** Telematics Device */
+            telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
             /** Unit Number */
@@ -5954,6 +8044,20 @@ export interface components {
         VoidIn: {
             /** Reason */
             reason: string;
+        };
+        /** WeekOnTime */
+        WeekOnTime: {
+            /** Judged */
+            judged: number;
+            /** Late */
+            late: number;
+            /** On Time */
+            on_time: number;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
         };
         /** WorkOrderCreate */
         WorkOrderCreate: {
@@ -6101,6 +8205,38 @@ export interface components {
             number: string;
             /** Status */
             status: string;
+        };
+        /** WorkOrderRow */
+        WorkOrderRow: {
+            /** Completed On */
+            completed_on: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /**
+             * Opened On
+             * Format: date
+             */
+            opened_on: string;
+            /**
+             * Payer
+             * @enum {string}
+             */
+            payer: "owner" | "carrier";
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Total Cost */
+            total_cost: string;
+            /** Unit Number */
+            unit_number: string;
+            /** Vendor */
+            vendor: string | null;
         };
         /** WorkOrderTransition */
         WorkOrderTransition: {
@@ -8452,9 +10588,9 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense") | null;
+                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner") | null;
                 entity_id?: string | null;
-                type?: ("bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "other") | null;
+                type?: ("bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "other") | null;
                 review_status?: ("not_required" | "pending" | "approved" | "rejected") | null;
                 /** @description Only documents already expired or expiring soon */
                 expiring?: boolean | null;
@@ -9492,6 +11628,8 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
+                kind?: ("company" | "owners_drivers" | "owner_operators" | "team") | null;
+                employer_owner_id?: string | null;
                 status?: ("active" | "inactive" | "terminated") | null;
                 driver_type?: ("company" | "owner_operator" | "contractor") | null;
                 terminal_id?: string | null;
@@ -10057,6 +12195,144 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QualificationRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    transfer_api_v1_equipment_ownership_transfers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_ownerships_api_v1_equipment_ownerships_get: {
+        parameters: {
+            query?: {
+                vehicle_id?: string | null;
+                trailer_id?: string | null;
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnershipOut"][];
                 };
             };
             /** @description Unauthorized */
@@ -13974,6 +16250,1187 @@ export interface operations {
             };
         };
     };
+    list_owners_api_v1_owners_get: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page */
+                cursor?: string | null;
+                limit?: number;
+                /** @description Sort key; prefix with - for descending */
+                sort?: string | null;
+                /** @description Search text */
+                q?: string | null;
+                /** @description Also return the total number of matching records */
+                count?: boolean;
+                tab?: ("all" | "owner_operators" | "non_operating" | "individuals" | "businesses" | "onboarding" | "ended") | null;
+                status?: ("onboarding" | "active" | "suspended" | "ended") | null;
+                entity_type?: ("individual" | "business") | null;
+                agreement?: ("owner_operator_lease" | "equipment_lease" | "fleet_lease" | "rental") | null;
+                portal?: boolean | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OwnerRow_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_owner_api_v1_owners_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "idempotency-key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    portal_catalogue_api_v1_owners_portal_permissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_summary_api_v1_owners_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_owner_api_v1_owners__owner_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_owner_api_v1_owners__owner_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_activity_api_v1_owners__owner_id__activity_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+                unit_id?: string | null;
+            };
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerActivity"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_agreement_api_v1_owners__owner_id__agreements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgreementIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgreementOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_agreement_api_v1_owners__owner_id__agreements__agreement_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+                agreement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgreementUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgreementOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_documents_api_v1_owners__owner_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDocument"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_fuel_api_v1_owners__owner_id__fuel_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+            };
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFuel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_live_api_v1_owners__owner_id__live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveUnit"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_maintenance_api_v1_owners__owner_id__maintenance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerMaintenance"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_portal_permissions_api_v1_owners__owner_id__portal_permissions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalPermissionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_portal_user_api_v1_owners__owner_id__portal_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalUserIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalUserOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_portal_user_api_v1_owners__owner_id__portal_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reveal_api_v1_owners__owner_id__sensitive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSensitive"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_payments_api_v1_payments_get: {
         parameters: {
             query?: {
@@ -14284,6 +17741,763 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    search_api_v1_persons_get: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    matches_api_v1_persons_matches_get: {
+        parameters: {
+            query?: {
+                tax_id?: string | null;
+                phone?: string | null;
+                email?: string | null;
+                cdl_number?: string | null;
+                first_name?: string | null;
+                last_name?: string | null;
+                exclude?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonMatch"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_person_api_v1_persons__person_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    declare_different_api_v1_persons__person_id__distinctions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                person_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DistinctionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    home_api_v1_portal_owner_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalHome"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    activity_api_v1_portal_owner_activity_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+                unit_id?: string | null;
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerActivity"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    documents_api_v1_portal_owner_documents_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerDocument"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    equipment_api_v1_portal_owner_equipment_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    fuel_api_v1_portal_owner_fuel_get: {
+        parameters: {
+            query?: {
+                date_from?: string | null;
+                date_to?: string | null;
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerFuel"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    live_api_v1_portal_owner_live_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveUnit"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    maintenance_api_v1_portal_owner_maintenance_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: preview this owner's portal */
+                owner_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerMaintenance"];
                 };
             };
             /** @description Unauthorized */
@@ -16632,7 +20846,9 @@ export interface operations {
                 status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
+                owner_id?: string | null;
                 type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
+                kind?: ("loaded" | "yard" | "reefer" | "owner" | "no_tracker" | "shop") | null;
             };
             header?: never;
             path?: never;
@@ -16983,6 +21199,8 @@ export interface operations {
                 status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
+                owner_id?: string | null;
+                kind?: ("on_loads" | "owner" | "team" | "company" | "shop") | null;
             };
             header?: never;
             path?: never;
@@ -17269,6 +21487,209 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_seat_api_v1_vehicles__vehicle_id__seat_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    clear_seat_api_v1_vehicles__vehicle_id__seat_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_seats_api_v1_vehicles__vehicle_id__seats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeatOut"][];
                 };
             };
             /** @description Unauthorized */

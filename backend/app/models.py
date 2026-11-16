@@ -7,6 +7,7 @@ from app.modules.drivers.models import Driver, DriverQualification  # noqa: F401
 from app.modules.equipment.models import Trailer, Vehicle  # noqa: F401
 from app.modules.expenses.models import Expense  # noqa: F401
 from app.modules.finance.models import Invoice, InvoiceLine, Payment, PaymentAllocation  # noqa: F401
+from app.modules.fleet.models import UnitAssignment  # noqa: F401
 from app.modules.loads.models import (  # noqa: F401
     Load,
     LoadCharge,
@@ -28,4 +29,6 @@ from app.modules.organizations.models import (  # noqa: F401
     User,
     UserPreference,
 )
+from app.modules.owners.models import EquipmentOwnership, Owner, OwnerAgreement, OwnerContact  # noqa: F401
+from app.modules.people.models import Person, PersonDistinction  # noqa: F401
 from app.modules.settlements.models import DriverSettlement, SettlementLine  # noqa: F401

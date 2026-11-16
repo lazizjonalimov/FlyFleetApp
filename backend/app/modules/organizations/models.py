@@ -20,7 +20,8 @@ from sqlalchemy.types import Uuid
 
 from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 
-ROLES = "('owner','admin','dispatcher','safety_manager','fleet_manager','accountant','viewer','driver','customer')"
+ROLES = ("('owner','admin','dispatcher','safety_manager','fleet_manager','accountant','viewer','driver','customer',"
+         "'owner_portal')")
 
 
 class User(Base, IdMixin, TimestampMixin):
@@ -86,10 +87,15 @@ class Membership(Base, IdMixin, TenantScoped, TimestampMixin):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     role: Mapped[str] = mapped_column(String(30))
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Owner portal sign-ins: the owner whose equipment they may see. Nothing else in the company is theirs.
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     __table_args__ = (
         UniqueConstraint("organization_id", "user_id"),
         UniqueConstraint("organization_id", "id"),
+        ForeignKeyConstraint(["organization_id", "owner_id"], ["owners.organization_id", "owners.id"],
+                             name="fk_memberships_owner", ondelete="CASCADE"),
         CheckConstraint(f"role IN {ROLES}", name="role_valid"),
+        CheckConstraint("(role = 'owner_portal') = (owner_id IS NOT NULL)", name="portal_needs_owner"),
     )
 
 

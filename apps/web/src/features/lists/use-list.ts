@@ -59,6 +59,8 @@ export type ListSpec<Item extends { id: string }> = {
   adds?: string[];
   hidden?: string;
   empty: EmptyState;
+  /** Rows shown first on the first page of the first tab with no search: e.g. the carrier's own fleet. */
+  pinned?: Row[];
 };
 
 export type ListStatus = "loading" | "error" | "empty" | "filtered" | "ready";
@@ -119,13 +121,15 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   const sortKey = sort.replace(/^-/, "");
   const restart = { lpage: [], lsel: [] };
 
-  const rows: Row[] = items.map((item) => {
+  const pinned = !cursor && tabIndex === 0 && !q ? (spec.pinned ?? []).map((row) => ({ ...row, cells: spec.bulk ? [{ isTx: 1, v: "" } as Cell, ...row.cells] : row.cells })) : [];
+  const itemRows: Row[] = items.map((item) => {
     const on = selected.includes(item.id);
     const row: Cell[] = spec.columns.map((column) => column.cell(item));
     if (spec.bulk) row.unshift(cells.check(on, () => set({ lsel: on ? selected.filter((key) => key !== item.id) : [...selected, item.id] })));
     const open = spec.open;
     return { key: item.id, cls: [spec.rowClass?.(item), on ? "sel" : ""].filter(Boolean).join(" "), cells: row, open: open ? () => open(item) : noop };
   });
+  const rows: Row[] = [...pinned, ...itemRows];
 
   const matching = query.data?.page.total_count ?? null;
   const first = trail.length * PAGE_SIZE + 1;

@@ -24,6 +24,14 @@ class Vehicle(Base, IdMixin, TenantScoped, TimestampMixin):
     make: Mapped[str | None] = mapped_column(String(60))
     model: Mapped[str | None] = mapped_column(String(60))
     year: Mapped[int | None] = mapped_column(Integer)
+    # e.g. "Sleeper", "Day cab", as on the registration's body type.
+    body: Mapped[str | None] = mapped_column(String(40))
+    gvwr: Mapped[int | None] = mapped_column(Integer)
+    # The registered owner's name as printed on the registration.
+    registered_owner: Mapped[str | None] = mapped_column(String(200))
+    # The telematics provider's device or vehicle id, so positions map to this truck.
+    telematics_device: Mapped[str | None] = mapped_column(String(80))
+    fuel_capacity_gal: Mapped[int | None] = mapped_column(Integer)
     ownership: Mapped[str] = mapped_column(String(20), default="owned", server_default="owned")
     terminal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     odometer: Mapped[int | None] = mapped_column(Integer)
@@ -41,6 +49,8 @@ class Vehicle(Base, IdMixin, TenantScoped, TimestampMixin):
         CheckConstraint("status IN " + str(STATUSES), name="status_valid"),
         CheckConstraint("ownership IN " + str(OWNERSHIP), name="ownership_valid"),
         CheckConstraint("odometer IS NULL OR odometer >= 0", name="odometer_nonneg"),
+        CheckConstraint("gvwr IS NULL OR gvwr > 0", name="gvwr_pos"),
+        CheckConstraint("fuel_capacity_gal IS NULL OR fuel_capacity_gal > 0", name="tank_pos"),
     )
 
 
@@ -52,7 +62,10 @@ class Trailer(Base, IdMixin, TenantScoped, TimestampMixin):
     plate: Mapped[str | None] = mapped_column(String(20))
     plate_state: Mapped[str | None] = mapped_column(String(2))
     make: Mapped[str | None] = mapped_column(String(60))
+    model: Mapped[str | None] = mapped_column(String(60))
     year: Mapped[int | None] = mapped_column(Integer)
+    # A tracker's asset tag, so the trailer shows on the map.
+    tracker: Mapped[str | None] = mapped_column(String(80))
     length_ft: Mapped[int | None] = mapped_column(Integer)
     ownership: Mapped[str] = mapped_column(String(20), default="owned", server_default="owned")
     terminal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)

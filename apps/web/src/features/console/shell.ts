@@ -21,7 +21,7 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
       ["messages", "Messages", "msg", ["dispatch.read"]],
     ],
   },
-  { label: "Directory", items: [["customers", "Customers", "building", ["customers.read"]], ["drivers", "Drivers", "user", ["drivers.read"]], ["owners", "Owners", "owner", ["equipment.read"]]] },
+  { label: "Directory", items: [["customers", "Customers", "building", ["customers.read"]], ["drivers", "Drivers", "user", ["drivers.read"]], ["owners", "Owners", "owner", ["owners.read"]]] },
   {
     label: "Safety & fleet",
     items: [
@@ -39,7 +39,7 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
 ];
 
 /** The section a record's or sub-screen's address belongs to. */
-const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", stmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
+const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", stmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
 
 /** The platform operator's area is not part of a company's workspace: no company role opens it. */
 const SECTIONS: Record<string, { label: string; anyOf: string[] }> = { platform: { label: "Organizations", anyOf: ["platform.support"] } };
@@ -47,12 +47,13 @@ for (const group of NAV) for (const [key, label, , anyOf] of group.items) SECTIO
 
 /** What Create offers, and the permission each needs. */
 const CREATE: [kind: string, title: string, sub: string, icon: keyof typeof I, anyOf: string[]][] = [
-  ["load", "New load", "A guided form: customer, stops, rate", "loads", ["loads.create"]],
-  ["driver", "Add a driver", "Licence, medical card and pay", "user", ["drivers.manage"]],
-  ["truck", "Add a truck", "Unit, plate and paper dates", "truck", ["equipment.manage"]],
-  ["trailer", "Add a trailer", "Unit, type and paper dates", "trailer", ["equipment.manage"]],
-  ["inspection", "Log an inspection", "Pre-trip, annual or roadside", "inspect", ["safety.manage"]],
-  ["invoice", "New invoice", "From a customer’s completed loads", "invoice", ["invoices.create"]],
+  ["load", "New load", "From a rate confirmation or by hand", "loads", ["loads.create"]],
+  ["driver", "Add a driver", "Scan a CDL, type it in or import", "user", ["drivers.manage"]],
+  ["truck", "Add a truck", "Scan the registration or type it in", "truck", ["equipment.manage"]],
+  ["trailer", "Add a trailer", "Scan the registration or type it in", "trailer", ["equipment.manage"]],
+  ["inspection", "Log an inspection", "Scan the roadside report or type it in", "inspect", ["safety.manage"]],
+  ["invoice", "New invoice", "From a POD, or pick the loads yourself", "invoice", ["invoices.create"]],
+  ["owner", "Add an owner", "Owner-operator, fleet owner or investor", "owner", ["owners.manage"]],
 ];
 /** The permission needed to add each kind of record. */
 export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(CREATE.map(([kind, , , , anyOf]) => [kind, anyOf])), fuel: ["expenses.manage"], customer: ["customers.manage"], payment: ["payments.record"], statement: ["settlements.manage"], payout: ["settlements.manage"], workorder: ["maintenance.manage"], member: ["users.manage"] };
@@ -158,7 +159,7 @@ export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, 
     acctExp: overlay === "account" ? ("true" as const) : ("false" as const),
     toggleCreate: () => set({ overlay: overlay === "create" ? "none" : "create" }),
     toggleAcct: () => set({ overlay: overlay === "account" ? "none" : "account" }),
-    CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "load" ? goTo("newload") : addOf(key)) })),
+    CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "load" ? goTo("newload") : key === "owner" ? { ...goTo("ownerform"), ownerForm: "new", ownerId: null } : addOf(key)) })),
     ACCT: ACCOUNT.map(([t, icon, kbd]) => ({ t, ic: I[icon], kbd })),
     hasModal: modal !== "none" && can(...(ADD_PERMISSION[kind] ?? [])),
     closeModal: () => set({ modal: "none" }),

@@ -1,16 +1,28 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
 from app.core.db import Base, IdMixin, TenantScoped
 
 DOCUMENT_TYPES = ("bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance", "registration",
-                  "inspection", "maintenance", "invoice", "other")
+                  "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card", "ach_authorization",
+                  "other")
 # What a document can be attached to.
-ENTITY_TYPES = ("load", "driver", "vehicle", "trailer", "customer", "work_order", "invoice", "expense")
+ENTITY_TYPES = ("load", "driver", "vehicle", "trailer", "customer", "work_order", "invoice", "expense", "owner")
 
 
 class Document(Base, IdMixin, TenantScoped):
@@ -30,6 +42,8 @@ class Document(Base, IdMixin, TenantScoped):
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_on: Mapped[date | None] = mapped_column(Date)
+    # Whether an owner's portal users can open it (only ever documents about that owner or their units).
+    in_portal: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     uploaded_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (

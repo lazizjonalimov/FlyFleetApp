@@ -46,7 +46,7 @@ export type Location = {
 export function parseLocation(pathname: string, query: Query): Location {
   const parts = pathname.split("/").filter(Boolean);
   // every address settles these, so nothing remembered from another screen leaks in
-  const base = { drawer: null, loadId: null, driverId: null, unitId: null, statementId: null, docId: null };
+  const base = { drawer: null, loadId: null, driverId: null, unitId: null, statementId: null, docId: null, ownerId: null, ownerForm: null };
   const at = (screen: string, state: ConsoleState = {}): Location => ({ known: true, state: { ...base, screen, ...state } });
 
   const path = parts.slice(1).join("/");
@@ -57,6 +57,11 @@ export function parseLocation(pathname: string, query: Query): Location {
 
   const [a, b, c, d] = parts.slice(1);
   if (a === "loads" && b && !c) return at("load", { loadId: b });
+  if (a === "owners" && b === "new" && !c) return at("ownerform", { ownerForm: "new" });
+  if (a === "owners" && b && !c) return at("owner", { ownerId: b });
+  if (a === "owners" && b && c === "edit" && !d) return at("ownerform", { ownerForm: "edit", ownerId: b });
+  if (a === "owners" && b && c === "portal" && !d) return at("ownerportal", { ownerId: b });
+  if (a === "portal" && !b) return at("ownerportal");
   if (a === "drivers" && b && !c) return at("driver", { driverId: b });
   if (a === "equipment" && (b === "trucks" || b === "trailers") && c && !d) return at("truck", { unitId: c, unitKind: b === "trucks" ? "truck" : "trailer" });
   if (a === "finance" && b === "statements" && c && !d) return at("stmt", { statementId: c });
@@ -64,7 +69,7 @@ export function parseLocation(pathname: string, query: Query): Location {
 }
 
 /** State that the address carries. A change to any of these is a navigation. */
-const LOCATION_KEYS = ["screen", "drawer", "loadId", "driverId", "unitId", "statementId", "docId"];
+const LOCATION_KEYS = ["screen", "drawer", "loadId", "driverId", "unitId", "statementId", "docId", "ownerId", "ownerForm"];
 export const touchesLocation = (patch: ConsoleState): boolean => LOCATION_KEYS.some((key) => key in patch);
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
@@ -77,6 +82,9 @@ export function hrefOf(state: ConsoleState, slug: string): string {
   if (screen === "driver" && text(state.driverId)) path = `drivers/${encodeURIComponent(text(state.driverId))}`;
   if (screen === "truck" && text(state.unitId)) path = `equipment/${state.unitKind === "trailer" ? "trailers" : "trucks"}/${encodeURIComponent(text(state.unitId))}`;
   if (screen === "stmt" && text(state.statementId)) path = `finance/statements/${encodeURIComponent(text(state.statementId))}`;
+  if (screen === "owner" && text(state.ownerId)) path = `owners/${encodeURIComponent(text(state.ownerId))}`;
+  if (screen === "ownerform") path = state.ownerForm === "edit" && text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/edit` : "owners/new";
+  if (screen === "ownerportal") path = text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/portal` : "portal";
   const query = screen === "loads" && text(state.drawer) ? `?drawer=${encodeURIComponent(text(state.drawer))}` : screen === "docreview" && text(state.docId) ? `?doc=${encodeURIComponent(text(state.docId))}` : "";
   return `/${slug}/${path}${query}`;
 }

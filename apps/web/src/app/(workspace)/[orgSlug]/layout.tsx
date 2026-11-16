@@ -3,6 +3,7 @@ import { SwitchOrganization } from "@/features/auth/switch-organization";
 import { ConsoleFrame } from "@/features/console/console-frame";
 import { ConsoleProvider } from "@/features/console/console-provider";
 import { SurfaceFrame } from "@/features/console/surface-frame";
+import { PortalFrame } from "@/features/owners/portal-frame";
 import { getMe } from "@/lib/auth/server";
 import { SessionProvider } from "@/lib/auth/session";
 
@@ -23,6 +24,17 @@ export default async function WorkspaceLayout({ children, params }: LayoutProps<
       <SurfaceFrame>
         <SwitchOrganization me={me} target={other} />
       </SurfaceFrame>
+    );
+  }
+
+  // An owner's portal sign-in gets the portal at every address, and nothing else.
+  if (me.organization.role === "owner_portal") {
+    return (
+      <SessionProvider me={me}>
+        <ConsoleProvider>
+          <PortalFrame />
+        </ConsoleProvider>
+      </SessionProvider>
     );
   }
 

@@ -16,6 +16,7 @@ from app.modules.dispatch.models import DispatchAssignment
 from app.modules.drivers.models import Driver, DriverQualification
 from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.loads.models import Load
+from app.modules.owners.service import blocked_units
 from app.modules.safety.rules import driver_issues, unit_issues
 
 # A load in one of these states has a claim on its driver and equipment.
@@ -120,11 +121,14 @@ def driver_reasons(load: Load, driver: Driver, qualifications, others: list[Othe
 
 
 def unit_reasons(load: Load, unit: Vehicle | Trailer, others: list[OtherLoad], today: date, now: datetime,
-                 what: str) -> list[Reason]:
+                 what: str, owner_block: str | None = None) -> list[Reason]:
     reasons: list[Reason] = []
     if unit.status != "active":
         reasons.append(Reason(code="UNIT_NOT_ACTIVE", severity="blocking",
                               message=f"{what} is {unit.status.replace('_', ' ')}"))
+    if owner_block:
+        # Owned equipment runs only once its owner is set up: lease, title, W-9, insurance and ACH on file.
+        reasons.append(Reason(code="OWNER_NOT_READY", severity="blocking", message=owner_block))
     reasons += _compliance(unit_issues(unit, today))
     reasons += _schedule(load, others, now, what)
     if isinstance(unit, Trailer) and unit.type != load.equipment_type:
@@ -153,10 +157,13 @@ def check_trio(db: Session, load: Load, driver: Driver, vehicle: Vehicle, traile
     """Everything wrong with assigning exactly these three to the load. Call it with the rows locked."""
     held = commitments(db, load)
     quals = qualifications_by_driver(db, [driver.id]).get(driver.id, [])
+    blocked = blocked_units(db, [vehicle.id], [trailer.id] if trailer is not None else None)
     reasons = driver_reasons(load, driver, quals, held.get(("driver", driver.id), []), today, now)
-    reasons += unit_reasons(load, vehicle, held.get(("vehicle", vehicle.id), []), today, now, "Truck")
+    reasons += unit_reasons(load, vehicle, held.get(("vehicle", vehicle.id), []), today, now, "Truck",
+                            blocked.get(vehicle.id))
     if trailer is not None:
-        reasons += unit_reasons(load, trailer, held.get(("trailer", trailer.id), []), today, now, "Trailer")
+        reasons += unit_reasons(load, trailer, held.get(("trailer", trailer.id), []), today, now, "Trailer",
+                                blocked.get(trailer.id))
     return reasons
 
 
@@ -197,9 +204,12 @@ def evaluate(db: Session, load: Load, today: date, now: datetime, *, q: str | No
 
     def units(model, kind: Kind, what: str) -> list[Candidate]:
         out = []
-        for u in pick(model, (model.unit_number, model.plate, model.vin), (model.unit_number,)):
+        candidates = pick(model, (model.unit_number, model.plate, model.vin), (model.unit_number,))
+        ids = [u.id for u in candidates]
+        blocked = blocked_units(db, ids if kind == "vehicle" else None, ids if kind == "trailer" else None)
+        for u in candidates:
             others = held.get((kind, u.id), [])
-            reasons = unit_reasons(load, u, others, today, now, what)
+            reasons = unit_reasons(load, u, others, today, now, what, blocked.get(u.id))
             detail = (u.type.replace("_", " ") if isinstance(u, Trailer)
                       else " ".join(str(x) for x in (u.year, u.make, u.model) if x) or None)
             out.append(Candidate(id=u.id, name=u.unit_number, detail=detail, terminal_id=u.terminal_id,

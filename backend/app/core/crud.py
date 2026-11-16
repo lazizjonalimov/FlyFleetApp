@@ -47,7 +47,7 @@ def apply_filters(stmt, model, params: ListParams, search: tuple[str, ...]):
         if name in _COMMON:
             continue
         value = getattr(params, name)
-        if value is not None:
+        if value is not None and hasattr(model, name):  # other filters are applied by the router's list_filter
             stmt = stmt.where(getattr(model, name) == value)
     return stmt
 
@@ -75,12 +75,14 @@ def resource_router(
     present: Callable[[Session, list[Any], Principal], list[Any]] | None = None,
     audit_redact: tuple[str, ...] = (), before_save: Hook | None = None, before_delete: Guard | None = None,
     archivable: bool = False, deletable: bool = True, detail: bool = True,
+    list_filter: Callable[[Session, Any, Any], Any] | None = None,
 ) -> APIRouter:
     """
     present        shapes a page of rows for a particular caller in one go (masking a field for some roles,
                    attaching values worked out from other tables) without a query per row
     before_save    validates or adjusts incoming data against the database; raise to reject
     before_delete  raise to refuse a delete or an archive
+    list_filter    narrows the list statement for filters that aren't plain columns (stmt, params) -> stmt
     archivable     adds /archive and /restore (status 'archived' <-> 'active') for records that must not vanish
     """
     r = APIRouter(prefix=prefix, tags=[tag])
@@ -97,6 +99,8 @@ def resource_router(
     def list_(params: Annotated[list_params, Query()], p: Principal = Depends(require(read_perm)),
               db: Session = Depends(get_db)):
         stmt = apply_filters(select(model), model, params, search)
+        if list_filter:
+            stmt = list_filter(db, stmt, params)
         rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, default_sort), model.id,
                               cursor=params.cursor, limit=params.limit, count=params.count)
         return envelope(show_all(db, rows, p), info)

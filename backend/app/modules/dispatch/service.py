@@ -12,6 +12,7 @@ from app.modules.dispatch import eligibility
 from app.modules.dispatch.models import DispatchAssignment
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Trailer, Vehicle
+from app.modules.fleet.models import UnitAssignment
 from app.modules.loads import service as loads
 from app.modules.loads.models import Load, LoadStatusEvent
 
@@ -61,8 +62,16 @@ def assign(db: Session, p: Principal, load: Load, driver_id: uuid.UUID, vehicle_
         current.release_reason = note or "Reassigned"
         db.flush()  # the old row must stop being active before the new one is inserted
 
+    # A team truck carries both seats: the co-driver comes from the truck's seat assignment.
+    seat = db.scalar(select(UnitAssignment).where(UnitAssignment.vehicle_id == vehicle_id,
+                                                  UnitAssignment.effective_to.is_(None)))
+    co_driver_id = None
+    if seat is not None and seat.co_driver_id:
+        co_driver_id = seat.co_driver_id if seat.driver_id == driver_id else (
+            seat.driver_id if seat.co_driver_id == driver_id else None)
     assignment = DispatchAssignment(organization_id=p.org_id, load_id=load.id, driver_id=driver_id,
-                                    vehicle_id=vehicle_id, trailer_id=trailer_id, assigned_by=p.user_id)
+                                    co_driver_id=co_driver_id, vehicle_id=vehicle_id, trailer_id=trailer_id,
+                                    assigned_by=p.user_id)
     db.add(assignment)
     db.flush()
     data = {"driver_id": str(driver_id), "vehicle_id": str(vehicle_id),

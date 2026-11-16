@@ -45,7 +45,7 @@ export function SignIn() {
         setPending(null);
         return;
       }
-      hardNavigate(safeNext(search.get("next"), `/${reply.organization.slug}/dashboard`));
+      hardNavigate(safeNext(search.get("next"), `/${reply.organization.slug}/${reply.organization.role === "owner_portal" ? "portal" : "dashboard"}`));
     } catch (error) {
       if (organization) setFormError(errorMessage(error));
       else {

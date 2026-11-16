@@ -8,6 +8,7 @@ new key, old rows still decrypt, and re-saving a row re-encrypts it.
 """
 import base64
 import hashlib
+import hmac
 from functools import lru_cache
 
 from cryptography.fernet import Fernet, InvalidToken, MultiFernet
@@ -55,6 +56,17 @@ class EncryptedText(TypeDecorator):
 
     def process_result_value(self, value: str | None, dialect) -> str | None:  # noqa: ANN001
         return None if value is None else decrypt(value)
+
+
+def lookup_hash(value: str | None) -> str | None:
+    """A keyed hash of an encrypted value, so equal values can be found without decrypting every row (finding
+    the same person by tax ID, say). Keyed from the field-encryption key, so a dump alone can't be matched
+    against a list of guesses."""
+    if not value:
+        return None
+    first = (get_settings().field_encryption_keys.split(",")[0].strip() or _DEV_KEY.decode()).encode()
+    key = hashlib.sha256(b"flyfleet lookup:" + first).digest()
+    return hmac.new(key, value.strip().upper().replace("-", "").replace(" ", "").encode(), hashlib.sha256).hexdigest()
 
 
 def mask(value: str | None, visible: int = 4) -> str | None:

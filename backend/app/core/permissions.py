@@ -16,6 +16,7 @@ class Role(StrEnum):
     VIEWER = "viewer"        # read-only manager
     DRIVER = "driver"        # driver app only
     CUSTOMER = "customer"    # customer portal only (not built yet)
+    OWNER_PORTAL = "owner_portal"  # an equipment owner's sign-in: their own units only, as their permissions allow
 
 
 ROLE_LABELS = {
@@ -28,6 +29,7 @@ ROLE_LABELS = {
     Role.VIEWER: ("Read-only manager", "Can see operations and reports but change nothing"),
     Role.DRIVER: ("Driver", "Driver app only: own assignments"),
     Role.CUSTOMER: ("Customer", "Customer portal only"),
+    Role.OWNER_PORTAL: ("Owner portal", "Owner portal · their own equipment only"),
 }
 
 # Permission catalogue, grouped the way the role matrix screen shows it.
@@ -55,6 +57,9 @@ PERMISSION_GROUPS: dict[str, dict[str, str]] = {
         "drivers.sensitive.read": "See full licence numbers and pay settings",
         "equipment.read": "See trucks and trailers",
         "equipment.manage": "Create and edit trucks and trailers",
+        "owners.read": "See owners, what they own and their agreements",
+        "owners.manage": "Add and edit owners, agreements, ownership and owner portal access",
+        "owners.sensitive.read": "See owners' tax IDs and bank details",
     },
     "Safety and fleet": {
         "safety.read": "See compliance status and inspections",
@@ -92,40 +97,42 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "dashboard.read", "reports.read",
         "loads.read", "loads.create", "loads.update", "loads.cancel", "loads.close", "loads.rates.read",
         "dispatch.read", "dispatch.assign",
-        "customers.read", "customers.manage", "drivers.read", "equipment.read",
+        "customers.read", "customers.manage", "drivers.read", "equipment.read", "owners.read",
         "safety.read", "maintenance.read", "documents.read", "documents.upload",
         "invoices.read",
     },
     Role.SAFETY_MANAGER: {
         "dashboard.read", "reports.read",
         "loads.read", "dispatch.read",
-        "drivers.read", "drivers.manage", "drivers.sensitive.read", "equipment.read",
+        "drivers.read", "drivers.manage", "drivers.sensitive.read", "equipment.read", "owners.read",
         "safety.read", "safety.manage", "maintenance.read",
         "documents.read", "documents.upload", "documents.delete",
     },
     Role.FLEET_MANAGER: {
         "dashboard.read", "reports.read",
         "loads.read", "dispatch.read", "drivers.read",
-        "equipment.read", "equipment.manage", "safety.read", "safety.manage",
+        "equipment.read", "equipment.manage", "owners.read", "safety.read", "safety.manage",
         "maintenance.read", "maintenance.manage",
         "documents.read", "documents.upload", "expenses.read", "expenses.manage",
     },
     Role.ACCOUNTANT: {
         "dashboard.read", "reports.read", "reports.export",
         "loads.read", "loads.rates.read", "loads.close", "customers.read", "drivers.read",
-        "drivers.sensitive.read", "equipment.read",
+        "drivers.sensitive.read", "equipment.read", "owners.read", "owners.sensitive.read",
         "documents.read", "documents.upload",
         "invoices.read", "invoices.create", "payments.read", "payments.record",
         "expenses.read", "expenses.manage", "settlements.read", "settlements.manage",
     },
-    Role.VIEWER: set(READ) - {"audit.read", "drivers.sensitive.read"},
+    Role.VIEWER: set(READ) - {"audit.read", "drivers.sensitive.read", "owners.sensitive.read"},
     # Drivers use only /driver/* endpoints, which are tied to their own released assignments.
     Role.DRIVER: {"driver.self"},
     Role.CUSTOMER: set(),
+    # Portal reads only, further limited per owner by the switches the company sets (owners.portal_permissions).
+    Role.OWNER_PORTAL: {"owner_portal.read"},
 }
 
 # Roles that can be given to staff from the team screen.
-ASSIGNABLE = [r for r in Role if r is not Role.CUSTOMER]
+ASSIGNABLE = [r for r in Role if r not in (Role.CUSTOMER, Role.OWNER_PORTAL)]
 
 
 def permissions_for(role: str) -> set[str]:
