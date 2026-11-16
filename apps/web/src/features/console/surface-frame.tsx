@@ -1,12 +1,12 @@
 "use client";
 
-import { useConsole } from "@/features/console/console-provider";
+import { useTheme } from "@/features/console/console-provider";
 
-/** The application root for a surface that stands outside the console shell. */
+/** The application root for a surface that stands outside the console shell: sign-in, sign-up, choosing a company. */
 export function SurfaceFrame({ children }: { children: React.ReactNode }) {
-  const { theme, density } = useConsole();
+  const theme = useTheme();
   return (
-    <div className="ff" data-theme={theme} data-density={density}>
+    <div className="ff" data-theme={theme} data-density="compact">
       {children}
     </div>
   );

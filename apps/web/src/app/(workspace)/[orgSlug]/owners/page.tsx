@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ListScreen } from "@/features/lists/list-screen";
+import { OwnersScreen } from "@/features/directory/owners-screen";
 
 export const metadata: Metadata = { title: "Owners" };
 
-export default function OwnersPage() {
-  return <ListScreen />;
+export default function Page() {
+  return <OwnersScreen />;
 }

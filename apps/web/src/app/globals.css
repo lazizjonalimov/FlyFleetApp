@@ -150,35 +150,6 @@
   min-width: 1024px;
 }
 
-/*
- * The live map is drawn on a 1208×788 sheet, the size of its area in the design's window. In a window of another
- * size the sheet is scaled to cover the area (--fit, set by MapCover): what is pinned to it moves with it and
- * keeps its own size. At the design's size --fit is 1 and nothing here has any effect.
- */
-.ff .mapw > .msvg,
-.ff .mapw > .fence {
-  zoom: var(--fit, 1);
-}
-.ff .mapw > .fence > .fencel {
-  transform: translate(-50%, 3px) scale(calc(1 / var(--fit, 1)));
-  transform-origin: 50% 0;
-}
-.ff .mapw > .city,
-.ff .mapw > .shield,
-.ff .mapw > .vcl {
-  zoom: var(--fit, 1);
-  transform: translate(-50%, -50%) scale(calc(1 / var(--fit, 1)));
-}
-.ff .mapw > .vm {
-  zoom: var(--fit, 1);
-  transform: translate(-13px, -13px) scale(calc(1 / var(--fit, 1)));
-  transform-origin: 13px 13px;
-}
-.ff .mapw > .vm.sel {
-  transform: translate(-17px, -17px) scale(calc(1 / var(--fit, 1)));
-  transform-origin: 17px 17px;
-}
-
 @media print {
   .no-print {
     display: none !important;

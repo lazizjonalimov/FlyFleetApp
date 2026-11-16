@@ -23,7 +23,7 @@ api: ## Run the API with reload on http://localhost:8000
 web: ## Run the web app with reload on http://localhost:3000
 	cd apps/web && npm run dev
 
-seed: ## Create a demo company with sample data (the API must be running)
+seed: ## Development only: create a demo company with sample records through the API (the API must be running)
 	cd backend && .venv/bin/python scripts/seed_demo.py
 
 test: ## Run backend and web unit tests (backend needs `make db`)

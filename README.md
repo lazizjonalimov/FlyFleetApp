@@ -7,26 +7,30 @@ from day one. One owner profile can run **up to ten companies**, each with its o
 them in one click.
 
 > **Status.** The API covers everything in the table below. The web console is **Design 1.0**: the FlyFleet
-> design built screen for screen, running on the Lone Star Freight workspace built into it. Its screens are
-> not connected to the API yet. Progress is tracked in [docs/roadmap.md](docs/roadmap.md).
+> design, screen for screen, running on the API. Every record on screen is the signed-in company's own; a new
+> company starts empty. Progress is tracked in [docs/roadmap.md](docs/roadmap.md).
 
 ## The web console today
 
-The console at app.flyfleet.io is the design, one to one: the same design system in light and dark, 38
-screens, and the same roles deciding what each person sees.
+The console at app.flyfleet.io is built on the FlyFleet design system, in light and dark, with the role of
+the signed-in person deciding what they see. It reads and writes everything through the API.
 
 | Area | Screens |
 | --- | --- |
-| Overview | Role-aware dashboard with financials for roles that may see money, My tasks |
-| Operations | Dispatch board with the assignment panel and conflict handling, Loads with saved views, bulk actions and the detail drawer, the load's page, the guided new-load form, Live fleet map, Fleet alerts, Messages |
-| Directory | Customers, Drivers and the driver profile, Owners with the nine-tab owner record, add and edit owner |
-| Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks and the truck record, Trailers, Maintenance board |
-| Finance and analytics | Invoices, Statements (driver pay and owner settlements) and the settlement statement, Fuel & IFTA (purchases, mileage, quarterly return, tax rates), Reports |
-| Administration | Team & access with the permission matrix, Dispatch teams, Integrations, Fleet alert policy, Audit log, Platform |
-| Everywhere | Search (⌘K), notifications, Ask FlyFleet, Create, add by photo or by hand, spreadsheet import |
-| Outside the console | Sign-in and organization choice, customer portal, equipment owner's portal |
+| Overview | Role-aware dashboard (with financials for roles that may see money), Fleet alerts from the API's live exceptions |
+| Operations | Dispatch board with the assignment panel (eligibility and conflicts from the API), Loads with the detail drawer, the load's page with every lifecycle action, the guided new-load form |
+| Directory | Customers, Drivers and the driver profile with the qualification file |
+| Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks, Trailers and the unit record, Maintenance board with work orders |
+| Finance and analytics | Invoices with receivables aging, driver pay statements, Fuel purchases by state and truck, Reports with CSV export |
+| Administration | Team & access (members, roles and the permission matrix), company settings, Audit log |
+| Everywhere | Search (⌘K), notifications, Create and edit forms for drivers, trucks, trailers, customers, inspections, invoices, payments, statements, fuel and work orders |
+| Outside the console | Sign-up, sign-in, choosing and switching company |
 
-How it is built, its addresses, and how to view it as each role: [apps/web/README.md](apps/web/README.md).
+Screens of the design that have nothing behind them in the API yet show an empty state that says so: My
+tasks, Live fleet positions, Messages, Owners, Dispatch teams, integrations, alert policies, IFTA returns and
+tax rates, and Ask FlyFleet.
+
+How it is built: [apps/web/README.md](apps/web/README.md).
 
 ## What the API does today
 
@@ -46,8 +50,8 @@ How it is built, its addresses, and how to view it as each role: [apps/web/READM
 | Driver access | A driver sees and updates only the loads they are hauling, and can add the proof of delivery |
 
 Not built yet: the driver mobile app, the website, ELD, and the AWS infrastructure. In the API: the customer
-and owner portals, live tracking, messages, equipment owners and their settlements, IFTA, dispatch teams and
-the assistant, which the console already shows from its built-in workspace.
+and owner portals, live tracking, messages, tasks, equipment owners and their settlements, IFTA, dispatch
+teams and the assistant. The console shows those screens empty until they exist.
 
 ## Architecture in one minute
 
@@ -89,17 +93,11 @@ You need Docker, and for development Python 3.12 or newer (developed on 3.13) an
 Run these on the computer where you want to use the app: `localhost` in the addresses below means that
 machine.
 
-### The console on its own
+### Trying it
 
-The console needs nothing else running:
-
-```bash
-cd apps/web
-npm install
-npm run dev
-```
-
-Open http://localhost:3000, continue through sign-in and choose **Lone Star Freight**.
+The console needs the API and its database. The quickest way to have all three is the next section; then
+create an account at http://localhost:3000/signup, or run `make seed` to create a demo company with sample
+records through the API (development only: it prints the sign-in it made).
 
 ### Everything in containers
 
@@ -212,9 +210,8 @@ docs/                Architecture, decisions, roadmap, the implementation audit
 
 ## Known limitations
 
-- **The console is not connected to the API.** It shows the workspace built into it, the same on every
-  visit, and nothing entered in it is saved. The API client and the session routes are in place for
-  connecting it screen by screen.
+- **Some screens of the design have no API yet** (tasks, live positions, messages, owners, dispatch teams,
+  integrations, alert policies, IFTA, the assistant). They show an empty state saying so, never sample data.
 - **Sign-in is local email and password** with signed tokens. Cognito, MFA, password reset by email and
   invitations by email are deferred to the deployment phase
   ([decision 0003](docs/decisions/0003-local-adapters-until-deployment.md)). An administrator sets a

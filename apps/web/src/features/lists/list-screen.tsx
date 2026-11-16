@@ -5,13 +5,16 @@ import { clsx } from "clsx";
 import { DataCell } from "@/components/data-table/cells";
 import { ChangeDetail } from "@/components/data-table/change-detail";
 import { Icon } from "@/components/ui/icon";
-import { useConsole } from "@/features/console/console-provider";
+import { EmptyState, ErrorState, FilteredEmpty, Skeleton } from "@/components/feedback/states";
 import { tx } from "@/features/console/dom";
+import type { ListResult } from "./use-list";
 
-/** The shared list screen: tasks, alerts, customers, drivers, owners, trucks, trailers, inspections, documents, invoices, statements, audit log and platform organizations. */
-export function ListScreen() {
-  const { isList, L } = useConsole();
-  if (!isList) return null;
+/**
+ * The shared list screen: a title and actions, tabs, figures, search and filters, and one table that sorts,
+ * selects and pages. What it lists comes from `useList`.
+ */
+export function ListScreen({ list }: { list: ListResult }) {
+  const { L, status, pager } = list;
   return (
     <>
       <div className="col">
@@ -106,7 +109,7 @@ export function ListScreen() {
         <div className="fb">
           <label className="search">
             <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" />
-            <input placeholder={L.ph} aria-label={`Search ${L.title}`} defaultValue={L.qv} onInput={L.setQ} />
+            <input placeholder={L.ph} aria-label={`Search ${L.title}`} value={L.qv} onChange={L.setQ} />
           </label>
           {L.chips.map((ch, i) => (
             <button key={i} className="chip">
@@ -166,29 +169,37 @@ export function ListScreen() {
                   </div>
                 ))}
               </div>
-              <div className="tb2">
-                {L.rows.map((r, i) => (
-                  <Fragment key={i}>
-                    <div className={clsx("trow", r.cls)} style={{ gridTemplateColumns: L.cols }} onClick={r.open}>
-                      {r.cells.map((c, i2) => (
-                        <DataCell key={i2} c={c} />
-                      ))}
-                    </div>
-                    <ChangeDetail r={r} />
-                  </Fragment>
-                ))}
-              </div>
+              {status === "ready" ? (
+                <div className="tb2">
+                  {L.rows.map((r) => (
+                    <Fragment key={r.key}>
+                      <div className={clsx("trow", r.cls)} style={{ gridTemplateColumns: L.cols }} onClick={r.open}>
+                        {r.cells.map((c, i2) => (
+                          <DataCell key={i2} c={c} />
+                        ))}
+                      </div>
+                      <ChangeDetail r={r} />
+                    </Fragment>
+                  ))}
+                </div>
+              ) : null}
             </div>
+            {status === "loading" ? <Skeleton /> : null}
           </div>
+          {status === "error" ? <ErrorState error={list.error} retry={list.retry} /> : null}
+          {status === "filtered" ? <FilteredEmpty what={L.title.toLowerCase()} clear={list.clearFilters} /> : null}
+          {status === "empty" ? (
+            <EmptyState icon={list.empty.icon} title={list.empty.title} text={list.empty.text}>
+              {list.empty.action ? <button className="btn sm pri" onClick={list.empty.action.go}>{list.empty.action.label}</button> : null}
+            </EmptyState>
+          ) : null}
           <div className="tfoot">
             <span className="num"><span>{L.foot}</span></span>
             <span className="sp"></span>
             <div className="pg">
-              <button aria-label="Previous page" disabled><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
-              <button className="on">1</button>
-              <button>2</button>
-              <button>3</button>
-              <button aria-label="Next page"><Icon className="s14" d="M9 6l6 6-6 6" /></button>
+              <button aria-label="Previous page" disabled={!pager.previous} onClick={pager.previous ?? undefined}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
+              <button className="on" aria-current="page">{pager.page}</button>
+              <button aria-label="Next page" disabled={!pager.next} onClick={pager.next ?? undefined}><Icon className="s14" d="M9 6l6 6-6 6" /></button>
             </div>
           </div>
         </div>

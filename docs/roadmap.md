@@ -2,41 +2,33 @@
 
 ## Design 1.0: the web console
 
-The console was rebuilt from the FlyFleet design, screen for screen, and checked against it: all 96 console
-artboards of the design render identically at the design's size, and the same structure and layout hold
-across roughly 1,500 further states (every screen for every role, tab, record and dialog).
+The console is built on the FlyFleet design and runs on the API: sign-in and company switching are real, every
+screen reads the signed-in company's records, and the forms write through the API with its rules (permissions,
+eligibility, lifecycle, conflicts). A new company starts empty; no screen shows sample content.
 
-It runs on the Lone Star Freight workspace built into it. The table below is where each part of it stands
-against the API: "API today" means the API already has the records the screen shows; the rest needs the API
-built first.
-
-| Console | API today |
+| Console | Data |
 | --- | --- |
-| Sign-in, choosing an organization | Yes: sign-in, companies, switching |
-| Dashboard, My tasks | Partly: dashboard and exceptions; no tasks |
-| Dispatch board and assignment | Yes |
-| Loads, the load's page, new load | Yes |
-| Live fleet, Fleet alerts, Fleet alert policy | No: needs telematics |
-| Messages | No |
-| Customers, Drivers, Trucks, Trailers | Yes; no equipment owners or team drivers |
-| Owners, owner record, owner settlements, owner portal | No |
-| Compliance, Inspections, Documents and review | Yes; no reading of documents from photos |
-| Maintenance | Yes |
-| Invoices | Yes |
-| Statements: driver pay | Yes |
-| Fuel & IFTA | Partly: fuel purchases by state and truck; no IFTA miles, returns or rates |
-| Reports | Partly: revenue, drivers, trucks, receivables aging |
-| Team & access, Audit log | Yes; no dispatch teams |
-| Integrations, Platform, Ask FlyFleet, customer portal | No |
+| Sign-up, sign-in, choosing and switching company | API |
+| Dashboard, Fleet alerts, notifications | API: summary, exceptions, receivables, revenue |
+| Dispatch board and assignment | API |
+| Loads, the load's page, new load | API |
+| Customers, Drivers, Trucks, Trailers, unit and driver records | API |
+| Compliance, Inspections, Documents and review | API |
+| Maintenance | API: work orders |
+| Invoices, driver pay statements | API |
+| Fuel | API: purchases, fuel by state and by truck. IFTA miles, returns and rates: empty, not built |
+| Reports | API: revenue, drivers, trucks, receivables aging, CSV |
+| Team & access, company settings, Audit log | API |
+| My tasks, Live fleet positions, Messages, Owners, Dispatch teams, Integrations, Alert policies, Ask FlyFleet | Empty states: the API has none of these yet |
 
-Next for the console: connect it to the API a screen at a time, starting with the ones marked Yes; then the
-driver mobile app and the website from the same design.
+Next for the console: the API for the screens still empty, then the driver mobile app and the website from the
+same design.
 
 ## The API and the first web application
 
 Status against the build order in the engineering instructions. "Done" means built, tested and working in
-this repository. The API column is the rules; the Web column is the first web application, which Design 1.0
-replaces and which remains on the `main` branch.
+this repository. The API column is the rules; the Web column is the first web application, whose features Design
+1.0 carries on in the new design (the first application itself remains on the `main` branch).
 
 | # | Step | API | Web |
 | --- | --- | --- | --- |

@@ -1,16 +1,131 @@
 "use client";
 
-import { Fragment } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
-import { BasicCell } from "@/components/data-table/cells";
-import { ChangeDetail } from "@/components/data-table/change-detail";
+import { useState } from "react";
+import { Problem } from "@/components/feedback/dialog";
+import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
+import { I } from "@/features/console/icons";
+import { goTo } from "@/features/console/shell";
+import { useAction } from "@/features/console/use-action";
+import { api, unwrap } from "@/lib/api/client";
+import { ApiError, errorMessage } from "@/lib/api/errors";
+import type { Schema } from "@/lib/api/types";
 
-/** Settings: integrations and the fleet alert policy. */
+type Organization = Schema<"OrganizationOut">;
+type Page = "organization" | "numbering" | "notifications" | "policy" | "integrations" | "retention" | "billing";
+
+const NAV: { l: string; ic: string; page?: Page; screen?: string }[] = [
+  { l: "Organization", ic: I.building, page: "organization" },
+  { l: "Team & access", ic: I.team, screen: "team" },
+  { l: "Dispatch teams", ic: I.truck, screen: "teams" },
+  { l: "Notifications", ic: I.bell, page: "notifications" },
+  { l: "Fleet alert policies", ic: I.alert, page: "policy" },
+  { l: "Integrations", ic: I.link, page: "integrations" },
+  { l: "Numbering & formats", ic: I.sliders, page: "numbering" },
+  { l: "Data & retention", ic: I.history, page: "retention" },
+  { l: "Billing & plan", ic: I.dollar, page: "billing" },
+  { l: "Audit log", ic: I.history, screen: "audit" },
+];
+const SUB: Record<Page, string> = {
+  organization: "The company’s legal details, contact and time zone",
+  numbering: "How loads and invoices are numbered",
+  notifications: "Who is told what, and how",
+  policy: "When a fleet event becomes an alert, and who is told",
+  integrations: "Telematics, fuel cards, accounting and messaging providers",
+  retention: "How long records and documents are kept",
+  billing: "Your FlyFleet subscription",
+};
+
+type Form = Record<string, string>;
+const FIELDS: { k: keyof Organization & string; l: string; span: number; hint?: string; mono?: boolean }[] = [
+  { k: "name", l: "Company name", span: 3 },
+  { k: "legal_name", l: "Legal name", span: 3 },
+  { k: "dot_number", l: "USDOT number", span: 2, mono: true },
+  { k: "mc_number", l: "MC number", span: 2, mono: true },
+  { k: "timezone", l: "Time zone", span: 2, hint: "“Today” on every screen is today here", mono: true },
+  { k: "phone", l: "Phone", span: 2 },
+  { k: "email", l: "Billing email", span: 4 },
+  { k: "address", l: "Address", span: 3 },
+  { k: "city", l: "City", span: 1 },
+  { k: "state", l: "State", span: 1, mono: true },
+  { k: "postal_code", l: "ZIP", span: 1, mono: true },
+];
+const NUMBERING: { k: keyof Organization & string; l: string; span: number; hint?: string; mono?: boolean }[] = [
+  { k: "load_number_prefix", l: "Load number prefix", span: 2, mono: true, hint: "Loads are numbered like L-1001" },
+  { k: "invoice_number_prefix", l: "Invoice number prefix", span: 2, mono: true, hint: "Invoices are numbered like INV-1001" },
+  { k: "default_payment_terms_days", l: "Default payment terms (days)", span: 2, mono: true, hint: "For new customers" },
+];
+
+/** The organization form: shown with the record's values, saved as one change. */
+function OrganizationForm({ organization, fields }: { organization: Organization; fields: typeof FIELDS }) {
+  const { can } = useConsole();
+  const act = useAction();
+  const start: Form = Object.fromEntries(fields.map((field) => [field.k, String(organization[field.k] ?? "")]));
+  const [values, setValues] = useState<Form>(start);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [problem, setProblem] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const changed = fields.filter((field) => values[field.k] !== start[field.k]);
+  const editable = can("organization.manage");
+
+  async function save() {
+    setPending(true);
+    setProblem(null);
+    setErrors({});
+    const body = Object.fromEntries(changed.map((field) => [field.k, field.k === "default_payment_terms_days" ? (values[field.k] ? Number(values[field.k]) : null) : values[field.k]!.trim() || null]));
+    try {
+      await unwrap(api.PATCH("/api/v1/organization", { body }));
+      await act(async () => undefined, "Company settings saved");
+    } catch (error) {
+      setErrors(error instanceof ApiError ? error.fieldErrors : {});
+      setProblem(errorMessage(error));
+    }
+    setPending(false);
+  }
+
+  return (
+    <section className="card oh" style={{ maxWidth: "860px" }}>
+      <div className="cb c g12">
+        <Problem message={problem} />
+        <div className="sgrid" style={{ padding: "0" }}>
+          {fields.map((field) => (
+            <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
+              <label htmlFor={`org-${field.k}`}>{field.l}</label>
+              <input id={`org-${field.k}`} className={clsx("inp", field.mono && "mono", errors[field.k] && "err")} value={values[field.k] ?? ""} disabled={!editable} onChange={(event) => setValues({ ...values, [field.k]: event.target.value })} />
+              {errors[field.k] ? <span className="errt">{errors[field.k]}</span> : field.hint ? <span className="hint">{field.hint}</span> : null}
+            </div>
+          ))}
+        </div>
+      </div>
+      {editable ? (
+        <div className="savebar">
+          <span className="dot" data-k={changed.length ? "warn" : "ok"}></span>
+          <span className="fs13">{changed.length ? <b>{`${changed.length} unsaved ${changed.length === 1 ? "change" : "changes"}`}</b> : "Saved"}</span>
+          <span className="sp"></span>
+          <button className="btn" onClick={() => setValues(start)} disabled={!changed.length || pending}>Discard</button>
+          <button className="btn pri" onClick={() => void save()} disabled={!changed.length || pending}>{pending ? "Saving…" : "Save"}</button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** Settings: the company, and how FlyFleet works for it. */
 export function SettingsScreen() {
-  const { isSettings, SET, isPolicy, isInteg, PO, M, IN } = useConsole();
-  if (!isSettings) return null;
+  const { me, state, set, screen } = useConsole();
+  const org = me.organization.id;
+  const page: Page = screen === "policy" ? "policy" : typeof state.setpage === "string" && state.setpage in SUB && state.setpage !== "policy" ? (state.setpage as Page) : "integrations";
+  const organization = useQuery({ queryKey: [org, "organization"], queryFn: () => unwrap(api.GET("/api/v1/organization")), staleTime: 300_000 });
+  const label = NAV.find((item) => item.page === page)?.l ?? "Settings";
+  const go = (item: (typeof NAV)[number]) => {
+    if (item.screen) return set(goTo(item.screen));
+    if (item.page === "policy") return set({ ...goTo("policy"), setpage: "policy" });
+    set({ ...(screen === "settings" ? {} : goTo("settings")), setpage: item.page });
+  };
+
   return (
     <div className="col">
       <div className="ph" style={{ paddingBottom: "14px", borderBottom: "1px solid var(--bd)" }}>
@@ -20,282 +135,40 @@ export function SettingsScreen() {
             <Icon className="s12" d="M9 6l6 6-6 6" />
             <span>Settings</span>
             <Icon className="s12" d="M9 6l6 6-6 6" />
-            <b><span>{SET.page}</span></b>
+            <b><span>{label}</span></b>
           </div>
-          <h1 className="h1"><span>{SET.page}</span></h1>
-          <p className="sub"><span>{SET.sub}</span></p>
+          <h1 className="h1"><span>{label}</span></h1>
+          <p className="sub"><span>{SUB[page]}</span></p>
         </div>
-        {isPolicy ? (
-          <div className="r g8">
-            <button className="btn">
-              <Icon className="s14" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />
-              Versions
-            </button>
-            <button className="btn pri">Save as v4</button>
-          </div>
-        ) : null}
-        {isInteg ? (
-          <div className="r g8">
-            <button className="btn">
-              <Icon className="s14" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" />
-              Webhook log
-            </button>
-            <button className="btn pri">
-              <Icon className="s14 b" d="M12 5v14M5 12h14" />
-              Add integration
-            </button>
-          </div>
-        ) : null}
       </div>
       <div className="stg">
         <nav className="stnav" aria-label="Settings sections">
-          {SET.nav.map((n, i) => (
-            <button key={i} className={clsx("rci", n.on)} onClick={n.go}>
-              <Icon className="s14" d={n.ic} />
-              <span className="f1 ell"><span>{n.l}</span></span>
+          {NAV.map((item) => (
+            <button key={item.l} className={clsx("rci", item.page === page && "on")} onClick={() => go(item)} aria-current={item.page === page ? "page" : undefined}>
+              <Icon className="s14" d={item.ic} />
+              <span className="f1 ell"><span>{item.l}</span></span>
             </button>
           ))}
         </nav>
         <div style={{ overflow: "auto", minHeight: "0", padding: "20px 24px 24px" }}>
-          {isPolicy ? (
-            <div className="c g16">
-              <div className="r g6 wrap">
-                {PO.list.map((p, i) => (
-                  <button key={i} className={clsx("pol", p.on)}>
-                    <span className="dot" data-k={p.k}></span>
-                    <span>{p.l}</span>
-                    <span className="mono fs11 mu"><span>{p.v}</span></span>
-                  </button>
-                ))}
-                <button className="pol" style={{ borderStyle: "dashed" }}>
-                  <Icon className="s12 b" d="M12 5v14M5 12h14" />
-                  New policy
-                </button>
-              </div>
-              <div className="pgrid">
-                <section className="card oh">
-                  <div className="ch">
-                    <h2 className="h2">Rule</h2>
-                    <span className="sp"></span>
-                    <span className="fs12 t3">Enabled</span>
-                    <button className="tog on" aria-label="Policy enabled" aria-pressed="true"></button>
-                  </div>
-                  <div className="cb c g14">
-                    <div className="fld">
-                      <label htmlFor="po-n">Name</label>
-                      <input id="po-n" className="inp" defaultValue="Highway sustained speeding" />
-                    </div>
-                    <div className="fld">
-                      <span className="lbl">Speed source</span>
-                      <label className="opt on">
-                        <input type="radio" className="cbx" name="po-src" defaultChecked />
-                        <span className="c">
-                          <span className="fs13 w5">Vehicle-reported speed (telematics)</span>
-                          <span className="fs12 mu">Preferred. Read from the truck’s own sensors.</span>
-                        </span>
-                      </label>
-                      <label className="opt">
-                        <input type="radio" className="cbx" name="po-src" />
-                        <span className="c">
-                          <span className="fs13 w5">Driver app GPS, as fallback only</span>
-                          <span className="fs12 mu">Phone GPS is noisy — used only when a truck has no telematics.</span>
-                        </span>
-                      </label>
-                    </div>
-                    <div className="pfields">
-                      <div className="fld">
-                        <label htmlFor="po-t">Threshold</label>
-                        <div className="ufield">
-                          <input id="po-t" className="inp mono" defaultValue="70" />
-                          <span>mph</span>
-                        </div>
-                        <span className="hint">Company limit — not the posted limit</span>
-                      </div>
-                      <div className="fld">
-                        <label htmlFor="po-tol">Tolerance</label>
-                        <div className="ufield">
-                          <input id="po-tol" className="inp mono" defaultValue="+3" />
-                          <span>mph</span>
-                        </div>
-                        <span className="hint">Alerts start above 73</span>
-                      </div>
-                      <div className="fld">
-                        <label htmlFor="po-d">Must last at least</label>
-                        <div className="ufield">
-                          <input id="po-d" className="inp mono" defaultValue="2" />
-                          <span>min</span>
-                        </div>
-                        <span className="hint">One sample never alerts</span>
-                      </div>
-                      <div className="fld">
-                        <label htmlFor="po-c">Cooldown</label>
-                        <div className="ufield">
-                          <input id="po-c" className="inp mono" defaultValue="20" />
-                          <span>min</span>
-                        </div>
-                        <span className="hint">One incident per episode</span>
-                      </div>
-                    </div>
-                    <div className="fld">
-                      <span className="lbl">Ignore samples that are</span>
-                      <div className="r g6 wrap">
-                        <span className="tag" data-k="mu">less accurate than 50 m</span>
-                        <span className="tag" data-k="mu">older than 5 min</span>
-                        <span className="tag" data-k="mu">outside 0–110 mph</span>
-                      </div>
-                    </div>
-                    <div className="fld">
-                      <span className="lbl">Applies to</span>
-                      <div className="r g6 wrap">
-                        <span className="chip" style={{ height: "26px" }}>
-                          All trucks
-                          <Icon className="s12 b" d="M18 6L6 18M6 6l12 12" />
-                        </span>
-                        <span className="chip add" style={{ height: "26px" }}>
-                          <Icon className="s12 b" d="M12 5v14M5 12h14" />
-                          Active hours: all day · CT
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <section className="card oh">
-                  <div className="ch"><h2 className="h2">Who gets told</h2></div>
-                  <div className="cb c g12">
-                    {PO.who.map((w, i) => (
-                      <div key={i} className="whor">
-                        <div className="r g8">
-                          <span className="av sm"><span>{w.ini}</span></span>
-                          <span className="fs13 w5 f1"><span>{w.n}</span></span>
-                          <span className="fs12 mu"><span>{w.when}</span></span>
-                        </div>
-                        <div className="r g6 wrap" style={{ paddingLeft: "32px" }}>
-                          {w.ch.map((c2, i2) => (
-                            <span key={i2} className="tag" data-k={c2.k}>
-                              <Icon className="s12" d={c2.ic} />
-                              <span>{c2.l}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="c g6">
-                      <span className="lbl">{"Driver message · Telegram & app"}</span>
-                      <div className="bubble">
-                        FlyFleet — Lone Star Dispatch
-                        <br />
-                        Your truck has been above 70 mph for 2 minutes. Please slow down when it’s safe. Reply OK to acknowledge.
-                      </div>
-                      <span className="hint">Approved template v2 · no location or load details in group chats</span>
-                    </div>
-                  </div>
-                </section>
-              </div>
-              <section className="card oh">
-                <div className="ch">
-                  <h2 className="h2">Preview on real data</h2>
-                  <span className="fs12 mu">Last 7 days · all trucks</span>
-                  <span className="sp"></span>
-                  <span className="mono fs12 t3">T-1121 · today 10:50–11:20</span>
-                </div>
-                <div className="r g24" style={{ padding: "14px 16px 16px", alignItems: "stretch" }}>
-                  <div className="c g12" style={{ width: "260px", flex: "none" }}>
-                    {PO.prev.map((pv, i) => (
-                      <div key={i} className="c g2">
-                        <span className="fs12 t3"><span>{pv.k}</span></span>
-                        <span className="fs20 w6 num"><span>{pv.v}</span></span>
-                        <span className="fs12 mu"><span>{pv.s}</span></span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="spark f1">
-                    <svg viewBox="0 0 312 96" preserveAspectRatio="none" aria-hidden="true" style={{ height: "150px" }}>
-                      <rect className="spz" x={M.zx} y="0" width={M.zw} height="96" />
-                      <line className="spt" x1="0" x2="312" y1="48" y2="48" />
-                      <line className="spt2" x1="0" x2="312" y1="33.6" y2="33.6" />
-                      <path className="spl2" d={M.spark} />
-                    </svg>
-                    <span className="spk" style={{ top: "66px" }}>70 · threshold</span>
-                    <span className="spk" style={{ top: "42px", color: "#B42318" }}>73 · alert starts</span>
-                    <div className="r jb fs11 mu mono" style={{ marginTop: "4px" }}>
-                      <span>10:50</span>
-                      <span>11:14 above 73</span>
-                      <span>11:16 incident</span>
-                      <span>11:20</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-              <p className="note">
-                <Icon className="s14" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />
-                v3 by Dana Kim, Nov 10. Saving creates v4; open incidents keep the version that created them.
-              </p>
-            </div>
+          {page === "organization" || page === "numbering" ? (
+            organization.data ? (
+              <OrganizationForm key={`${page}-${organization.dataUpdatedAt}`} organization={organization.data} fields={page === "organization" ? FIELDS : NUMBERING} />
+            ) : organization.isError ? (
+              <ErrorState error={organization.error} retry={() => void organization.refetch()} />
+            ) : (
+              <Skeleton />
+            )
           ) : null}
-          {isInteg ? (
-            <div className="c g16">
-              <div className="igrid">
-                {IN.cards.map((it, i) => (
-                  <section key={i} className="card icard">
-                    <div className="r g10">
-                      <span className="ilogo" data-k={it.k}><Icon className="s18" d={it.ic} /></span>
-                      <div className="f1">
-                        <div className="r g6">
-                          <span className="fs14 w6"><span>{it.n}</span></span>
-                          {it.tag ? (
-                            <span className="tag" data-k="mu"><span>{it.tag}</span></span>
-                          ) : null}
-                        </div>
-                        <div className="fs12 mu"><span>{it.cat}</span></div>
-                      </div>
-                      <span className="badge" data-k={it.sk}>
-                        <i></i>
-                        <span>{it.st}</span>
-                      </span>
-                    </div>
-                    <dl className="kv" style={{ fontSize: "12px", lineHeight: "17px" }}>
-                      {it.kv.map((x, i2) => (
-                        <Fragment key={i2}>
-                          <dt><span>{x.k}</span></dt>
-                          <dd><span>{x.v}</span></dd>
-                        </Fragment>
-                      ))}
-                    </dl>
-                    <div className="r g6" style={{ marginTop: "auto" }}>
-                      {it.acts.map((a, i2) => (
-                        <button key={i2} className={clsx("btn sm", a.cls)}><span>{a.l}</span></button>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-              <section className="card oh">
-                <div className="ch">
-                  <h2 className="h2">Inbound events</h2>
-                  <span className="fs12 mu">Verified, de-duplicated, then queued — never processed inside the request</span>
-                </div>
-                <div className="thead" style={{ gridTemplateColumns: IN.t.cols }}>
-                  {IN.t.head.map((h, i) => (
-                    <span key={i} className={h.al}><span>{h.l}</span></span>
-                  ))}
-                </div>
-                {IN.t.rows.map((r, i) => (
-                  <Fragment key={i}>
-                    <div className={clsx("trow", r.cls)} style={{ gridTemplateColumns: IN.t.cols }} onClick={r.open}>
-                      {r.cells.map((c, i2) => (
-                        <BasicCell key={i2} c={c} />
-                      ))}
-                    </div>
-                    <ChangeDetail r={r} />
-                  </Fragment>
-                ))}
-              </section>
-              <p className="note">
-                <Icon className="s14" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
-                Credentials live in the secrets vault and are never shown again after saving. Each provider sits behind an adapter, so it can be swapped.
-              </p>
-            </div>
+          {page === "integrations" ? (
+            <EmptyState icon={I.link} title="No integrations connected" text="Telematics, fuel cards, accounting and messaging providers aren’t available to connect yet. Everything in FlyFleet works without them: loads, check calls, fuel and documents are entered here." />
           ) : null}
+          {page === "policy" ? (
+            <EmptyState icon={I.alert} title="No alert policies yet" text="Fleet alerts are worked out by FlyFleet from loads, dates and work orders — late or at-risk loads, expired paperwork, urgent repairs. Custom policies, such as speeding thresholds, need a telematics connection." />
+          ) : null}
+          {page === "notifications" ? <EmptyState icon={I.bell} title="Notifications aren’t sent yet" text="What needs attention shows under the bell and on the dashboard for each role. Email and text notifications aren’t available yet." /> : null}
+          {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}
+          {page === "billing" ? <EmptyState icon={I.dollar} title="Billing isn’t set up here yet" text="Your FlyFleet subscription isn’t managed in the app yet." /> : null}
         </div>
       </div>
     </div>

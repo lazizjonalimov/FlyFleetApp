@@ -1,11 +1,6 @@
-import { ConsoleProvider } from "@/features/console/console-provider";
 import { SurfaceFrame } from "@/features/console/surface-frame";
 
-/** Surfaces outside the workspace: sign-in, the customer portal, an owner's portal and the states reference. */
+/** Surfaces outside a company's workspace: sign-in and sign-up. */
 export default function PublicLayout({ children }: LayoutProps<"/">) {
-  return (
-    <ConsoleProvider>
-      <SurfaceFrame>{children}</SurfaceFrame>
-    </ConsoleProvider>
-  );
+  return <SurfaceFrame>{children}</SurfaceFrame>;
 }

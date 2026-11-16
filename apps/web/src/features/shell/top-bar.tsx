@@ -2,11 +2,12 @@
 
 import { clsx } from "clsx";
 import { Icon } from "@/components/ui/icon";
+import { signOut } from "@/features/auth/switch-organization";
 import { useConsole } from "@/features/console/console-provider";
 
-/** Search, team scope, Ask FlyFleet, Create, help, notifications and the account menu. */
+/** Search, Ask FlyFleet, Create, help, notifications and the account menu. */
 export function TopBar() {
-  const { toggleSb, sbLabel, sbExp, sbIcon, openPalette, SC, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT, goSignin } = useConsole();
+  const { toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT } = useConsole();
   return (
     <header className="tb">
       <button className="btn ghost icon hdtog" onClick={toggleSb} aria-label={sbLabel} title={sbLabel} aria-expanded={sbExp}><Icon d={sbIcon} /></button>
@@ -15,12 +16,6 @@ export function TopBar() {
         <span className="f1 ell">Search loads, drivers, trucks, invoices…</span>
         <span className="kbd">⌘K</span>
       </button>
-      {SC.on ? (
-        <span className="scope" title={SC.tip}>
-          <Icon className="s14" d={I.truck} />
-          <span>{SC.label}</span>
-        </span>
-      ) : null}
       <span className="sp"></span>
       <button className={clsx("btn ghost", aiOn)} onClick={toggleAI}>
         <Icon className="s14" d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" />
@@ -50,9 +45,11 @@ export function TopBar() {
       <button className="btn ghost icon" aria-label="Help">
         <Icon className="s18" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
       </button>
-      <button className={clsx("btn ghost icon", notifOn)} style={{ position: "relative" }} onClick={toggleNotif} aria-label="Notifications, 5 unread">
+      <button className={clsx("btn ghost icon", notifOn)} style={{ position: "relative" }} onClick={toggleNotif} aria-label={alertCount ? `Notifications, ${alertCount} to look at` : "Notifications"}>
         <Icon className="s18" d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
-        <span className="ndot"></span>
+        {alertCount ? (
+          <span className="ndot"></span>
+        ) : null}
       </button>
       <span className="vdiv"></span>
       <div className="mwrap">
@@ -88,7 +85,7 @@ export function TopBar() {
               </button>
             ))}
             <div className="hr"></div>
-            <button className="menui" role="menuitem" onClick={goSignin}>
+            <button className="menui" role="menuitem" onClick={() => void signOut()}>
               <Icon d={I.logout} />
               <span className="f1">Sign out</span>
             </button>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ListScreen } from "@/features/lists/list-screen";
+import { DocumentsScreen } from "@/features/documents/documents-screen";
 
 export const metadata: Metadata = { title: "Documents" };
 
-export default function DocumentsPage() {
-  return <ListScreen />;
+export default function Page() {
+  return <DocumentsScreen />;
 }

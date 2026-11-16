@@ -1,83 +1,84 @@
-import { expect, test } from "@playwright/test";
-import { address, open, W } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+import { day, open, signUp, viaApp, type Account } from "./helpers";
 
-test("a load opens in the drawer, the address carries it, and Back closes it", async ({ page }) => {
-  await open(page, "/loads");
-  await page.getByRole("button", { name: "FF-24817" }).first().click();
+/** A customer, a driver, a truck and a trailer: what a load needs to be booked and dispatched. */
+async function fleet(page: Page) {
+  const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Lakeside Foods", payment_terms_days: 30 });
+  const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Avery", last_name: "Novak", driver_type: "company", status: "active", pay_type: "per_mile", pay_rate: "0.60", cdl_expiry: day(500), medical_cert_expiry: day(300) });
+  await viaApp(page, "POST", "/vehicles", { unit_number: "301", ownership: "owned", status: "active", registration_expiry: day(300), insurance_expiry: day(300), inspection_expiry: day(300) });
+  await viaApp(page, "POST", "/trailers", { unit_number: "8801", type: "dry_van", ownership: "owned", status: "active", registration_expiry: day(300), insurance_expiry: day(300), inspection_expiry: day(300) });
+  return { customer, driver };
+}
+
+async function book(page: Page, account: Account) {
+  await open(page, account, "loads/new");
+  await page.getByRole("button", { name: /Continue to/ }).click();
+  await expect(page.locator(".errt", { hasText: "Choose the customer" })).toBeVisible();
+  await page.locator("#nl-c").selectOption({ label: "Lakeside Foods" });
+  await page.locator("#nl-ref").fill("PO-2468");
+  await page.getByRole("button", { name: /Continue to/ }).click();
+  await page.locator("#nl-mi").fill("410");
+  await page.getByRole("button", { name: /Continue to/ }).click();
+  await page.locator("#nl-ci0").fill("Joliet");
+  await page.locator("#nl-st0").fill("IL");
+  await page.locator("#nl-d0").fill(day(2));
+  await page.locator("#nl-a0").fill("08:00");
+  await page.locator("#nl-b0").fill("10:00");
+  await page.locator("#nl-ci1").fill("Columbus");
+  await page.locator("#nl-st1").fill("OH");
+  await page.locator("#nl-d1").fill(day(3));
+  await page.locator("#nl-a1").fill("09:00");
+  await page.getByRole("button", { name: /Continue to/ }).click();
+  await page.locator("#nl-rate").fill("1650");
+  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: /Continue to/ }).click();
+  await page.getByRole("button", { name: "Book load" }).click();
+  await expect(page).toHaveURL(new RegExp(`/${account.slug}/loads/[0-9a-f-]{36}$`));
+  await expect(page.getByRole("heading", { name: "Joliet, IL → Columbus, OH", level: 1 })).toBeVisible();
+}
+
+test("booking a load through the guided form", async ({ page }) => {
+  const account = await signUp(page);
+  await fleet(page);
+  await book(page, account);
+  await expect(page.locator(".ph")).toContainText("Planned");
+  await expect(page.locator(".ph")).toContainText("Lakeside Foods · PO-2468 · 410 mi");
+  await expect(page.locator(".main")).toContainText("$1,650.00");
+});
+
+test("the list opens a load in the drawer; the address carries it; Back closes it", async ({ page }) => {
+  const account = await signUp(page);
+  await fleet(page);
+  await book(page, account);
+  await open(page, account, "loads");
+  await page.locator(".trow", { hasText: "Lakeside Foods" }).click();
   const drawer = page.getByRole("complementary", { name: "Load details" });
-  await expect(drawer).toBeVisible();
-  await expect(drawer).toContainText("Fort Worth, TX → Oklahoma City, OK");
-  expect(address(page)).toBe(`${W}/loads?drawer=FF-24817`);
-
+  await expect(drawer).toContainText("Joliet, IL → Columbus, OH");
+  await expect(page).toHaveURL(/\/loads\?drawer=[0-9a-f-]{36}$/);
   await page.keyboard.press("Escape");
   await expect(drawer).toBeHidden();
-  expect(address(page)).toBe(`${W}/loads`);
-
   await page.goBack();
   await expect(drawer).toBeVisible();
-  await page.goBack();
-  await expect(drawer).toBeHidden();
 });
 
-test("a link to an open drawer opens it", async ({ page }) => {
-  await open(page, "/loads?drawer=FF-24790");
-  const drawer = page.getByRole("complementary", { name: "Load details" });
-  await expect(drawer).toContainText("FF-24790");
-  await expect(drawer).toContainText("POD missing");
-});
-
-test("from the drawer to the load's page and back by the breadcrumb", async ({ page }) => {
-  await open(page, "/loads?drawer=FF-24817");
-  await page.getByRole("button", { name: "Open full page" }).first().click();
-  await expect(page).toHaveURL(new RegExp(`${W}/loads/FF-24817$`));
-  await expect(page.getByRole("heading", { name: "Fort Worth, TX → Oklahoma City, OK" })).toBeVisible();
-  await expect(page.locator(".lcs.cur")).toContainText("In transit");
-
-  await page.locator(".crumb").getByRole("button", { name: "Loads" }).click();
-  await expect(page).toHaveURL(new RegExp(`${W}/loads$`));
-});
-
-test("selecting loads brings up the bulk actions", async ({ page }) => {
-  await open(page, "/loads");
-  await page.getByRole("button", { name: "Select row" }).nth(0).click();
-  await page.getByRole("button", { name: "Select row" }).nth(2).click();
-  await expect(page.locator(".bulk")).toContainText("2 selected");
-  await expect(page.locator(".bulk").getByRole("button")).toHaveText(["Assign driver", "Change status", "Print BOLs", "Export", ""]);
-
-  await page.getByRole("button", { name: "Select all loads" }).click();
-  await expect(page.locator(".bulk")).toBeHidden();
-  await page.getByRole("button", { name: "Select all loads" }).click();
-  await expect(page.locator(".bulk")).toContainText("14 selected");
-  await page.getByRole("button", { name: "Clear selection" }).click();
-  await expect(page.locator(".bulk")).toBeHidden();
-});
-
-test("the dashboard's exceptions lead to the load they are about", async ({ page }) => {
-  await open(page, "/dashboard");
-  await page.locator(".attn", { hasText: "Delivery will miss its appointment" }).getByRole("button", { name: "Review" }).click();
-  await expect(page).toHaveURL(new RegExp(`${W}/loads\\?drawer=FF-24817$`));
-  await expect(page.getByRole("complementary", { name: "Load details" })).toBeVisible();
-});
-
-test("New load opens the add flow, and the guided form has its own address", async ({ page }) => {
-  await open(page, "/loads");
-  await page.getByRole("button", { name: "New load" }).click();
-  await expect(page.getByRole("dialog")).toContainText("New load");
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("dialog")).toBeHidden();
-
-  await open(page, "/loads/new");
-  await expect(page.getByRole("heading", { name: "New load" })).toBeVisible();
-  await expect(page.locator(".nls.cur")).toContainText("Stops & appointments");
-});
-
-test("assigning from the dispatch queue opens the panel with eligible drivers and reasons", async ({ page }) => {
-  await open(page, "/dispatch");
-  await page.locator(".qcard", { hasText: "FF-24851" }).getByRole("button", { name: "Assign" }).click();
+test("dispatch: assigning from the board, then arriving at pickup", async ({ page }) => {
+  const account = await signUp(page);
+  await fleet(page);
+  await book(page, account);
+  await open(page, account, "dispatch");
+  await page.locator(".qcard", { hasText: "Lakeside Foods" }).getByRole("button", { name: "Assign" }).click();
   const panel = page.getByRole("complementary", { name: "Assign load" });
-  await expect(panel).toContainText("FF-24851");
-  await expect(panel.locator(".cand")).toHaveCount(6);
-  await expect(panel.locator(".cand.on")).toContainText("Best match");
-  await page.keyboard.press("Escape");
-  await expect(panel).toBeHidden();
+  await expect(panel).toContainText("Avery Novak");
+  await expect(panel).toContainText("301");
+  await panel.getByRole("button", { name: "Assign & dispatch" }).click();
+  await expect(page.getByRole("status")).toContainText("assigned and dispatched to Avery Novak");
+  await expect(page.locator(".tlrow", { hasText: "Avery Novak" })).toBeVisible();
+
+  await open(page, account, "loads");
+  await page.locator(".trow", { hasText: "Lakeside Foods" }).click();
+  const drawer = page.getByRole("complementary", { name: "Load details" });
+  await expect(drawer).toContainText("Dispatched");
+  await drawer.getByRole("button", { name: "Update status" }).click();
+  await page.getByRole("menuitem", { name: "Arrived at stop 1" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Record arrival" }).click();
+  await expect(drawer).toContainText("At pickup");
 });

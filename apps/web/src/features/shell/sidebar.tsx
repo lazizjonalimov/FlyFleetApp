@@ -3,6 +3,7 @@
 import { clsx } from "clsx";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
+import { hardNavigate } from "@/lib/hard-navigation";
 
 /** Main navigation, grouped by area, with the organization switcher at the foot. */
 export function Sidebar() {
@@ -33,7 +34,7 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="sbf">
-        <button className="org" aria-label="Switch organization">
+        <button className="org" aria-label="Switch organization" onClick={() => hardNavigate("/login?switch")}>
           <span className="orgmk" style={{ background: org.c }}><span>{org.ini}</span></span>
           <span className="f1">
             <span className="blk ell" style={{ color: "var(--ntstrong)", fontSize: "13px", fontWeight: "500", lineHeight: "16px" }}><span>{org.name}</span></span>

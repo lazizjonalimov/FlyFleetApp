@@ -1,51 +1,132 @@
 "use client";
 
-import { clsx } from "clsx";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { Confirm } from "@/components/feedback/dialog";
+import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
+import { goTo } from "@/features/console/shell";
+import { useAction } from "@/features/console/use-action";
+import { api, unwrap } from "@/lib/api/client";
+import { formatDate, formatDateTime } from "@/lib/format/dates";
+import { formatBytes, humanize } from "@/lib/format/text";
+import { DOCUMENT_TYPES, REVIEW } from "./documents-screen";
+import { viewDocument } from "./use-upload";
 
-/** Document review: scan, recognised fields and approval. */
+const SCAN: Record<string, string> = { clean: "Malware scan passed", infected: "Blocked by the malware scan", not_scanned: "Not scanned yet", pending: "Malware scan running" };
+
+/** Document review: the file itself, what it is attached to, and approving or sending it back. */
 export function DocReviewScreen() {
-  const { isDocReview, goDocs, DR } = useConsole();
-  if (!isDocReview) return null;
+  const { me, can, state, set } = useConsole();
+  const act = useAction();
+  const org = me.organization;
+  const zone = org.timezone;
+  const [zoom, setZoom] = useState(100);
+  const [turn, setTurn] = useState(0);
+  const [asking, setAsking] = useState<"approved" | "rejected" | null>(null);
+  const [expires, setExpires] = useState<string | null>(null);
+  const queue = useQuery({ queryKey: [org.id, "documents", "review-queue", "all"], queryFn: () => unwrap(api.GET("/api/v1/documents", { params: { query: { review_status: "pending", sort: "created_at", limit: 100 } } })), enabled: can("documents.read") });
+  const pending = queue.data?.items ?? [];
+  const id = typeof state.docId === "string" && state.docId ? state.docId : (pending[0]?.id ?? "");
+  const query = useQuery({ queryKey: [org.id, "documents", "detail", id], queryFn: () => unwrap(api.GET("/api/v1/documents/{document_id}", { params: { path: { document_id: id } } })), enabled: !!id });
+  const goDocs = () => set(goTo("documents"));
+  const doc = query.data;
+  const position = pending.findIndex((each) => each.id === id);
+  const go = (by: number) => {
+    const next = pending[position + by];
+    if (next) set({ docId: next.id });
+  };
+  const review = can("safety.manage") || can("loads.close") || can("documents.upload");
+  const crumb = (
+    <div className="crumb">
+      <span>{"Safety & fleet"}</span>
+      <Icon className="s12" d="M9 6l6 6-6 6" />
+      <button onClick={goDocs}>Documents</button>
+      {doc ? (
+        <>
+          <Icon className="s12" d="M9 6l6 6-6 6" />
+          <b className="mono">{doc.filename}</b>
+        </>
+      ) : null}
+    </div>
+  );
+
+  if (!id) {
+    return (
+      <div className="col">
+        <div className="ph" style={{ paddingBottom: "12px", borderBottom: "1px solid var(--bd)" }}>
+          <div className="f1">
+            {crumb}
+            <h1 className="h1">Document review</h1>
+          </div>
+        </div>
+        {queue.isPending ? <Skeleton /> : <EmptyState icon="M5 12l5 5 9-10" title="Nothing waiting for review" text="Proofs of delivery and compliance documents that need a decision show up here." />}
+      </div>
+    );
+  }
+  if (!doc) {
+    return (
+      <div className="col">
+        <div className="ph" style={{ paddingBottom: "12px", borderBottom: "1px solid var(--bd)" }}>
+          <div className="f1">{crumb}</div>
+        </div>
+        {query.isError ? <ErrorState error={query.error} retry={() => void query.refetch()} /> : <Skeleton rows={8} />}
+      </div>
+    );
+  }
+
+  const [label, tone] = REVIEW[doc.review_status] ?? [humanize(doc.review_status), "mu"];
+  const type = DOCUMENT_TYPES[doc.type] ?? humanize(doc.type);
+  const linked = doc.links.map((link) => link.label).filter(Boolean).join(", ");
+  const src = `/api/v1/documents/${doc.id}/download?disposition=inline`;
+  const image = doc.content_type.startsWith("image/");
+  const decide = (decision: "approved" | "rejected", note: string) =>
+    act(() => unwrap(api.POST("/api/v1/documents/{document_id}/review", { params: { path: { document_id: doc.id } }, body: { decision, note: note || null } })), decision === "approved" ? `${type} approved` : `${type} sent back`).then((saved) => {
+      if (saved) {
+        const next = pending[position + 1] ?? pending[position - 1];
+        set(next && next.id !== doc.id ? { docId: next.id } : goTo("documents"));
+      }
+    });
+  const saveExpiry = () =>
+    act(() => unwrap(api.PATCH("/api/v1/documents/{document_id}", { params: { path: { document_id: doc.id } }, body: { expires_on: expires || null } })), "Expiry date saved").then(() => setExpires(null));
+
   return (
     <div className="col">
       <div className="ph" style={{ paddingBottom: "12px", borderBottom: "1px solid var(--bd)" }}>
         <div className="f1">
-          <div className="crumb">
-            <span>{"Safety & fleet"}</span>
-            <Icon className="s12" d="M9 6l6 6-6 6" />
-            <button onClick={goDocs}>Documents</button>
-            <Icon className="s12" d="M9 6l6 6-6 6" />
-            <b className="mono">POD-FF-24782.pdf</b>
-          </div>
+          {crumb}
           <div className="r g10">
-            <h1 className="h1">Proof of delivery · FF-24782</h1>
-            <span className="badge" data-k="info">
+            <h1 className="h1">{`${type}${linked ? ` · ${linked}` : ""}`}</h1>
+            <span className="badge" data-k={tone}>
               <i></i>
-              Needs review
+              {label}
             </span>
           </div>
-          <p className="sub">Scanned by Sam Whitfield in the driver app · Nov 12, 11:42 CT · 2 pages · Home Depot Supply → HD Supply Shreveport</p>
+          <p className="sub">{[doc.uploaded_by_name ? `Uploaded by ${doc.uploaded_by_name}` : "Uploaded", formatDateTime(doc.created_at, zone), formatBytes(doc.size_bytes)].join(" · ")}</p>
         </div>
         <div className="r g8">
-          <span className="fs12 mu nw">2 of 3 in queue</span>
+          {position >= 0 ? <span className="fs12 mu nw">{`${position + 1} of ${pending.length} in queue`}</span> : null}
           <div className="r">
-            <button className="btn icon sm" aria-label="Previous document" style={{ borderRadius: "6px 0 0 6px" }}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
-            <button className="btn icon sm" aria-label="Next document" style={{ borderRadius: "0 6px 6px 0", marginLeft: "-1px" }}>
+            <button className="btn icon sm" aria-label="Previous document" style={{ borderRadius: "6px 0 0 6px" }} disabled={position <= 0} onClick={() => go(-1)}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
+            <button className="btn icon sm" aria-label="Next document" style={{ borderRadius: "0 6px 6px 0", marginLeft: "-1px" }} disabled={position < 0 || position >= pending.length - 1} onClick={() => go(1)}>
               <Icon className="s14" d="M9 6l6 6-6 6" />
             </button>
           </div>
-          <button className="btn bad">Reject…</button>
-          <button className="btn pri">
-            <Icon className="s14 b" d="M5 12l5 5 9-10" />
-            {"Approve & attach"}
-          </button>
+          {review && doc.review_status === "pending" ? (
+            <>
+              <button className="btn bad" onClick={() => setAsking("rejected")}>Reject…</button>
+              <button className="btn pri" onClick={() => setAsking("approved")}>
+                <Icon className="s14 b" d="M5 12l5 5 9-10" />
+                Approve
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
       <div className="drg">
         <div className="thumbs">
-          <button className="thumb on" aria-label="Page 1">
+          <button className="thumb on" aria-label="The document">
             <span className="tpaper">
               <i style={{ width: "70%" }}></i>
               <i></i>
@@ -53,155 +134,130 @@ export function DocReviewScreen() {
               <i></i>
               <i style={{ width: "80%" }}></i>
             </span>
-            <span className="fs11 mu">1 · POD</span>
+            <span className="fs11 mu">{type}</span>
           </button>
-          <button className="thumb" aria-label="Page 2">
-            <span className="tpaper">
-              <i style={{ width: "60%" }}></i>
-              <i style={{ width: "85%" }}></i>
-              <i></i>
-              <i style={{ width: "40%" }}></i>
-            </span>
-            <span className="fs11 mu">2 · BOL copy</span>
-          </button>
-          <button className="thumb add" aria-label="Add page"><Icon className="s14" d="M12 5v14M5 12h14" /></button>
         </div>
         <div className="viewer">
           <div className="vtool">
-            <div className="seg sm" role="group" aria-label="Image version">
-              <button>Original</button>
-              <button className="on">Enhanced</button>
-            </div>
-            <span className="vdiv"></span>
-            <button className="btn ghost icon sm" aria-label="Zoom out"><Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" /></button>
-            <span className="mono fs12 t3">100%</span>
-            <button className="btn ghost icon sm" aria-label="Zoom in">
+            <button className="btn ghost icon sm" aria-label="Zoom out" onClick={() => setZoom(Math.max(25, zoom - 25))} disabled={!image}><Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M8 11h6" /></button>
+            <span className="mono fs12 t3">{`${zoom}%`}</span>
+            <button className="btn ghost icon sm" aria-label="Zoom in" onClick={() => setZoom(Math.min(300, zoom + 25))} disabled={!image}>
               <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35M11 8v6M8 11h6" />
             </button>
-            <button className="btn ghost icon sm" aria-label="Rotate"><Icon className="s14" d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10" /></button>
-            <button className="btn ghost icon sm" aria-label="Crop"><Icon className="s14" d="M6.1 2v14a2 2 0 0 0 2 2H22M2 6.1h14a2 2 0 0 1 2 2V22" /></button>
+            <button className="btn ghost icon sm" aria-label="Rotate" onClick={() => setTurn((turn + 90) % 360)} disabled={!image}><Icon className="s14" d="M1 4v6h6M3.5 15a9 9 0 1 0 2.1-9.4L1 10" /></button>
             <span className="sp"></span>
-            <label className="r g6 fs12 t3">
-              <input type="checkbox" className="cbx" defaultChecked />
-              Show OCR boxes
-            </label>
-          </div>
-          <div className="lineage">
-            <Icon className="s14" d="M15 4V2M15 16v-2M8 9h2M20 9h2M17.8 11.8L19 13M17.8 6.2L19 5M3 21l9-9M12.2 6.2L11 5" />
-            <span>Enhanced copy: edges detected · perspective corrected · deskewed 2.1° · contrast +18%. The original photo is kept unchanged.</span>
+            <button className="btn ghost sm" onClick={() => viewDocument(doc.id)}>
+              <Icon className="s14" d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              Open in a new tab
+            </button>
           </div>
           <div className="vstage">
-            <div className="paper">
-              <span className="pa pp-t" style={{ left: "32px", top: "24px" }}>DELIVERY RECEIPT</span>
-              <span className="pa pp-s" style={{ left: "32px", top: "48px" }}>Proof of delivery — retain with bill of lading</span>
-              <span className="pa pp-box" style={{ left: "430px", top: "28px" }}>Page 1 of 1</span>
-              <span className="pa pp-rule" style={{ top: "70px", height: "2px" }}></span>
-              <span className="pa pp-l" style={{ left: "32px", top: "84px" }}>Consignee</span>
-              <span className="pa pp-l" style={{ left: "290px", top: "84px" }}>Carrier</span>
-              <span className="pa pp-v" style={{ left: "290px", top: "101px" }}>Lone Star Freight · MC 884213</span>
-              <span className="pa pp-l" style={{ left: "32px", top: "132px" }}>Ship date</span>
-              <span className="pa pp-l" style={{ left: "290px", top: "132px" }}>Trailer</span>
-              <span className="pa pp-v" style={{ left: "290px", top: "149px" }}>TR-5259</span>
-              <span className="pa pp-rule" style={{ top: "182px" }}></span>
-              <span className="pa pp-l" style={{ left: "32px", top: "190px" }}>BOL #</span>
-              <span className="pa pp-l" style={{ left: "200px", top: "190px" }}>Load #</span>
-              <span className="pa pp-l" style={{ left: "368px", top: "190px" }}>PO</span>
-              <span className="pa pp-l" style={{ left: "32px", top: "244px" }}>Qty</span>
-              <span className="pa pp-l" style={{ left: "120px", top: "244px" }}>Description</span>
-              <span className="pa pp-l" style={{ left: "430px", top: "244px" }}>Weight</span>
-              <span className="pa pp-rule" style={{ top: "262px", background: "#1D2433" }}></span>
-              <span className="pa pp-v" style={{ left: "120px", top: "271px" }}>Building materials, palletized</span>
-              <span className="pa pp-v" style={{ left: "430px", top: "271px" }}>38,400 lb</span>
-              <span className="pa pp-v" style={{ left: "120px", top: "296px", color: "#5A6478" }}>Shrink-wrapped · no hazmat</span>
-              <span className="pa pp-rule" style={{ top: "322px" }}></span>
-              <span className="pa pp-l" style={{ left: "32px", top: "334px" }}>Received in good order except as noted:</span>
-              <span className="pa pp-rule" style={{ top: "388px", background: "#9AA3B2" }}></span>
-              <svg className="pa pp-scrib" style={{ left: "40px", top: "420px" }} viewBox="0 0 160 40" aria-hidden="true">
-                <path d="M4 30 C 20 4, 30 36, 44 18 S 66 8, 72 26 S 96 34, 104 14 S 130 20, 156 10" />
-              </svg>
-              <span className="pa pp-rule" style={{ top: "468px", background: "#1D2433" }}></span>
-              <span className="pa pp-l" style={{ left: "32px", top: "474px" }}>Receiver signature</span>
-              <span className="pa pp-l" style={{ left: "250px", top: "474px" }}>Printed name</span>
-              <span className="pa pp-l" style={{ left: "404px", top: "474px" }}>Date / time</span>
-              <span className="pa pp-l" style={{ left: "32px", top: "526px" }}>Lone Star Freight · Dallas, TX · Driver S. Whitfield · T-1102</span>
-              <span className="pa pp-stamp" style={{ left: "356px", top: "330px" }}>
-                RECEIVED
-                <br />
-                <span>NOV 12 2026</span>
-              </span>
-              <span className="ocr" style={{ left: "28px", top: "99px" }}>HD Supply Shreveport #6</span>
-              <span className="ocr" style={{ left: "28px", top: "147px" }}>11/12/2026</span>
-              <span className="ocr" style={{ left: "28px", top: "206px" }}>55102</span>
-              <span className="ocr" style={{ left: "196px", top: "206px" }}>FF-24782</span>
-              <span className="ocr" style={{ left: "364px", top: "206px" }}>29802</span>
-              <span className="ocr" style={{ left: "28px", top: "269px" }}>22 PLT</span>
-              <span className="ocr hand" style={{ left: "28px", top: "354px" }}>none</span>
-              <span className="ocr hand lo" style={{ left: "246px", top: "436px" }}>R. Alvarez</span>
-              <span className="ocr hand lo sel" style={{ left: "400px", top: "436px" }}>11/12 11:34</span>
-            </div>
+            {doc.scan_status === "infected" ? (
+              <EmptyState icon="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" title="This file was blocked" text="The malware scan flagged it, so it isn’t shown. Ask for a new copy." />
+            ) : image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={src} alt={`${type} ${doc.filename}`} style={{ width: `${(540 * zoom) / 100}px`, transform: `rotate(${turn}deg)`, boxShadow: "0 2px 10px rgba(11,18,32,.18)", background: "#fff", flex: "none" }} />
+            ) : (
+              <iframe src={src} title={doc.filename} style={{ width: "100%", height: "100%", minHeight: "560px", border: "none", background: "#fff", borderRadius: "2px", boxShadow: "0 2px 10px rgba(11,18,32,.18)" }} />
+            )}
           </div>
         </div>
         <aside className="fpanel">
           <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--bd2)" }}>
             <div className="r g8">
-              <span className="h2">Extracted fields</span>
+              <span className="h2">Details</span>
               <span className="sp"></span>
-              <span className="fs12 mu">OCR adapter v2 · 11:42</span>
+              <span className="fs12 mu">{doc.content_type}</span>
             </div>
             <div className="r g8" style={{ marginTop: "8px" }}>
               <span className="fs12 t3">Document type</span>
-              <span className="tag" data-k="brand">Proof of delivery</span>
-              <span className="fs12 mu num">98%</span>
-              <button className="lnk">Change</button>
+              <span className="tag" data-k="brand">{type}</span>
             </div>
           </div>
           <div className="c g10" style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "12px 16px" }}>
-            <div className="banner" data-k="ok">
-              <Icon className="s14 b" d="M5 12l5 5 9-10" />
-              <div>
-                <b>Matches FF-24782.</b>
-                {" BOL and load numbers match, consignee matches stop 2."}
+            {doc.review_status === "rejected" && doc.review_note ? (
+              <div className="banner" data-k="bad">
+                <Icon className="s14" d="M18 6L6 18M6 6l12 12" />
+                <div>
+                  <b>Sent back.</b>
+                  {` ${doc.review_note}`}
+                </div>
+              </div>
+            ) : null}
+            {doc.review_status === "approved" ? (
+              <div className="banner" data-k="ok">
+                <Icon className="s14 b" d="M5 12l5 5 9-10" />
+                <div>
+                  <b>Approved</b>
+                  {doc.reviewed_by_name ? ` by ${doc.reviewed_by_name}` : ""}
+                  {doc.reviewed_at ? ` · ${formatDateTime(doc.reviewed_at, zone)}` : ""}
+                </div>
+              </div>
+            ) : null}
+            <div className="ofld">
+              <span className="fs12 w5 t2">Attached to</span>
+              <div className="c g4">
+                {doc.links.length ? (
+                  doc.links.map((link) => (
+                    <button
+                      key={link.id}
+                      className="lnk"
+                      style={{ textAlign: "left" }}
+                      onClick={() =>
+                        link.entity_type === "load"
+                          ? set({ screen: "load", loadId: link.entity_id, overlay: "none", modal: "none" })
+                          : link.entity_type === "driver"
+                            ? set({ screen: "driver", driverId: link.entity_id, overlay: "none", modal: "none" })
+                            : link.entity_type === "vehicle" || link.entity_type === "trailer"
+                              ? set({ screen: "truck", unitId: link.entity_id, unitKind: link.entity_type === "trailer" ? "trailer" : "truck", overlay: "none", modal: "none" })
+                              : undefined
+                      }
+                    >
+                      {`${humanize(link.entity_type)} · ${link.label ?? link.entity_id.slice(0, 8)}`}
+                    </button>
+                  ))
+                ) : (
+                  <span className="fs13 mu">Nothing yet</span>
+                )}
               </div>
             </div>
-            {DR.fields.map((f, i) => (
-              <div key={i} className={clsx("ofld", f.cls)}>
-                <div className="r g6">
-                  <span className="fs12 w5 t2 f1"><span>{f.l}</span></span>
-                  <span className="risk" data-k={f.k}>
-                    <Icon className="s12 b" d={f.ic} />
-                    <span>{f.st}</span>
-                  </span>
-                </div>
-                <input className={clsx("inp", f.mono)} defaultValue={f.v} aria-label={f.l} style={{ height: "32px" }} />
-                <div className="r g8">
-                  <span className="bar" data-k={f.k} style={{ height: "4px" }}><span style={{ width: f.pct }}></span></span>
-                  <span className="fs11 mu num nw"><span>{f.conf}</span>{" confidence"}</span>
-                </div>
-                {f.note ? (
-                  <div className="c g6">
-                    <p className="fs12 t3"><span>{f.note}</span></p>
-                    <input className="inp" placeholder="Correction reason (required if you change the value)" aria-label="Correction reason" style={{ height: "32px" }} />
-                    <div className="r g6">
-                      <button className="btn xs">Confirm as read</button>
-                      <button className="btn xs ghost">Mark unreadable</button>
-                    </div>
-                  </div>
-                ) : null}
+            <div className="ofld">
+              <label className="fs12 w5 t2" htmlFor="dr-exp">Expires</label>
+              <div className="r g6">
+                <input id="dr-exp" className="inp" type="date" value={expires ?? doc.expires_on ?? ""} onChange={(event) => setExpires(event.target.value)} style={{ height: "32px" }} disabled={!can("documents.upload")} />
+                {expires !== null && expires !== (doc.expires_on ?? "") ? <button className="btn xs pri" onClick={() => void saveExpiry()}>Save</button> : null}
               </div>
-            ))}
+              <span className="fs11 mu">{doc.expires_on ? `On file: ${formatDate(doc.expires_on)}` : "For licences, medical cards, insurance and registrations"}</span>
+            </div>
+            <div className="ofld">
+              <span className="fs12 w5 t2">File</span>
+              <span className="fs13 mono ell">{doc.filename}</span>
+              <span className="fs11 mu">{`${formatBytes(doc.size_bytes)} · ${humanize(doc.upload_status)}`}</span>
+            </div>
           </div>
           <div className="dfoot" style={{ padding: "10px 16px", flexDirection: "column", alignItems: "stretch", gap: "6px" }}>
             <div className="r g6 fs12 mu">
               <Icon className="s14" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4" />
-              Malware scan passed · checksum verified · private storage
+              {`${SCAN[doc.scan_status] ?? humanize(doc.scan_status)} · private storage`}
             </div>
             <div className="r g6 fs12 mu">
               <Icon className="s14" d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2" />
-              Raw OCR and your corrections are stored separately
+              Every decision is kept in the audit log
             </div>
           </div>
         </aside>
       </div>
+      {asking ? (
+        <Confirm
+          title={asking === "approved" ? `Approve this ${type.toLowerCase()}?` : `Send this ${type.toLowerCase()} back?`}
+          text={asking === "approved" ? (doc.type === "pod" ? "The load’s proof of delivery is accepted, and the load can be completed and invoiced." : "It counts toward the record’s compliance from now on.") : "The uploader is asked for a new copy. Say what is wrong so it can be fixed."}
+          confirm={asking === "approved" ? "Approve" : "Send back"}
+          destructive={asking === "rejected"}
+          reason={asking === "rejected" ? { label: "What is wrong with it", required: true } : { label: "Note (optional)" }}
+          onClose={() => setAsking(null)}
+          run={({ reason }) => decide(asking, reason)}
+        />
+      ) : null}
     </div>
   );
 }

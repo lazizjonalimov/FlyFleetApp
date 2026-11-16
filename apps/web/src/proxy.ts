@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { allowEmbedding } from "@/lib/auth/embedding";
+
+const PUBLIC = ["/login", "/signup"];
 
 /**
  * Document security headers, set here (per request) rather than in next.config so that framing can be
@@ -28,9 +31,17 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// The console currently runs on the workspace built into it, so there is no session to check here yet. When
-// screens read from the API, the sign-in redirect returns to this function.
-export function proxy() {
+export function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+  const signedIn = request.cookies.has("flyfleet_session");
+  const isPublic = PUBLIC.includes(pathname);
+  // Optimistic redirects only, to avoid a flash of the wrong page. Real authorization happens in the API on
+  // every request, and the workspace layout checks the session with the API before rendering anything.
+  if (!signedIn && !isPublic) {
+    const login = new URL("/login", request.url);
+    if (pathname !== "/") login.searchParams.set("next", pathname + search);
+    return withSecurityHeaders(NextResponse.redirect(login));
+  }
   return withSecurityHeaders(NextResponse.next());
 }
 

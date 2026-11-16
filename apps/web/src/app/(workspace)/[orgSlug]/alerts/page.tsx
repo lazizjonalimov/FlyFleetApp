@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ListScreen } from "@/features/lists/list-screen";
+import { AlertsScreen } from "@/features/alerts/alerts-screen";
 
 export const metadata: Metadata = { title: "Fleet alerts" };
 
-export default function AlertsPage() {
-  return <ListScreen />;
+export default function Page() {
+  return <AlertsScreen />;
 }

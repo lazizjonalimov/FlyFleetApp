@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ListScreen } from "@/features/lists/list-screen";
+import { InspectionsScreen } from "@/features/safety/inspections-screen";
 
 export const metadata: Metadata = { title: "Inspections" };
 
-export default function InspectionsPage() {
-  return <ListScreen />;
+export default function Page() {
+  return <InspectionsScreen />;
 }

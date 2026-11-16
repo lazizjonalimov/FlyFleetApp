@@ -5,8 +5,7 @@ import { useConsole } from "@/features/console/console-provider";
 
 /** Shown instead of a screen the signed-in role may not open. */
 export function Forbidden() {
-  const { isForbidden, FB, user, goDash } = useConsole();
-  if (!isForbidden) return null;
+  const { FB, user, goDash } = useConsole();
   return (
     <div className="forb">
       <div className="c g8" style={{ alignItems: "center", maxWidth: "420px", textAlign: "center" }}>
@@ -15,7 +14,7 @@ export function Forbidden() {
         <p className="fs13 mu pre">
           Your role (<span>{user.role}</span>{") doesn’t include "}
           <span className="mono t2"><span>{FB.perm}</span></span>
-          {". If you need it, ask a Main Admin to change your role in Team & access."}
+          {". If you need it, ask an owner or administrator to change your role in Team & access."}
         </p>
         <div className="r g8" style={{ marginTop: "8px" }}>
           <button className="btn">Request access</button>
