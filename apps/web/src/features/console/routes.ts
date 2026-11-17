@@ -46,13 +46,14 @@ export type Location = {
 export function parseLocation(pathname: string, query: Query): Location {
   const parts = pathname.split("/").filter(Boolean);
   // every address settles these, so nothing remembered from another screen leaks in
-  const base = { drawer: null, loadId: null, driverId: null, unitId: null, statementId: null, docId: null, ownerId: null, ownerForm: null };
+  const base = { drawer: null, loadId: null, driverId: null, unitId: null, statementId: null, docId: null, ownerId: null, ownerForm: null, conv: null };
   const at = (screen: string, state: ConsoleState = {}): Location => ({ known: true, state: { ...base, screen, ...state } });
 
   const path = parts.slice(1).join("/");
   const screen = SCREENS[path];
   if (screen === "loads") return at("loads", { drawer: query.get("drawer") || null });
   if (screen === "docreview") return at("docreview", { docId: query.get("doc") || null });
+  if (screen === "messages") return at("messages", { conv: query.get("c") || null });
   if (screen) return at(screen);
 
   const [a, b, c, d] = parts.slice(1);
@@ -70,7 +71,7 @@ export function parseLocation(pathname: string, query: Query): Location {
 }
 
 /** State that the address carries. A change to any of these is a navigation. */
-const LOCATION_KEYS = ["screen", "drawer", "loadId", "driverId", "unitId", "statementId", "docId", "ownerId", "ownerForm"];
+const LOCATION_KEYS = ["screen", "drawer", "loadId", "driverId", "unitId", "statementId", "docId", "ownerId", "ownerForm", "conv"];
 export const touchesLocation = (patch: ConsoleState): boolean => LOCATION_KEYS.some((key) => key in patch);
 
 const text = (value: unknown): string => (typeof value === "string" ? value : "");
@@ -87,7 +88,11 @@ export function hrefOf(state: ConsoleState, slug: string): string {
   if (screen === "owner" && text(state.ownerId)) path = `owners/${encodeURIComponent(text(state.ownerId))}`;
   if (screen === "ownerform") path = state.ownerForm === "edit" && text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/edit` : "owners/new";
   if (screen === "ownerportal") path = text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/portal` : "portal";
-  const query = screen === "loads" && text(state.drawer) ? `?drawer=${encodeURIComponent(text(state.drawer))}` : screen === "docreview" && text(state.docId) ? `?doc=${encodeURIComponent(text(state.docId))}` : "";
+  const query =
+    screen === "loads" && text(state.drawer) ? `?drawer=${encodeURIComponent(text(state.drawer))}`
+    : screen === "docreview" && text(state.docId) ? `?doc=${encodeURIComponent(text(state.docId))}`
+    : screen === "messages" && text(state.conv) ? `?c=${encodeURIComponent(text(state.conv))}`
+    : "";
   return `/${slug}/${path}${query}`;
 }
 
@@ -101,6 +106,8 @@ export function sameScreenHref(pathname: string, current: URLSearchParams, state
   else query.delete("drawer");
   if (state.screen === "docreview" && typeof state.docId === "string" && state.docId) query.set("doc", state.docId);
   else query.delete("doc");
+  if (state.screen === "messages" && typeof state.conv === "string" && state.conv) query.set("c", state.conv);
+  else query.delete("c");
   const search = query.toString();
   return `${pathname}${search ? `?${search}` : ""}`;
 }

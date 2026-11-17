@@ -36,6 +36,8 @@ ROLE_LABELS = {
 PERMISSION_GROUPS: dict[str, dict[str, str]] = {
     "Overview": {
         "dashboard.read": "See the dashboard",
+        "tasks.read": "See and work their own tasks",
+        "tasks.assign": "Give tasks to teammates",
         "reports.read": "See reports",
         "reports.export": "Export report data",
     },
@@ -48,6 +50,8 @@ PERMISSION_GROUPS: dict[str, dict[str, str]] = {
         "loads.rates.read": "See customer rates and charges",
         "dispatch.read": "See the dispatch board",
         "dispatch.assign": "Assign, reassign and dispatch loads",
+        "messages.read": "See messages with drivers, customers and teammates",
+        "messages.send": "Send messages and start conversations",
     },
     "Fleet tracking": {
         "tracking.read": "See live truck locations and trails",
@@ -101,7 +105,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
     Role.OWNER: set(ALL),
     Role.ADMIN: set(ALL),
     Role.DISPATCHER: {
-        "dashboard.read", "reports.read",
+        "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
         "loads.read", "loads.create", "loads.update", "loads.cancel", "loads.close", "loads.rates.read",
         "dispatch.read", "dispatch.assign",
         "customers.read", "customers.manage", "drivers.read", "equipment.read", "owners.read",
@@ -109,7 +113,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "invoices.read", "tracking.read", "incidents.read", "incidents.manage",
     },
     Role.SAFETY_MANAGER: {
-        "dashboard.read", "reports.read",
+        "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
         "loads.read", "dispatch.read",
         "drivers.read", "drivers.manage", "drivers.sensitive.read", "equipment.read", "owners.read",
         "safety.read", "safety.manage", "maintenance.read",
@@ -117,7 +121,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "tracking.read", "incidents.read", "incidents.manage", "alert_policies.manage",
     },
     Role.FLEET_MANAGER: {
-        "dashboard.read", "reports.read",
+        "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
         "loads.read", "dispatch.read", "drivers.read",
         "equipment.read", "equipment.manage", "owners.read", "safety.read", "safety.manage",
         "maintenance.read", "maintenance.manage",
@@ -125,7 +129,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "tracking.read", "incidents.read", "incidents.manage",
     },
     Role.ACCOUNTANT: {
-        "dashboard.read", "reports.read", "reports.export",
+        "dashboard.read", "reports.read", "reports.export", "tasks.read", "tasks.assign",
         "loads.read", "loads.rates.read", "loads.close", "customers.read", "drivers.read",
         "drivers.sensitive.read", "equipment.read", "owners.read", "owners.sensitive.read",
         "documents.read", "documents.upload",

@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
 import { useSoon } from "@/features/console/use-action";
+import { useOpenConversation } from "@/features/messages/use-message";
 import { useUpload, viewDocument } from "@/features/documents/use-upload";
 import { api, unwrap } from "@/lib/api/client";
 import { formatDateTime } from "@/lib/format/dates";
@@ -24,8 +25,9 @@ const noop = () => {};
 
 /** Load detail page: lifecycle, route and tracking, stops, documents, financials, activity. */
 export function LoadScreen() {
-  const { me, state, can, fin, noFin, set } = useConsole();
+  const { me, state, can, fin, noFin, set, notify } = useConsole();
   const soon = useSoon();
+  const message = useOpenConversation();
   const upload = useUpload();
   const id = typeof state.loadId === "string" ? state.loadId : null;
   const query = useLoad(id);
@@ -162,12 +164,14 @@ export function LoadScreen() {
           <p className="sub"><span>{[describe(load), created ? `created ${formatDateTime(created.created_at, zone)}${created.actor_name ? ` by ${created.actor_name}` : ""}` : ""].filter(Boolean).join(" · ")}</span></p>
         </div>
         <div className="r g8">
-          <button className="btn" onClick={soon("Messaging drivers")}>
-            <Icon className="s14" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            Message driver
-          </button>
+          {can("messages.send") ? (
+            <button className="btn" onClick={() => (assignment ? void message({ driverId: assignment.driver.id }) : notify("No driver is on this load yet", true))} disabled={!assignment} title={assignment ? undefined : "No driver is on this load yet"}>
+              <Icon className="s14" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              Message driver
+            </button>
+          ) : null}
           <StatusMenu items={actions.items} start={actions.start} />
-          <button className="btn pri" onClick={soon("Notifying customers")}>
+          <button className="btn pri" onClick={() => (can("messages.send") ? void message({ customerId: load.customer.id }) : soon("Notifying customers")())}>
             <Icon className="s14" d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
             Notify customer
           </button>

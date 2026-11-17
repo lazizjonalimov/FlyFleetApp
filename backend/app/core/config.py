@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     document_reader: str = "off"
     document_reader_model: str = "claude-opus-5-5"
 
+    # Suggested replies in Messages. "off": none. "anthropic": Claude drafts a reply to the latest message from a
+    # driver or customer, through the Anthropic API with the credential the SDK finds in the environment. A draft
+    # is only ever a suggestion: a person reads it, can change it, and sends it themselves.
+    assistant: str = "off"
+    assistant_model: str = "claude-opus-5-5"
+
     cors_origins: list[str] = ["http://localhost:3000"]
     signup_enabled: bool = True
     # How many active companies one account (profile) may hold. Individual accounts can be given another limit.

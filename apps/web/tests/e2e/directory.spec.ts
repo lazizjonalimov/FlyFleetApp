@@ -33,7 +33,7 @@ test("adding a driver from Create, then opening and editing the record", async (
   await expect(page.locator(".main")).toContainText("Medical certificate");
   await expect(page.locator(".main")).toContainText("Expiring soon");
 
-  await page.getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit driver" });
   await expect(edit.getByLabel("First name *")).toHaveValue("Casey");
   await edit.getByLabel("Mobile").fill("312-555-0143");

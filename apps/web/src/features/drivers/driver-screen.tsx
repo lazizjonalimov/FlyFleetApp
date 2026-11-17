@@ -8,10 +8,11 @@ import { ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
-import { useSoon } from "@/features/console/use-action";
+import { I } from "@/features/console/icons";
 import type { Cell } from "@/features/console/view";
 import { useUpload, viewDocument } from "@/features/documents/use-upload";
 import { DRIVER_TYPES, loadLabel, loadTone, monthYear, PAY_TYPES } from "@/features/fleet/labels";
+import { useOpenConversation } from "@/features/messages/use-message";
 import { api, unwrap } from "@/lib/api/client";
 import { formatDate, formatDateTime, todayIn, toLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
@@ -32,7 +33,7 @@ function validity(expires: string | null | undefined, today: string): [label: st
 /** Driver profile with the qualification file. */
 export function DriverScreen() {
   const { me, can, fin, state, set } = useConsole();
-  const soon = useSoon();
+  const message = useOpenConversation();
   const upload = useUpload();
   const org = me.organization;
   const zone = org.timezone;
@@ -125,10 +126,12 @@ export function DriverScreen() {
           <p className="sub"><span>{[d.employee_number ? `Employee ${d.employee_number}` : "", DRIVER_TYPES[d.driver_type] ?? humanize(d.driver_type), d.hire_date ? `hired ${monthYear(d.hire_date)}` : "", d.phone, d.email].filter(Boolean).join(" · ")}</span></p>
         </div>
         <div className="r g8">
-          <button className="btn" onClick={soon("Messaging drivers")}>
-            <Icon className="s14" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            Message
-          </button>
+          {can("messages.send") ? (
+            <button className="btn" onClick={() => void message({ driverId: d.id })}>
+              <Icon className="s14" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              Message
+            </button>
+          ) : null}
           {can("drivers.manage") ? (
             <button className="btn" onClick={editDriver}>
               <Icon className="s14" d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
@@ -252,25 +255,7 @@ export function DriverScreen() {
               </dl>
             </div>
           </section>
-          <section className="card oh">
-            <div className="ch"><h2 className="h2">Connected channels</h2></div>
-            <div className="r g10" style={{ padding: "10px 16px", borderBottom: "1px solid var(--bd2)" }}>
-              <span className="chn" data-k={d.user_id ? "brand" : "mu"} style={{ width: "30px", height: "30px" }}><Icon className="s14" d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM12 18h.01" /></span>
-              <div className="f1">
-                <div className="fs13 w5">Driver app</div>
-                <div className="fs12 mu">{d.user_id ? "Signed in with their own FlyFleet login" : "No driver app login yet"}</div>
-              </div>
-              {!d.user_id && can("users.manage") ? <button className="btn xs ghost" onClick={() => set(goTo("team"))}>Invite</button> : null}
-            </div>
-            <div className="r g10" style={{ padding: "10px 16px" }}>
-              <span className="chn" data-k={d.phone ? "info" : "mu"} style={{ width: "30px", height: "30px" }}><Icon className="s14" d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" /></span>
-              <div className="f1">
-                <div className="fs13 w5">Phone</div>
-                <div className="fs12 mu">{d.phone ?? "No number on file"}</div>
-              </div>
-              {d.phone ? <a className="btn xs ghost" href={`tel:${d.phone}`}>Call</a> : null}
-            </div>
-          </section>
+          <ChannelsCard driverId={d.id} phone={d.phone} linked={!!d.user_id} onEdit={can("drivers.manage") ? editDriver : undefined} />
           {can("drivers.sensitive.read") ? (
             <section className="card oh">
               <div className="ch">
@@ -312,5 +297,33 @@ export function DriverScreen() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** How messages and alerts reach the driver: Telegram, the driver app, and SMS when the others fail. */
+function ChannelsCard({ driverId, phone, linked, onEdit }: { driverId: string; phone: string | null; linked: boolean; onEdit?: () => void }) {
+  const { me, can, set } = useConsole();
+  const channels = useQuery({ queryKey: [me.organization.id, "drivers", driverId, "channels"], queryFn: () => unwrap(api.GET("/api/v1/drivers/{driver_id}/channels", { params: { path: { driver_id: driverId } } })) });
+  const of = (key: string) => channels.data?.channels.find((c) => c.key === key);
+  const app = of("app");
+  const rows: { n: string; d: string; ic: string; k: string; act?: [label: string, go: () => void, name: string] }[] = [
+    { n: "Telegram", d: "Not linked · Telegram isn’t connected for the company yet", ic: I.send, k: "mu", act: can("organization.manage") ? ["Set up", () => set(goTo("settings")), "Set up Telegram in Integrations"] : undefined },
+    app?.connected
+      ? { n: "Driver app", d: "Signed in · messages, alerts and load updates arrive in the app", ic: I.mobile, k: "brand", act: can("messages.read") && channels.data?.conversation_id ? ["Open chat", () => set({ ...goTo("messages"), conv: channels.data!.conversation_id }), "Open the conversation"] : undefined }
+      : { n: "Driver app", d: linked ? "Their sign-in is turned off" : "Not signed up yet", ic: I.mobile, k: "mu", act: can("users.manage") ? ["Invite", () => set(goTo("team")), "Invite to the driver app"] : undefined },
+    { n: "SMS fallback", d: phone ? `${phone} · no SMS provider connected yet` : "No phone number on file", ic: I.phone, k: "mu", act: onEdit ? ["Edit", onEdit, "Edit the phone number"] : undefined },
+  ];
+  return (
+    <section className="card oh">
+      <div className="ch"><h2 className="h2">Connected channels</h2></div>
+      {rows.map((h) => (
+        <div key={h.n} className="r g10" style={{ padding: "10px 16px", borderBottom: "1px solid var(--bd2)" }}>
+          <span className="chn" data-k={h.k} style={{ width: "30px", height: "30px" }}><Icon className="s14" d={h.ic} /></span>
+          <div className="f1"><div className="fs13 w5">{h.n}</div><div className="fs12 mu">{h.d}</div></div>
+          {h.act ? <button className="btn xs ghost" onClick={h.act[1]} aria-label={h.act[2]}>{h.act[0]}</button> : null}
+        </div>
+      ))}
+      <p className="note" style={{ padding: "10px 16px 12px" }}><Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />FlyFleet keeps the message history. Telegram and SMS only deliver it.</p>
+    </section>
   );
 }

@@ -20,6 +20,7 @@ from app.modules.loads.models import (  # noqa: F401
     TrackingEvent,
 )
 from app.modules.maintenance.models import Inspection, InspectionDefect, WorkOrder, WorkOrderLine  # noqa: F401
+from app.modules.messaging.models import Conversation, ConversationRead, Message  # noqa: F401
 from app.modules.organizations.models import (  # noqa: F401
     Account,
     AuditLog,
@@ -35,6 +36,7 @@ from app.modules.owners.models import EquipmentOwnership, Owner, OwnerAgreement,
 from app.modules.people.models import Person, PersonDistinction  # noqa: F401
 from app.modules.settlements.models import DriverSettlement, SettlementLine  # noqa: F401
 from app.modules.settlements.owner_models import OwnerSettlement, OwnerSettlementLine  # noqa: F401
+from app.modules.tasks.models import Task  # noqa: F401
 from app.modules.tracking.models import (  # noqa: F401
     AlertPolicy,
     AlertPolicyVersion,

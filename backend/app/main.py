@@ -23,6 +23,7 @@ from app.modules.ifta.router import router as ifta_router
 from app.modules.intake.router import router as intake_router
 from app.modules.loads.router import router as loads_router
 from app.modules.maintenance.router import router as maintenance_router
+from app.modules.messaging.router import router as messaging_router
 from app.modules.organizations.account_router import router as account_router
 from app.modules.organizations.auth_router import router as auth_router
 from app.modules.organizations.router import router as organization_router
@@ -34,6 +35,7 @@ from app.modules.reports.router import router as reports_router
 from app.modules.safety.router import router as safety_router
 from app.modules.settlements.owner_router import router as owner_settlements_router
 from app.modules.settlements.router import router as settlements_router
+from app.modules.tasks.router import router as tasks_router
 from app.modules.tracking.router import router as tracking_router
 
 DESCRIPTION = """
@@ -76,7 +78,7 @@ def create_app() -> FastAPI:
                    owners_router, ownership_router, owner_portal_router,
                    equipment_router, loads_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
-                   ifta_router, tracking_router,
+                   ifta_router, tracking_router, messaging_router, tasks_router,
                    settlements_router, reports_router):
         v1.include_router(router)
     app.include_router(v1)

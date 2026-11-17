@@ -10,7 +10,7 @@ type Can = (...anyOf: string[]) => boolean;
  * checks the same permissions on every request, so this only decides what is offered.
  */
 const NAV: { label: string; items: [key: string, label: string, icon: keyof typeof I, anyOf: string[]][] }[] = [
-  { label: "Overview", items: [["dashboard", "Dashboard", "dash", ["dashboard.read"]], ["tasks", "My tasks", "tasks", ["dashboard.read"]]] },
+  { label: "Overview", items: [["dashboard", "Dashboard", "dash", ["dashboard.read"]], ["tasks", "My tasks", "tasks", ["tasks.read"]]] },
   {
     label: "Operations",
     items: [
@@ -18,7 +18,7 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
       ["loads", "Loads", "loads", ["loads.read"]],
       ["tracking", "Live fleet", "pin", ["tracking.read"]],
       ["alerts", "Fleet alerts", "alert", ["incidents.read"]],
-      ["messages", "Messages", "msg", ["dispatch.read"]],
+      ["messages", "Messages", "msg", ["messages.read"]],
     ],
   },
   { label: "Directory", items: [["customers", "Customers", "building", ["customers.read"]], ["drivers", "Drivers", "user", ["drivers.read"]], ["owners", "Owners", "owner", ["owners.read"]]] },

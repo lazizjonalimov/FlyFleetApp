@@ -119,11 +119,7 @@ def _notify(db: Session, row: Incident, policy: AlertPolicy | None, at: datetime
         reached = [c for c in r["channels"] if c in policies.CONNECTED]
         missed = [c for c in r["channels"] if c not in policies.CONNECTED]
         if r["who"] == "driver":
-            name = db.scalar(select(func.concat(Driver.first_name, " ", Driver.last_name))
-                             .where(Driver.id == row.driver_id)) if row.driver_id else None
-            if name:
-                _event(db, row, "notified", at, f"Driver not alerted · {_channels(missed)} "
-                       f"{'is' if len(missed) == 1 else 'are'}n't connected yet", "mu")
+            _alert_driver(db, row, policy, r["channels"], at)
             continue
         user_id, name = _who(db, row, r["who"])
         if not name:
@@ -138,6 +134,49 @@ def _notify(db: Session, row: Incident, policy: AlertPolicy | None, at: datetime
                 row.owner_user_id = user_id
         if missed:
             _event(db, row, "notified", at, f"{_channels(missed)} to the {label.lower()} not sent · not connected yet", "mu")
+
+
+def _alert_driver(db: Session, row: Incident, policy: AlertPolicy | None, channels: list[str], at: datetime) -> None:
+    """Send the policy's words to the driver. The driver app carries it when they are on the app (an app push
+    needs a push connection, so the alert waits in the app's inbox); Telegram and SMS need a messaging connection.
+    The alert also shows as a card in the driver's conversation, saying what reached them."""
+    from app.modules.messaging import service as messaging
+    driver = db.get(Driver, row.driver_id) if row.driver_id else None
+    if driver is None:
+        return
+    name = f"{driver.first_name} {driver.last_name}"
+    company = db.scalar(select(Organization.name).where(Organization.id == row.organization_id)) or "FlyFleet"
+    unit = db.scalar(select(Vehicle.unit_number).where(Vehicle.id == row.vehicle_id)) if row.vehicle_id else None
+    started = (row.data or {}).get("started_at")
+    minutes = max(1, round((row.last_seen_at - datetime.fromisoformat(started)).total_seconds() / 60)) if started else 0
+    threshold = (row.data or {}).get("threshold") or (policy.settings.get("threshold_mph") if policy else "")
+    text_ = ((policy.message if policy and policy.message else None) or f"FlyFleet — {company}\n{row.title}.")
+    text_ = (text_.replace("{company}", company).replace("{unit}", unit or "the truck")
+             .replace("{threshold}", f"{threshold:g}" if isinstance(threshold, int | float) else str(threshold))
+             .replace("{minutes}", str(minutes)))
+    wanted = ["app" if c in ("app_push", "push", "in_app") else c for c in channels]
+    lat, lon = (row.data or {}).get("lat"), (row.data or {}).get("lon")
+    where = places.describe(float(lat), float(lon)) if lat is not None and lon is not None else None
+    if where and where.startswith("Near "):
+        where = "near " + where[5:]
+    msg = messaging.tell_driver(
+        db, row.organization_id, driver.id, event="alert", title=f"{LABEL[row.kind]} alert sent to driver",
+        body=" · ".join(x for x in (row.title, where, f"policy {policy.name} v{policy.version}" if policy else None) if x),
+        driver_text=text_, load_id=row.load_id, incident_id=row.id, channels=wanted)
+    reached = messaging.reached(msg)
+    missed = [c for c in channels if (("app" if c in ("app_push", "push", "in_app") else c) not in reached)]
+    if reached:
+        _event(db, row, "notified", at, f"Driver alerted · {name} · driver app", "info")
+    if missed and reached:
+        _event(db, row, "notified", at, f"{_channels(missed)} to the driver not sent · not connected yet", "mu")
+    elif missed:
+        why = []
+        if any(c in ("app_push", "push", "in_app") for c in missed):
+            why.append(f"{driver.first_name} isn't on the driver app")
+        others = [c for c in missed if c not in ("app_push", "push", "in_app")]
+        if others:
+            why.append(f"{_channels(others)} {'is' if len(others) == 1 else 'are'}n't connected yet")
+        _event(db, row, "notified", at, f"Driver not alerted · {' · '.join(why)}", "mu")
 
 
 def _upsert(db: Session, p: Principal, *, kind: str, key: str, severity: str, title: str, detail: str | None,

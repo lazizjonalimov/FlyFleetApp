@@ -122,6 +122,8 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
   const exceptions = useQuery({ queryKey: [me.organization.id, "dashboard", "exceptions"], queryFn: () => unwrap(api.GET("/api/v1/dashboard/exceptions")), enabled: watching, refetchInterval: 60_000 });
   const organization = useQuery({ queryKey: [me.organization.id, "organization"], queryFn: () => unwrap(api.GET("/api/v1/organization")), staleTime: 5 * 60_000 });
   const incidents = useQuery({ queryKey: [me.organization.id, "incidents", "counts"], queryFn: () => unwrap(api.GET("/api/v1/incidents/counts")), enabled: can("incidents.read"), refetchInterval: 60_000 });
+  const tasks = useQuery({ queryKey: [me.organization.id, "tasks", "counts"], queryFn: () => unwrap(api.GET("/api/v1/tasks/counts")), enabled: can("tasks.read"), refetchInterval: 60_000 });
+  const unread = useQuery({ queryKey: [me.organization.id, "conversations", "unread"], queryFn: () => unwrap(api.GET("/api/v1/conversations/unread")), enabled: can("messages.read"), refetchInterval: 30_000 });
 
   const shell = useMemo(() => {
     const alerts = exceptions.data ?? [];
@@ -130,11 +132,13 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
       alerts: incidents.data ? { n: incidents.data.open, hot: incidents.data.high > 0 } : { n: 0, hot: false },
       safety: safety ? { n: safety.expired + safety.expiring + safety.missing } : undefined,
       documents: { n: alerts.find((alert) => alert.code === "DOCUMENTS_TO_REVIEW")?.count ?? 0 },
+      tasks: tasks.data ? { n: tasks.data.open, hot: tasks.data.overdue > 0 } : undefined,
+      messages: unread.data ? { n: unread.data.unread } : undefined,
     };
     const drivers = summary.data?.fleet?.drivers_active;
     const orgSub = [organization.data?.mc_number || (organization.data?.dot_number ? `DOT ${organization.data.dot_number}` : ""), drivers === undefined ? "" : plural(drivers, "driver")].filter(Boolean).join(" · ");
     return buildShell({ me, can, state, set, theme, mini: sidebar === "mini", setMini: (mini) => setSidebar(mini ? "mini" : "open"), orgSub, counts });
-  }, [me, can, state, set, theme, sidebar, setSidebar, summary.data, exceptions.data, organization.data, incidents.data]);
+  }, [me, can, state, set, theme, sidebar, setSidebar, summary.data, exceptions.data, organization.data, incidents.data, tasks.data, unread.data]);
 
   const path = useCallback((...parts: string[]) => `/${slug}/${parts.join("/")}`, [slug]);
 

@@ -35,7 +35,8 @@ export type Column<Item> = {
   hidden?: boolean;
 };
 
-export type Tab = { label: string; params?: ListQuery };
+/** A tab of the list. `count: false` leaves its count out, for tabs that aren't a to-do (done, sent by me). */
+export type Tab = { label: string; params?: ListQuery; count?: boolean };
 
 /** A filter the list offers: its values come from the company's own records. */
 export type Filter = {
@@ -186,7 +187,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
       queryKey: [me.organization.id, spec.key, "count", each.params ?? {}, filterParams],
       queryFn: () => spec.fetch({ ...each.params, ...filterParams, limit: 1, count: true }),
       staleTime: 30_000,
-      enabled,
+      enabled: enabled && each.count !== false,
     })),
   });
   const allCount = tabs.length ? null : (query.data?.page.total_count ?? null);
@@ -304,7 +305,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
     sub: spec.sub(total),
     ph: spec.placeholder,
     actions: spec.actions,
-    tabs: tabs.length ? tabs.map((each, index) => ({ l: each.label, n: totalOf(index) === null ? "" : formatNumber(totalOf(index)), on: index === tabIndex ? "on" : "", go: () => set({ ltab: index, ...restart }) })) : null,
+    tabs: tabs.length ? tabs.map((each, index) => ({ l: each.label, n: totalOf(index) === null || each.count === false ? "" : formatNumber(totalOf(index)), on: index === tabIndex ? "on" : "", go: () => set({ ltab: index, ...restart }) })) : null,
     kpis: spec.kpis ?? null,
     kpiN: spec.kpis?.length ?? 0,
     band: spec.band ?? null,

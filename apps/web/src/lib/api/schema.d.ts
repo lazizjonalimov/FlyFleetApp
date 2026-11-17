@@ -244,6 +244,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conversations
+         * @description Conversations with something in them, the latest first, with how many messages are unread.
+         */
+        get: operations["list_conversations_api_v1_conversations_get"];
+        put?: never;
+        /**
+         * Start Conversation
+         * @description The conversation to write in. A driver has one conversation, so asking again returns it (200).
+         */
+        post: operations["start_conversation_api_v1_conversations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unread */
+        get: operations["unread_api_v1_conversations_unread_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Conversation */
+        get: operations["get_conversation_api_v1_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{conversation_id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Draft Reply
+         * @description A suggested reply to their latest message. Only ever a suggestion: nothing is sent.
+         */
+        post: operations["draft_reply_api_v1_conversations__conversation_id__draft_post"];
+        /** Dismiss Draft */
+        delete: operations["dismiss_draft_api_v1_conversations__conversation_id__draft_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send Message */
+        post: operations["send_message_api_v1_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/conversations/{conversation_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read Conversation */
+        post: operations["read_conversation_api_v1_conversations__conversation_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers": {
         parameters: {
             query?: never;
@@ -821,6 +934,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/driver/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Driver Messages
+         * @description The driver's conversation with the office. Fetching it marks what was waiting as delivered.
+         */
+        get: operations["driver_messages_api_v1_driver_messages_get"];
+        put?: never;
+        /** Driver Message */
+        post: operations["driver_message_api_v1_driver_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/driver/messages/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Driver Messages Read
+         * @description The driver opened the conversation: what the office sent is read.
+         */
+        post: operations["driver_messages_read_api_v1_driver_messages_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/driver/positions": {
         parameters: {
             query?: never;
@@ -865,6 +1019,26 @@ export interface paths {
         };
         /** The drivers table's figures and filter values */
         get: operations["driver_summary_api_v1_drivers_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/drivers/{driver_id}/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Driver Channels
+         * @description How messages and alerts reach a driver.
+         */
+        get: operations["driver_channels_api_v1_drivers__driver_id__channels_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3372,6 +3546,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["list_tasks_api_v1_tasks_get"];
+        put?: never;
+        /** Create Task */
+        post: operations["create_task_api_v1_tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Counts */
+        get: operations["task_counts_api_v1_tasks_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Task Action */
+        post: operations["task_action_api_v1_tasks__task_id__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teammates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Teammates
+         * @description The people on the team, to give a task or an alert to, or to add to a conversation.
+         */
+        get: operations["teammates_api_v1_teammates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/terminals": {
         parameters: {
             query?: never;
@@ -4151,6 +4397,22 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** ChannelState */
+        ChannelState: {
+            /** Connected */
+            connected: boolean;
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "connected" | "not_connected" | "not_invited" | "off";
+        };
         /** ChargeIn */
         ChargeIn: {
             /**
@@ -4503,6 +4765,84 @@ export interface components {
             /** Title */
             title?: string | null;
         };
+        /** ConversationCounts */
+        ConversationCounts: {
+            /** All */
+            all: number;
+            /** Customers */
+            customers: number;
+            /** Drivers */
+            drivers: number;
+            /** Team */
+            team: number;
+            /** Unread */
+            unread: number;
+        };
+        /** ConversationIn */
+        ConversationIn: {
+            /** Contact Id */
+            contact_id?: string | null;
+            /** Customer Id */
+            customer_id?: string | null;
+            /** Driver Id */
+            driver_id?: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "driver" | "customer" | "team";
+            /** Members */
+            members?: string[];
+            /** Title */
+            title?: string | null;
+        };
+        /** ConversationItem */
+        ConversationItem: {
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "app" | "email" | "team" | "none";
+            /** Customer Id */
+            customer_id: string | null;
+            /** Driver Id */
+            driver_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Initials */
+            initials: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "driver" | "customer" | "team";
+            /** Last */
+            last: string | null;
+            /** Last At */
+            last_at: string | null;
+            /** Name */
+            name: string;
+            /** Subtitle */
+            subtitle: string | null;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "late" | "brand" | "mu";
+            /** Unread */
+            unread: number;
+        };
+        /** ConversationList */
+        ConversationList: {
+            counts: components["schemas"]["ConversationCounts"];
+            /** Items */
+            items: components["schemas"]["ConversationItem"][];
+            /** Unread Total */
+            unread_total: number;
+        };
         /** CostLineIn */
         CostLineIn: {
             /** Description */
@@ -4781,6 +5121,24 @@ export interface components {
             /** Severity */
             severity: string;
         };
+        /** Delivery */
+        Delivery: {
+            /** At */
+            at?: string | null;
+            /** Channel */
+            channel: string;
+            /** Delivered At */
+            delivered_at?: string | null;
+            /** Read At */
+            read_at?: string | null;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "sent" | "delivered" | "read" | "not_sent";
+        };
         /** DistinctionIn */
         DistinctionIn: {
             /**
@@ -4846,6 +5204,43 @@ export interface components {
              * @description Whether an owner's portal users can open it
              */
             in_portal?: boolean | null;
+        };
+        /** Draft */
+        Draft: {
+            /**
+             * For Message Id
+             * Format: uuid
+             */
+            for_message_id: string;
+            /** Sources */
+            sources: string[];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "none" | "ready" | "dismissed";
+            /** Text */
+            text: string | null;
+        };
+        /** DraftIn */
+        DraftIn: {
+            /**
+             * Shorter
+             * @default false
+             */
+            shorter: boolean;
+        };
+        /** DriverChannels */
+        DriverChannels: {
+            /** Channels */
+            channels: components["schemas"]["ChannelState"][];
+            /** Conversation Id */
+            conversation_id: string | null;
+            /**
+             * Driver Id
+             * Format: uuid
+             */
+            driver_id: string;
         };
         /** DriverCreate */
         DriverCreate: {
@@ -4929,6 +5324,11 @@ export interface components {
              */
             user_id?: string | null;
         };
+        /** DriverInbox */
+        DriverInbox: {
+            /** Messages */
+            messages: components["schemas"]["DriverMessage"][];
+        };
         /** DriverLoad */
         DriverLoad: {
             /** Allowed Actions */
@@ -4966,6 +5366,54 @@ export interface components {
             version: number;
             /** Weight Lbs */
             weight_lbs: number | null;
+        };
+        /** DriverMessage */
+        DriverMessage: {
+            /** Attachments */
+            attachments: components["schemas"]["MessageAttachment"][];
+            /** Author Name */
+            author_name: string | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Event */
+            event: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "system";
+            load: components["schemas"]["MessageLoad"] | null;
+            /** Mine */
+            mine: boolean;
+            /**
+             * Status
+             * @description For the driver's own messages: whether the office has seen it
+             */
+            status: ("sent" | "delivered" | "read") | null;
+            /** Title */
+            title: string | null;
+        };
+        /** DriverMessageIn */
+        DriverMessageIn: {
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /** Document Ids */
+            document_ids?: string[];
+            /** Load Id */
+            load_id?: string | null;
         };
         /** DriverPositionsIn */
         DriverPositionsIn: {
@@ -5856,6 +6304,11 @@ export interface components {
             sheet: string | null;
             /** Status */
             status: string;
+        };
+        /** InboxReadOut */
+        InboxReadOut: {
+            /** Read */
+            read: number;
         };
         /** IncidentActionIn */
         IncidentActionIn: {
@@ -6936,6 +7389,94 @@ export interface components {
             /** Active */
             active?: boolean | null;
             role?: components["schemas"]["Role"] | null;
+        };
+        /** MessageAttachment */
+        MessageAttachment: {
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Type */
+            type: string;
+        };
+        /** MessageIn */
+        MessageIn: {
+            /**
+             * Body
+             * @default
+             */
+            body: string;
+            /**
+             * Channels
+             * @description Left out: every channel that can carry it
+             */
+            channels?: ("app" | "telegram" | "sms" | "email" | "in_app")[] | null;
+            /** Document Ids */
+            document_ids?: string[];
+            /** Load Id */
+            load_id?: string | null;
+        };
+        /** MessageLoad */
+        MessageLoad: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Load Number */
+            load_number: string | null;
+        };
+        /** MessageOut */
+        MessageOut: {
+            /** Attachments */
+            attachments: components["schemas"]["MessageAttachment"][];
+            /** Author Driver Id */
+            author_driver_id: string | null;
+            /** Author Name */
+            author_name: string | null;
+            /** Author User Id */
+            author_user_id: string | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deliveries */
+            deliveries: components["schemas"]["Delivery"][];
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "out" | "in" | "internal" | "system";
+            /**
+             * Driver Text
+             * @description What the driver was shown, when it differs from the card
+             */
+            driver_text: string | null;
+            /** Event */
+            event: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "text" | "system";
+            load: components["schemas"]["MessageLoad"] | null;
+            /** Title */
+            title: string | null;
+            /** Via */
+            via: string | null;
         };
         /** Meta */
         Meta: {
@@ -8159,6 +8700,13 @@ export interface components {
         Page_SettlementListItem_: {
             /** Items */
             items: components["schemas"]["SettlementListItem"][];
+            meta: components["schemas"]["Meta"];
+            page: components["schemas"]["PageInfo"];
+        };
+        /** Page[TaskOut] */
+        Page_TaskOut_: {
+            /** Items */
+            items: components["schemas"]["TaskOut"][];
             meta: components["schemas"]["Meta"];
             page: components["schemas"]["PageInfo"];
         };
@@ -9991,6 +10539,136 @@ export interface components {
              */
             organization_id: string;
         };
+        /** TaskAction */
+        TaskAction: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "complete" | "reopen" | "assign" | "cancel";
+            /** Assignee User Id */
+            assignee_user_id?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** TaskCounts */
+        TaskCounts: {
+            /** By Me */
+            by_me: number;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** Today */
+            today: number;
+        };
+        /** TaskIn */
+        TaskIn: {
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /**
+             * Assignee User Id
+             * @description Left out: the task is for you
+             */
+            assignee_user_id?: string | null;
+            /** Detail */
+            detail?: string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Entity Id */
+            entity_id?: string | null;
+            /** Entity Type */
+            entity_type?: ("load" | "driver" | "vehicle" | "customer") | null;
+            /**
+             * Priority
+             * @default medium
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+            /** Title */
+            title: string;
+        };
+        /** TaskOut */
+        TaskOut: {
+            /** Action */
+            action: string | null;
+            /** All Day */
+            all_day: boolean;
+            assignee: components["schemas"]["TaskPerson"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["TaskPerson"] | null;
+            /** Detail */
+            detail: string | null;
+            /** Done At */
+            done_at: string | null;
+            /** Due At */
+            due_at: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Label */
+            entity_label: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /** Outcome */
+            outcome: string | null;
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "incident" | "reminder";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "done" | "cancelled";
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+        };
+        /** TaskPerson */
+        TaskPerson: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string | null;
+        };
+        /** Teammate */
+        Teammate: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+        };
         /** TerminalCreate */
         TerminalCreate: {
             /** Address */
@@ -10053,6 +10731,178 @@ export interface components {
             postal_code?: string | null;
             /** State */
             state?: string | null;
+        };
+        /** Thread */
+        Thread: {
+            /**
+             * Assistant
+             * @description Whether suggested replies are turned on
+             */
+            assistant: boolean;
+            /**
+             * Channel
+             * @enum {string}
+             */
+            channel: "app" | "email" | "team" | "none";
+            /** Channels */
+            channels: components["schemas"]["ChannelState"][];
+            customer: components["schemas"]["ThreadCustomer"] | null;
+            /** Customer Id */
+            customer_id: string | null;
+            draft: components["schemas"]["Draft"] | null;
+            driver: components["schemas"]["ThreadDriver"] | null;
+            /** Driver Id */
+            driver_id: string | null;
+            /** Has More */
+            has_more: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            incident: components["schemas"]["ThreadIncident"] | null;
+            /** Initials */
+            initials: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "driver" | "customer" | "team";
+            /** Last */
+            last: string | null;
+            /** Last At */
+            last_at: string | null;
+            load: components["schemas"]["ThreadLoad"] | null;
+            /** Members */
+            members: components["schemas"]["ThreadMember"][];
+            /** Messages */
+            messages: components["schemas"]["MessageOut"][];
+            /** Name */
+            name: string;
+            /** Quick Replies */
+            quick_replies: string[];
+            /** Subtitle */
+            subtitle: string | null;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "late" | "brand" | "mu";
+            /** Unread */
+            unread: number;
+        };
+        /** ThreadContact */
+        ThreadContact: {
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string | null;
+            /** Title */
+            title: string | null;
+        };
+        /** ThreadCustomer */
+        ThreadCustomer: {
+            contact: components["schemas"]["ThreadContact"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** ThreadDriver */
+        ThreadDriver: {
+            /** Hire Date */
+            hire_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Phone */
+            phone: string | null;
+            /** Status */
+            status: string;
+            /** Truck */
+            truck: string | null;
+        };
+        /** ThreadIncident */
+        ThreadIncident: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Driver Replied At */
+            driver_replied_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Number */
+            number: string;
+            /** Peak */
+            peak: number | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+            /** Vehicle Id */
+            vehicle_id: string | null;
+        };
+        /** ThreadLoad */
+        ThreadLoad: {
+            /** Appointment */
+            appointment: string | null;
+            /** Customer */
+            customer: string | null;
+            /** Equipment */
+            equipment: string;
+            /** Eta */
+            eta: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lane */
+            lane: string;
+            /** Late By Minutes */
+            late_by_minutes: number;
+            /** Load Number */
+            load_number: string;
+            /** Next Stop */
+            next_stop: string | null;
+            /** Short Lane */
+            short_lane: string;
+            /** Status */
+            status: string;
+            /** Truck */
+            truck: string | null;
+        };
+        /** ThreadMember */
+        ThreadMember: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string | null;
         };
         /** Trace */
         Trace: {
@@ -10774,6 +11624,11 @@ export interface components {
             owners: string[];
             /** Revenue */
             revenue: string;
+        };
+        /** UnreadOut */
+        UnreadOut: {
+            /** Unread */
+            unread: number;
         };
         /** UpcomingItem */
         UpcomingItem: {
@@ -12296,6 +13151,549 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["SessionOut"];
                 };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_conversations_api_v1_conversations_get: {
+        parameters: {
+            query?: {
+                tab?: "all" | "unread" | "drivers" | "customers" | "team";
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    start_conversation_api_v1_conversations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    unread_api_v1_conversations_unread_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_conversation_api_v1_conversations__conversation_id__get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+            };
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thread"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    draft_reply_api_v1_conversations__conversation_id__draft_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Draft"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dismiss_draft_api_v1_conversations__conversation_id__draft_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    send_message_api_v1_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_conversation_api_v1_conversations__conversation_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unauthorized */
             401: {
@@ -15058,6 +16456,207 @@ export interface operations {
             };
         };
     };
+    driver_messages_api_v1_driver_messages_get: {
+        parameters: {
+            query?: {
+                after?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverInbox"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_message_api_v1_driver_messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverMessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverMessage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_messages_read_api_v1_driver_messages_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxReadOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     driver_positions_api_v1_driver_positions_post: {
         parameters: {
             query?: never;
@@ -15296,6 +16895,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DriverSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_channels_api_v1_drivers__driver_id__channels_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driver_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverChannels"];
                 };
             };
             /** @description Unauthorized */
@@ -27182,6 +28848,352 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_tasks_api_v1_tasks_get: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page */
+                cursor?: string | null;
+                limit?: number;
+                /** @description Sort key; prefix with - for descending */
+                sort?: string | null;
+                /** @description Search text */
+                q?: string | null;
+                /** @description Also return the total number of matching records */
+                count?: boolean;
+                tab?: "open" | "today" | "by_me" | "done";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_TaskOut_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_task_api_v1_tasks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    task_counts_api_v1_tasks_counts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskCounts"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    task_action_api_v1_tasks__task_id__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    teammates_api_v1_teammates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Teammate"][];
                 };
             };
             /** @description Unauthorized */

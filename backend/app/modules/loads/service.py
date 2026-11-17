@@ -420,6 +420,8 @@ def transition(db: Session, p: Principal, load: Load, action: str, *, reason: st
             raise Conflict(problems[0].message, code="ASSIGNMENT_CONFLICT",
                            details={"reasons": [r.model_dump(mode="json") for r in problems]})
         move(db, p, load, action, "dispatched", note)
+        from app.modules.messaging import service as messaging
+        messaging.on_dispatched(db, p, load, assignment)
 
     elif action in ("arrive", "depart"):
         stops = stops_of(db, load.id)

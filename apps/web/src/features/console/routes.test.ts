@@ -20,6 +20,8 @@ describe("reading an address", () => {
   it("carries the open drawer and the document under review", () => {
     expect(parseLocation("/acme/loads", query("drawer=x")).state).toMatchObject({ screen: "loads", drawer: "x" });
     expect(parseLocation("/acme/documents/review", query("doc=d")).state).toMatchObject({ screen: "docreview", docId: "d" });
+    expect(parseLocation("/acme/messages", query("c=m1")).state).toMatchObject({ screen: "messages", conv: "m1" });
+    expect(hrefOf({ screen: "messages", conv: "m1" }, "acme")).toBe("/acme/messages?c=m1");
   });
 
   it("settles what another address left behind", () => {

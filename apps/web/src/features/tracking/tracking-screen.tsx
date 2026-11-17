@@ -10,6 +10,7 @@ import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
 import { useAction } from "@/features/console/use-action";
+import { useOpenConversation } from "@/features/messages/use-message";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
 import { plural } from "@/lib/format/text";
@@ -42,6 +43,7 @@ export function TrackingScreen() {
   const { me, can, set, state, notify } = useConsole();
   const org = me.organization;
   const act = useAction();
+  const message = useOpenConversation();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -220,7 +222,7 @@ export function TrackingScreen() {
         </section>
         {chosen ? (
           <VehiclePanel v={chosen} incident={track.data?.incident ?? null} miles={track.data?.miles ?? null} points={track.data?.points ?? []} now={now} hm={hm} hms={hms} range={RANGES.find((r) => r[0] === range)?.[1] ?? ""}
-            onClose={() => select(null)} onLoad={(id) => set({ screen: "loads", drawer: id, overlay: "none", modal: "none" })} onMessage={() => set(goTo("messages"))}
+            onClose={() => select(null)} onLoad={(id) => set({ screen: "loads", drawer: id, overlay: "none", modal: "none" })} onMessage={() => (chosen.driver?.id ? void message({ driverId: chosen.driver.id }) : notify("No driver is on this truck", true))}
             act={(action, note) => void act(() => unwrap(api.POST("/api/v1/incidents/{incident_id}/actions", { params: { path: { incident_id: track.data!.incident!.id } }, body: { action, version: track.data!.incident!.version, note: note ?? null } })), action === "acknowledge" ? "Acknowledged" : "Resolved")}
             canAct={can("incidents.manage")}
             fence={can("alert_policies.manage") && chosen.position && !chosen.moving ? (body) => void act(() => unwrap(api.POST("/api/v1/geofences", { body: { ...body, lat: chosen.position!.lat, lon: chosen.position!.lon } })), `Geofence “${body.name}” drawn`) : null} />

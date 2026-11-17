@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { cell } from "@/components/data-table/cell";
 import { useConsole } from "@/features/console/console-provider";
 import { addOf } from "@/features/console/shell";
 import { useSoon } from "@/features/console/use-action";
 import { carrierName, monthYear, PAY_TYPES } from "@/features/fleet/labels";
 import { ListScreen } from "@/features/lists/list-screen";
+import { BulkMessage } from "@/features/messages/bulk-message";
 import { useList, type ListQuery } from "@/features/lists/use-list";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
@@ -39,6 +41,7 @@ function qualification(d: Driver) {
 export function DriversScreen() {
   const { me, can, I, set } = useConsole();
   const soon = useSoon();
+  const [bulk, setBulk] = useState<Driver[] | null>(null);
   const org = me.organization;
   const carrier = carrierName(org.name);
   const today = todayIn(org.timezone);
@@ -117,7 +120,7 @@ export function DriversScreen() {
     ],
     frozen: 2,
     bulk: [
-      { label: "Message", go: soon("Messaging drivers") },
+      ...(can("messages.send") ? [{ label: "Message", go: (rows: Driver[]) => setBulk(rows) }] : []),
       { label: "Request documents", go: soon("Requesting documents from drivers") },
       { label: "Invite to app", go: soon("Inviting drivers to the app") },
       "export" as const,
@@ -160,5 +163,10 @@ export function DriversScreen() {
       action: add ? { label: "Add driver", go: add } : undefined,
     },
   });
-  return <ListScreen list={list} />;
+  return (
+    <>
+      <ListScreen list={list} />
+      {bulk ? <BulkMessage drivers={bulk} onClose={() => setBulk(null)} /> : null}
+    </>
+  );
 }
