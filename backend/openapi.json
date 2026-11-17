@@ -7812,6 +7812,109 @@
         "title": "ExpiringDocument",
         "type": "object"
       },
+      "FacilityOption": {
+        "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "contact_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Name"
+          },
+          "contact_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Phone"
+          },
+          "customer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whose saved facility it is",
+            "title": "Customer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "located": {
+            "description": "The city is on FlyFleet's map, so miles to it can be estimated",
+            "title": "Located",
+            "type": "boolean"
+          },
+          "postal_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Postal Code"
+          },
+          "source": {
+            "enum": [
+              "saved",
+              "recent"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "required": [
+          "label",
+          "address",
+          "city",
+          "state",
+          "postal_code",
+          "source",
+          "located"
+        ],
+        "title": "FacilityOption",
+        "type": "object"
+      },
       "Fence": {
         "properties": {
           "id": {
@@ -21419,6 +21522,93 @@
           "permissions"
         ],
         "title": "RoleSave",
+        "type": "object"
+      },
+      "RouteEstimate": {
+        "properties": {
+          "legs": {
+            "description": "Miles from the stop before, for each stop after the first",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Legs",
+            "type": "array"
+          },
+          "located": {
+            "description": "For each stop: whether its city is on the map",
+            "items": {
+              "type": "boolean"
+            },
+            "title": "Located",
+            "type": "array"
+          },
+          "miles": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The whole route, when every leg could be estimated",
+            "title": "Miles"
+          }
+        },
+        "required": [
+          "located",
+          "legs",
+          "miles"
+        ],
+        "title": "RouteEstimate",
+        "type": "object"
+      },
+      "RouteIn": {
+        "properties": {
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/RoutePoint"
+            },
+            "maxItems": 20,
+            "title": "Stops",
+            "type": "array"
+          }
+        },
+        "required": [
+          "stops"
+        ],
+        "title": "RouteIn",
+        "type": "object"
+      },
+      "RoutePoint": {
+        "properties": {
+          "city": {
+            "default": "",
+            "maxLength": 80,
+            "title": "City",
+            "type": "string"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          }
+        },
+        "title": "RoutePoint",
         "type": "object"
       },
       "RowIssue": {
@@ -39995,6 +40185,111 @@
         ]
       }
     },
+    "/api/v1/facilities": {
+      "get": {
+        "operationId": "facilities_api_v1_facilities_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 80,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 8,
+              "maximum": 25,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FacilityOption"
+                  },
+                  "title": "Response Facilities Api V1 Facilities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Facilities to pick for a stop: customers' saved ones, then places loads already went",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
     "/api/v1/finance/receivables": {
       "get": {
         "operationId": "receivables_api_v1_finance_receivables_get",
@@ -55476,6 +55771,92 @@
         "summary": "Reset Role",
         "tags": [
           "team"
+        ]
+      }
+    },
+    "/api/v1/route-estimate": {
+      "post": {
+        "operationId": "route_estimate_api_v1_route_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RouteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteEstimate"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Road miles between stops, estimated",
+        "tags": [
+          "loads"
         ]
       }
     },

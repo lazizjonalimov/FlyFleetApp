@@ -1415,6 +1415,23 @@ export interface paths {
         patch: operations["update_expense_api_v1_expenses__expense_id__patch"];
         trace?: never;
     };
+    "/api/v1/facilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Facilities to pick for a stop: customers' saved ones, then places loads already went */
+        get: operations["facilities_api_v1_facilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/receivables": {
         parameters: {
             query?: never;
@@ -3612,6 +3629,23 @@ export interface paths {
          * @description A template role back to FlyFleet's definition.
          */
         post: operations["reset_role_api_v1_roles__key__reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/route-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Road miles between stops, estimated */
+        post: operations["route_estimate_api_v1_route_estimate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6610,6 +6644,38 @@ export interface components {
             state: "expired" | "expiring" | "missing";
             /** Type */
             type: string;
+        };
+        /** FacilityOption */
+        FacilityOption: {
+            /** Address */
+            address: string | null;
+            /** City */
+            city: string;
+            /** Contact Name */
+            contact_name?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /**
+             * Customer
+             * @description Whose saved facility it is
+             */
+            customer?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Located
+             * @description The city is on FlyFleet's map, so miles to it can be estimated
+             */
+            located: boolean;
+            /** Postal Code */
+            postal_code: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "saved" | "recent";
+            /** State */
+            state: string | null;
         };
         /** Fence */
         Fence: {
@@ -10908,6 +10974,39 @@ export interface components {
             permissions: string[];
             /** Version */
             version?: number | null;
+        };
+        /** RouteEstimate */
+        RouteEstimate: {
+            /**
+             * Legs
+             * @description Miles from the stop before, for each stop after the first
+             */
+            legs: (number | null)[];
+            /**
+             * Located
+             * @description For each stop: whether its city is on the map
+             */
+            located: boolean[];
+            /**
+             * Miles
+             * @description The whole route, when every leg could be estimated
+             */
+            miles: number | null;
+        };
+        /** RouteIn */
+        RouteIn: {
+            /** Stops */
+            stops: components["schemas"]["RoutePoint"][];
+        };
+        /** RoutePoint */
+        RoutePoint: {
+            /**
+             * City
+             * @default
+             */
+            city: string;
+            /** State */
+            state?: string | null;
         };
         /** RowIssue */
         RowIssue: {
@@ -20132,6 +20231,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExpenseOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    facilities_api_v1_facilities_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityOption"][];
                 };
             };
             /** @description Unauthorized */
@@ -30318,6 +30485,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    route_estimate_api_v1_route_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RouteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RouteEstimate"];
                 };
             };
             /** @description Unauthorized */

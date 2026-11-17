@@ -358,3 +358,24 @@ def test_bills_of_lading_print_one_page_per_load(org):
     org.error("GET", "/loads/bols.pdf", 422, "VALIDATION_ERROR", params={"ids": []})
     org.error("GET", "/loads/bols.pdf", 404, "NOT_FOUND", params={"ids": ["00000000-0000-0000-0000-000000000000"]})
     org.add_user("driver").error("GET", "/loads/bols.pdf", 403, "FORBIDDEN", params={"ids": [first["id"]]})
+
+
+def test_facilities_to_pick_and_route_miles(org):
+    s = seed(org)
+    org.post(f"/customers/{s['customer']['id']}/addresses", {"label": "Globex Plant 2", "kind": "facility",
+                                                              "address": "1100 Ferris Rd", "city": "Waxahachie",
+                                                              "state": "TX", "postal_code": "75165"}, 201)
+    new_load(org, s["customer"]["id"])  # its stops: Shipper DC in Chicago, Receiver in Dallas
+    found = org.get("/facilities", params={"q": "globex"}).json()
+    assert [(f["label"], f["source"], f["customer"]) for f in found] == [("Globex Plant 2", "saved", "Globex")]
+    assert found[0]["located"] is True and found[0]["postal_code"] == "75165"
+    labels = [f["label"] for f in org.get("/facilities").json()]
+    assert labels[0] == "Globex Plant 2" and {"Shipper DC", "Receiver"} <= set(labels)
+    route = org.post("/route-estimate", {"stops": [{"city": "Dallas", "state": "TX"}, {"city": "Austin", "state": "TX"},
+                                                   {"city": "Nowhere Junction", "state": "TX"}]}, 200).json()
+    assert route["located"] == [True, True, False] and 180 < route["legs"][0] < 260 and route["legs"][1] is None
+    assert route["miles"] is None
+    whole = org.post("/route-estimate", {"stops": [{"city": "Dallas", "state": "TX"}, {"city": "Austin", "state": "TX"}]},
+                     200).json()
+    assert whole["miles"] == whole["legs"][0]
+    org.add_user("accountant").error("GET", "/facilities", 403, "FORBIDDEN")

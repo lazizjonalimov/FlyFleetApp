@@ -13,12 +13,14 @@ import { ApiError, errorMessage } from "@/lib/api/errors";
 import { fromLocalInput, timeZoneLabel } from "@/lib/format/dates";
 import { formatMoney, multiplyMoney, sumMoney, toCents } from "@/lib/format/money";
 import { formatNumber } from "@/lib/format/text";
+import { US_STATES } from "@/lib/reference/states";
 import { ACCEPT, checkFile, uploadDocument } from "@/lib/upload";
+import { FacilityField } from "./facility-field";
 import { CHARGES } from "./load-view";
 
 type Kind = "pickup" | "delivery";
 type Timing = "window" | "appointment" | "fcfs";
-type StopForm = { type: Kind; name: string; address: string; city: string; state: string; postal: string; timing: Timing; date: string; from: string; to: string; reference: string; instructions: string };
+type StopForm = { type: Kind; name: string; address: string; city: string; state: string; postal: string; timing: Timing; date: string; from: string; to: string; reference: string; instructions: string; facility: "" | "saved" | "recent" };
 type ChargeForm = { type: string; description: string; quantity: string; rate: string; billable: boolean; driverPayable: boolean };
 type Values = {
   customer: string;
@@ -35,7 +37,13 @@ type Values = {
   instructions: string;
 };
 
-const blankStop = (type: Kind): StopForm => ({ type, name: "", address: "", city: "", state: "", postal: "", timing: "window", date: "", from: "", to: "", reference: "", instructions: "" });
+const blankStop = (type: Kind): StopForm => ({ type, name: "", address: "", city: "", state: "", postal: "", timing: "window", date: "", from: "", to: "", reference: "", instructions: "", facility: "" });
+/** A state's two-letter code from a code or a name. */
+const stateCode = (text: string | null | undefined): string => {
+  const value = (text ?? "").trim();
+  if (/^[A-Za-z]{2}$/.test(value)) return value.toUpperCase();
+  return US_STATES.find(([, name]) => name.toLowerCase() === value.toLowerCase())?.[0] ?? "";
+};
 const EMPTY: Values = { customer: "", reference: "", bol: "", equipment: "dry_van", commodity: "", weight: "", miles: "", terminal: "", stops: [blankStop("pickup"), blankStop("delivery")], rate: "", charges: [], instructions: "" };
 
 const STEPS = ["Customer & references", "Load basics", "Stops & appointments", "Rate & charges", "Documents & notes", "Review"];
@@ -82,6 +90,8 @@ export function NewLoadScreen() {
   const [values, setValues] = useState<Values>(EMPTY);
   const [step, setStep] = useState(0);
   const [reached, setReached] = useState(0);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [folded, setFolded] = useState<number[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, setPending] = useState<"draft" | "planned" | null>(null);
@@ -93,6 +103,39 @@ export function NewLoadScreen() {
   const customers = useQuery({ queryKey: [org.id, "customers", "options"], queryFn: () => unwrap(api.GET("/api/v1/customers", { params: { query: { status: "active", sort: "name", limit: 100 } } })), staleTime: 60_000 });
   const terminals = useQuery({ queryKey: [org.id, "terminals", "options"], queryFn: () => unwrap(api.GET("/api/v1/terminals", { params: { query: { status: "active", sort: "name", limit: 100 } } })), staleTime: 60_000 });
   const customer = customers.data?.items.find((each) => each.id === values.customer);
+  // The route's miles, estimated from the stops' cities as they are typed.
+  const points = values.stops.map((stop) => ({ city: stop.city.trim(), state: stop.state.trim() || null }));
+  const routed = points.filter((point) => point.city).length >= 1;
+  const route = useQuery({
+    queryKey: [org.id, "route-estimate", JSON.stringify(points)],
+    queryFn: () => unwrap(api.POST("/api/v1/route-estimate", { body: { stops: points } })),
+    enabled: routed,
+    staleTime: 60_000,
+  });
+  // Is the reference already on another of this customer's loads?
+  const reference = values.reference.trim();
+  const sameReference = useQuery({
+    queryKey: [org.id, "loads", "reference", values.customer, reference],
+    queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { customer_id: values.customer, q: reference, limit: 10 } } })),
+    enabled: !!values.customer && reference.length >= 2,
+    staleTime: 30_000,
+  });
+  const duplicate = sameReference.data?.items.find((load) => (load.reference ?? "").trim().toLowerCase() === reference.toLowerCase() && load.status !== "cancelled");
+  const account = useQuery({ queryKey: [org.id, "customers", "detail", values.customer], queryFn: () => unwrap(api.GET("/api/v1/customers/{customer_id}", { params: { path: { customer_id: values.customer } } })), enabled: !!values.customer, staleTime: 60_000 });
+  /** The line under a stop's facility: a saved facility, how far it is from the stop before, or that it isn't on the map. */
+  const stopNote = (i: number): string | undefined => {
+    const stop = values.stops[i]!;
+    const parts: string[] = [];
+    if (stop.facility === "saved") parts.push("Saved facility");
+    else if (stop.facility === "recent") parts.push("Used on an earlier load");
+    const located = route.data?.located[i];
+    if (stop.city.trim() && located === false) parts.push("not on FlyFleet’s map, so miles to it can’t be estimated");
+    else if (i > 0 && route.data?.legs[i - 1] !== null && route.data?.legs[i - 1] !== undefined) parts.push(`${formatNumber(route.data.legs[i - 1]!)} mi from stop ${i} (estimate)`);
+    else if (located && stop.city.trim()) parts.push(`on the map · ${[stop.city.trim(), stop.state.trim()].filter(Boolean).join(", ")}`);
+    if (!parts.length) return undefined;
+    const text = parts.join(" · ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
 
   useEffect(() => {
     if (!dirty) return;
@@ -228,6 +271,17 @@ export function NewLoadScreen() {
     { ok: !allErrors.route, text: allErrors.route ? "The route must start with a pickup and end with a delivery" : "Stops are in a valid order" },
     ...values.stops.flatMap((stop, i) => (errors[`stops.${i}.to`] || allErrors[`stops.${i}.to`] ? [{ ok: false, text: `Stop ${i + 1} ${stop.type} window is invalid` }] : [])),
     { ok: !!customer, text: customer ? "Customer chosen" : "Choose the customer" },
+    ...(customer && account.data
+      ? (() => {
+          const limit = toCents(account.data.credit_limit);
+          const owed = toCents(account.data.stats.open_balance);
+          if (limit !== null && owed !== null && owed > limit) return [{ ok: false, warn: true, text: `${customer.name} owes ${formatMoney(account.data.stats.open_balance, org.base_currency)}, over its ${formatMoney(account.data.credit_limit, org.base_currency)} credit limit` }];
+          return [{ ok: true, text: owed === null ? "Customer is active" : "Customer is active · credit OK" }];
+        })()
+      : []),
+    ...(customer && reference.length >= 2 && sameReference.data
+      ? [duplicate ? { ok: false, warn: true, text: `Reference ${reference} is already on ${duplicate.load_number}` } : { ok: true, text: `Reference ${reference} is unique for ${customer.name}` }]
+      : []),
     ...(fin ? [{ ok: MONEY.test(values.rate), text: MONEY.test(values.rate) ? "Line haul entered" : "Enter the line haul" }] : []),
     { ok: !!rateConfirmation, warn: true, text: rateConfirmation ? "Rate confirmation will be attached" : "Rate confirmation not attached yet — it can be added after saving" },
   ];
@@ -353,9 +407,20 @@ export function NewLoadScreen() {
               {values.stops.map((stop, i) => {
                 const prefix = `stops.${i}`;
                 const count = Object.keys(errors).filter((key) => key.startsWith(`${prefix}.`)).length;
+                const shut = folded.includes(i);
                 return (
-                  <section key={i} className="card stopc">
+                  <section key={i} className="card stopc" style={{ opacity: dragging === i ? 0.5 : 1 }}
+                    onDragOver={(e) => { if (dragging !== null) e.preventDefault(); }}
+                    onDrop={(e) => { e.preventDefault(); if (dragging !== null && dragging !== i) { moveStop(dragging, i - dragging); setFolded([]); } setDragging(null); }}>
                     <div className="r g8 stoph">
+                      <button className="btn ghost xs icon" draggable style={{ cursor: "grab" }} aria-label={`Move stop ${i + 1}: drag it, or use the up and down arrow keys`}
+                        onDragStart={(e) => { setDragging(i); e.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDragging(null)}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp" && i > 0) { e.preventDefault(); moveStop(i, -1); setFolded([]); }
+                          if (e.key === "ArrowDown" && i < values.stops.length - 1) { e.preventDefault(); moveStop(i, 1); setFolded([]); }
+                        }}>
+                        <Icon className="s14" d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01" />
+                      </button>
                       <span className="smk" data-k="brand">{i + 1}</span>
                       <div className="seg sm">
                         {(["pickup", "delivery"] as const).map((kind) => (
@@ -364,12 +429,21 @@ export function NewLoadScreen() {
                       </div>
                       {count ? <span className="tag" data-k="bad" style={{ marginLeft: "4px" }}>{count === 1 ? "1 error" : `${count} errors`}</span> : null}
                       <span className="sp"></span>
-                      {i > 0 ? <button className="btn ghost xs icon" aria-label="Move stop up" onClick={() => moveStop(i, -1)}><Icon className="s14" d="M18 15l-6-6-6 6" /></button> : null}
-                      {i < values.stops.length - 1 ? <button className="btn ghost xs icon" aria-label="Move stop down" onClick={() => moveStop(i, 1)}><Icon className="s14" d="M6 9l6 6 6-6" /></button> : null}
-                      {values.stops.length > 1 ? <button className="btn ghost xs icon" aria-label="Remove stop" onClick={() => put("stops", values.stops.filter((_, j) => j !== i))}><Icon className="s14" d="M18 6L6 18M6 6l12 12" /></button> : null}
+                      <button className="btn ghost xs icon" aria-expanded={!shut} aria-label={shut ? `Show stop ${i + 1}` : `Fold stop ${i + 1}`} onClick={() => setFolded(shut ? folded.filter((j) => j !== i) : [...folded, i])}>
+                        <Icon className="s14" d={shut ? "M6 9l6 6 6-6" : "M18 15l-6-6-6 6"} />
+                      </button>
+                      {values.stops.length > 1 ? <button className="btn ghost xs icon" aria-label="Remove stop" onClick={() => { put("stops", values.stops.filter((_, j) => j !== i)); setFolded([]); }}><Icon className="s14" d="M18 6L6 18M6 6l12 12" /></button> : null}
                     </div>
-                    <div className="sgrid">
-                      {field(`nl-f${i}`, "Facility", text(`nl-f${i}`, stop.name, (v) => putStop(i, { name: v }), err(`${prefix}.name`), { placeholder: "Name of the shipper or receiver" }), 3, err(`${prefix}.name`))}
+                    {shut ? (
+                      <div className="fs13 t2" style={{ padding: "10px 16px 12px" }}>
+                        {[stop.name || "No facility yet", [stop.city, stop.state].filter(Boolean).join(", "), stop.date ? `${stop.date}${stop.from ? ` ${stop.from}` : ""}${stop.to ? `–${stop.to}` : ""}` : "no date yet"].filter(Boolean).join(" · ")}
+                      </div>
+                    ) : null}
+                    <div className="sgrid" hidden={shut}>
+                      {field(`nl-f${i}`, "Facility", (
+                        <FacilityField id={`nl-f${i}`} value={stop.name} invalid={!!err(`${prefix}.name`)} onChange={(v) => putStop(i, { name: v, facility: "" })}
+                          onPick={(o) => putStop(i, { name: o.label, address: o.address ?? "", city: o.city, state: stateCode(o.state), postal: o.postal_code ?? "", facility: o.source })} />
+                      ), 3, err(`${prefix}.name`), stopNote(i))}
                       {field(`nl-ad${i}`, "Address", text(`nl-ad${i}`, stop.address, (v) => putStop(i, { address: v }), err(`${prefix}.address`)), 3, err(`${prefix}.address`))}
                       {field(`nl-ci${i}`, "City", text(`nl-ci${i}`, stop.city, (v) => putStop(i, { city: v }), err(`${prefix}.city`)), 3, err(`${prefix}.city`))}
                       {field(`nl-st${i}`, "State", text(`nl-st${i}`, stop.state, (v) => putStop(i, { state: v.toUpperCase() }), err(`${prefix}.state`), { maxLength: 2, className: "mono" }), 1, err(`${prefix}.state`))}
@@ -543,8 +617,8 @@ export function NewLoadScreen() {
                 <dd>{values.commodity || "—"}</dd>
                 <dt>Weight</dt>
                 <dd className="num">{values.weight ? `${formatNumber(Number(values.weight))} lb` : "—"}</dd>
-                <dt>Distance</dt>
-                <dd className="num">{values.miles ? `${formatNumber(Number(values.miles))} mi` : "—"}</dd>
+                <dt>{values.miles ? "Distance" : "Est. distance"}</dt>
+                <dd className="num">{values.miles ? `${formatNumber(Number(values.miles))} mi` : route.data?.miles ? `${formatNumber(route.data.miles)} mi` : "—"}</dd>
               </dl>
               {fin ? (
                 <>
