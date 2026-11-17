@@ -84,6 +84,8 @@ export type ListSpec<Item extends { id: string }> = {
   pinned?: Row[];
   /** What one record is called in messages ("truck"); defaults to the title. */
   noun?: string;
+  /** The line under the table, in place of "Showing 1–25 of 80". */
+  foot?: (shown: number, total: number | null) => string;
 };
 
 export type ListStatus = "loading" | "error" | "empty" | "filtered" | "ready";
@@ -261,7 +263,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   const pages = Array.from({ length: Math.min(5, pageCount) }, (_, i) => windowStart + i).map((n) => ({ n, on: n === current, go: () => void goPage(n) }));
 
   const first = trail.length * PAGE_SIZE + 1;
-  const foot = !items.length ? "" : matching === null ? `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)}` : `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)} of ${formatNumber(matching)}`;
+  const foot = !items.length ? "" : spec.foot ? spec.foot(items.length, matching) : matching === null ? `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)}` : `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)} of ${formatNumber(matching)}`;
 
   const closeMenus = () => {
     setMenu(null);

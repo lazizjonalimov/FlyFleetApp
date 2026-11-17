@@ -113,6 +113,8 @@ class LiveLoad(BaseModel):
     lane: str
     customer: str
     next_stop: str | None
+    # Where the next stop's city is, [latitude, longitude], when it is a known place.
+    next_stop_at: tuple[float, float] | None
     eta: datetime | None
     appointment: datetime | None
     late_by_minutes: int

@@ -143,7 +143,10 @@ def _notify(db: Session, row: Incident, policy: AlertPolicy | None, at: datetime
 def _upsert(db: Session, p: Principal, *, kind: str, key: str, severity: str, title: str, detail: str | None,
             at: datetime, state: str = "open", vehicle_id: uuid.UUID | None = None, driver_id: uuid.UUID | None = None,
             load_id: uuid.UUID | None = None, policy: AlertPolicy | None = None, peak: float | None = None,
-            data: dict[str, Any] | None = None, detected: str | None = None) -> tuple[Incident, bool]:
+            data: dict[str, Any] | None = None, detected: str | None = None,
+            since: datetime | None = None) -> tuple[Incident, bool]:
+    """Raise an incident for an episode, or bring the open one up to date. `since` is when the condition began
+    (the appointment that passed, the delivery, the last position), shown as when it was detected."""
     row = db.scalar(select(Incident).where(Incident.episode_key == key, Incident.state != "resolved"))
     if row is not None:
         row.title, row.detail, row.severity, row.last_seen_at = title, detail, severity, max(row.last_seen_at, at)
@@ -160,8 +163,8 @@ def _upsert(db: Session, p: Principal, *, kind: str, key: str, severity: str, ti
     row = Incident(organization_id=p.org_id, number=_number(db, p.org_id, kind), kind=kind, severity=severity,
                    state=state, episode_key=key, title=title, detail=detail, vehicle_id=vehicle_id, driver_id=driver_id,
                    load_id=load_id, policy_id=policy.id if policy else None,
-                   policy_version=policy.version if policy else None, detected_at=at, last_seen_at=at, peak=peak,
-                   data=data or {})
+                   policy_version=policy.version if policy else None, detected_at=min(since or at, at), last_seen_at=at,
+                   peak=peak, data=data or {})
     db.add(row)
     db.flush()
     _event(db, row, "detected", at, detected or f"Detected — {title[0].lower()}{title[1:]}",
@@ -339,7 +342,7 @@ def sync(db: Session, p: Principal) -> None:
                      detail=f"Last seen {places.describe(float(pos.lat), float(pos.lon))[0].lower()}"
                             f"{places.describe(float(pos.lat), float(pos.lon))[1:]} {clock(p, pos.recorded_at)}",
                      at=now, vehicle_id=vid, driver_id=road.driver_id if road else None,
-                     load_id=road.load.id if road else None, policy=policy,
+                     load_id=road.load.id if road else None, policy=policy, since=pos.recorded_at,
                      data={"last_seen_at": pos.recorded_at.isoformat()})
 
     # Dwell: at a stop since arriving, watched first, an incident once past the policy's hours.
@@ -359,7 +362,8 @@ def sync(db: Session, p: Principal) -> None:
                      title=f"At {stop.type} for {duration(stay)}",
                      detail=f"{where} · {'detention running' if over else f'detention starts at {hours:g} h'}",
                      at=now, vehicle_id=road.vehicle_id, driver_id=road.driver_id, load_id=road.load.id,
-                     policy=policy, detected=f"Past {hours:g} h at {where}" if over else f"Arrived at {where}")
+                     policy=policy, detected=f"Past {hours:g} h at {where}" if over else f"Arrived at {where}",
+                     since=stop.arrived_at)
 
     # Late and at risk: appointments passed, or an ETA that misses them.
     for road in roads.values():
@@ -377,7 +381,8 @@ def sync(db: Session, p: Principal) -> None:
                      else f"{duration(now - appt)} past the appointment")
             keep(kind="late", key=f"late:{load.id}:{stop.id}", severity="high", title=title,
                  detail=f"{where} · appt {clock(p, appt)}", at=now, vehicle_id=road.vehicle_id,
-                 driver_id=road.driver_id, load_id=load.id, data={"eta": arrive.isoformat() if arrive else None})
+                 driver_id=road.driver_id, load_id=load.id, data={"eta": arrive.isoformat() if arrive else None},
+                 since=appt)
         elif arrive and arrive > appt + timedelta(minutes=15):
             keep(kind="at_risk", key=f"at_risk:{load.id}:{stop.id}", severity="high",
                  title=f"Will miss the {clock(p, appt)} appointment", detail=f"ETA {clock(p, arrive)} · {where}",
@@ -391,12 +396,13 @@ def sync(db: Session, p: Principal) -> None:
             keep(kind="late", key=f"late:{load.id}:pickup", severity="high",
                  title=f"Pickup {duration(now - load.pickup_at)} past the appointment",
                  detail=f"{customer} · {load.origin_city or ''} · appt {clock(p, load.pickup_at)}".replace(" ·  ·", " ·"),
-                 at=now, load_id=load.id)
+                 at=now, load_id=load.id, since=load.pickup_at)
         elif load.status == "planned" and load.pickup_at < now + timedelta(hours=24):
             left = load.pickup_at - now
             keep(kind="unassigned", key=f"unassigned:{load.id}", severity="high" if left < timedelta(hours=4) else "medium",
                  title=f"Pickup in {duration(left)} with no driver",
-                 detail=" · ".join(x for x in (customer, load.origin_city) if x), at=now, load_id=load.id)
+                 detail=" · ".join(x for x in (customer, load.origin_city) if x), at=now, load_id=load.id,
+                 since=max(load.created_at, load.pickup_at - timedelta(hours=24)))
 
     # Delivered without proof of delivery.
     for load, customer in db.execute(select(Load, Customer.name).join(Customer, Customer.id == Load.customer_id)
@@ -404,7 +410,8 @@ def sync(db: Session, p: Principal) -> None:
         delivered = load.delivered_at or load.updated_at
         keep(kind="pod_missing", key=f"pod:{load.id}", severity="medium",
              title=f"Delivered {_when(p, delivered)}, no POD",
-             detail=" · ".join(x for x in (customer, load.destination_city) if x), at=now, load_id=load.id)
+             detail=" · ".join(x for x in (customer, load.destination_city) if x), at=now, load_id=load.id,
+             since=delivered)
 
     # Out of service: a truck or trailer held out by an open repair, or set out of service.
     repairs = db.execute(select(WorkOrder).where(WorkOrder.out_of_service.is_(True),
@@ -417,7 +424,7 @@ def sync(db: Session, p: Principal) -> None:
         held.add(unit)
         keep(kind="out_of_service", key=f"oos:{unit}", severity="medium", title=wo.title,
              detail=f"{wo.number} · {'in the shop' if wo.status == 'in_progress' else 'waiting to start'}", at=now,
-             vehicle_id=wo.vehicle_id,
+             vehicle_id=wo.vehicle_id, since=wo.created_at,
              data={"work_order_id": str(wo.id), "trailer_id": str(wo.trailer_id) if wo.trailer_id else None})
     for model, word in ((Vehicle, "Truck"), (Trailer, "Trailer")):
         for unit in db.scalars(select(model).where(model.status == "out_of_service")):
@@ -436,7 +443,9 @@ def sync(db: Session, p: Principal) -> None:
         label = ITEM_LABELS.get(row["item"], str(row["item"]).replace("_", " ").capitalize())
         keep(kind="documents", key=f"doc:{row['entity_type']}:{row['entity_id']}:{row['item']}", severity="high",
              title=f"{label} expired", detail=f"{row['entity_label']} · {row['expires_on']:%b} {row['expires_on'].day}",
-             at=now, vehicle_id=row["entity_id"] if row["entity_type"] == "vehicle" else None,
+             at=now, since=datetime.combine(row["expires_on"] + timedelta(days=1), datetime.min.time(),
+                                            ZoneInfo(p.timezone or "UTC")),
+             vehicle_id=row["entity_id"] if row["entity_type"] == "vehicle" else None,
              driver_id=row["entity_id"] if row["entity_type"] == "driver" else None,
              data={"entity_type": row["entity_type"], "entity_id": str(row["entity_id"])})
 

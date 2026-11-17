@@ -17,8 +17,8 @@ the signed-in person deciding what they see. It reads and writes everything thro
 
 | Area | Screens |
 | --- | --- |
-| Overview | Role-aware dashboard (with financials for roles that may see money), Fleet alerts from the API's live exceptions |
-| Operations | Dispatch board with the assignment panel (eligibility and conflicts from the API), Loads with the detail drawer, the load's page with every lifecycle action, the guided new-load form |
+| Overview | Role-aware dashboard (with financials for roles that may see money) |
+| Operations | Dispatch board with the assignment panel (eligibility and conflicts from the API), Loads with the detail drawer, the load's page with every lifecycle action, the guided new-load form, Live fleet (the map with each truck's position, freshness, load, ETA, trail and alert), Fleet alerts (one incident per episode, acknowledged, assigned and resolved) |
 | Directory | Customers, Drivers and the driver profile with the qualification file |
 | Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks, Trailers and the unit record, Maintenance board with work orders |
 | Finance and analytics | Invoices with receivables aging, driver pay and owner settlement statements, Fuel & IFTA (purchases with their checks, scanned receipts, miles by truck and state, the quarterly return through filing, tax rates), Reports with CSV export, the fuel report among them |
@@ -27,7 +27,7 @@ the signed-in person deciding what they see. It reads and writes everything thro
 | Outside the console | Sign-up, sign-in, choosing and switching company |
 
 Screens of the design that have nothing behind them in the API yet show an empty state that says so: My
-tasks, Live fleet positions, Messages, Dispatch teams, integrations, alert policies and Ask FlyFleet.
+tasks, Messages, Dispatch teams, integrations and Ask FlyFleet.
 
 How it is built: [apps/web/README.md](apps/web/README.md).
 
@@ -46,12 +46,13 @@ How it is built: [apps/web/README.md](apps/web/README.md).
 | Finance | Draft invoices built from completed loads, gapless numbering at issue, immutable issued invoices, void, payments with allocations, unapplied money, reversal, receivables aging |
 | Costs and driver pay | Expenses with receipts (fuel with gallons and state, tolls, lumpers, advances and more), fuel by state for fuel tax and by truck with miles per gallon, driver settlements built from delivered loads, driver-payable charges, reimbursements and deductions, approved settlements fixed by the database |
 | Fuel tax (IFTA) | Diesel rates per quarter, entered or imported from the tax matrix; miles by truck and state from trips entered by hand (checked against the odometer) or imported from a spreadsheet (optionally held for review); the quarterly return worked out live, then reviewed, approved with its lines fixed, filed and paid, with CSV and PDF exports; each purchase checked against the load the truck was on and its tank; receipts read from a PDF or photo into purchases |
+| Live fleet and alerts | Truck positions from telematics integrations or the driver app (deduplicated), read back as the live fleet with freshness, place names, loads and ETAs, and as trails; speed rules that raise one incident per episode; alerts kept in step with the records (late and at-risk appointments, loads with no driver, missing PODs, dwell, trucks gone quiet, units out of service, expired paperwork); who was told and how, escalation, acknowledge, assign, resolve; versioned alert policies with a preview on real positions; geofences |
 | Insight | Role-aware dashboard, exceptions list, global search, revenue, driver, truck, aging and fuel reports with CSV export |
 | Driver access | A driver sees and updates only the loads they are hauling, and can add the proof of delivery |
 
 Not built yet: the driver mobile app, the website, ELD, and the AWS infrastructure. In the API: the customer
-portal, live tracking (and with it GPS miles by state), messages, tasks, dispatch teams and the assistant. The
-console shows those screens empty until they exist.
+portal, IFTA miles by state from GPS positions, messages, tasks, dispatch teams and the assistant. The console
+shows those screens empty until they exist.
 
 ## Architecture in one minute
 
@@ -212,8 +213,14 @@ docs/                Architecture, decisions, roadmap, the implementation audit
 
 ## Known limitations
 
-- **Some screens of the design have no API yet** (tasks, live positions, messages, dispatch teams,
-  integrations, alert policies, the assistant). They show an empty state saying so, never sample data.
+- **Some screens of the design have no API yet** (tasks, messages, dispatch teams, integrations, the
+  assistant). They show an empty state saying so, never sample data.
+- **No telematics provider or messaging channel is connected yet.** Positions come in through the API
+  (`POST /api/v1/positions` for an integration, `POST /api/v1/driver/positions` for the driver app). Alerts
+  reach people in the app; Telegram, SMS, email and push are recorded on each incident as not sent.
+- **Map and place data**: state and national outlines from the US Census Bureau (via `us-atlas`) and Natural
+  Earth (via `world-atlas`), both public domain; place names from GeoNames (geonames.org, CC BY 4.0). The
+  interstates on the map are schematic lines through the cities they connect, not road geometry.
 - **IFTA miles come from trips entered by hand and imports** until a telematics provider can be connected;
   fuel cards are not connected yet either, so purchases are scanned or typed in.
 - **Sign-in is local email and password** with signed tokens. Cognito, MFA, password reset by email and

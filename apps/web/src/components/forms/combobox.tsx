@@ -8,11 +8,16 @@ import { type ComboboxField } from "@/features/console/view";
 
 /** A dropdown with an optional search box and an “Other” entry. With `chip`, it opens from a dashed “+ Filter”
  * chip, as a report's filters do. */
-export function Combobox({ f, chip }: { f: ComboboxField; chip?: string }) {
+export function Combobox({ f, chip, button, end }: { f: ComboboxField; chip?: string; button?: { label: string; icon: string }; end?: boolean }) {
   const { I } = useConsole();
   return (
     <div className="dd">
-      {chip ? (
+      {button ? (
+        <button className="btn" onClick={f.toggle} aria-haspopup="listbox" aria-expanded={f.exp} aria-label={f.aria}>
+          <Icon className="s14" d={button.icon} />
+          {button.label}
+        </button>
+      ) : chip ? (
         <button className="chip add" onClick={f.toggle} aria-haspopup="listbox" aria-expanded={f.exp} aria-label={f.aria}>
           <Icon className="s12 b" d="M12 5v14M5 12h14" />
           {chip}
@@ -29,7 +34,7 @@ export function Combobox({ f, chip }: { f: ComboboxField; chip?: string }) {
       {f.open ? (
         <>
           <div className="ddcatch" onClick={f.close}></div>
-          <div className="ddl">
+          <div className={clsx("ddl", end && "end")}>
             {f.search ? (
               <label className="dds">
                 <Icon className="s14" d={I.search} />

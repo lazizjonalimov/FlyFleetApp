@@ -19,11 +19,22 @@ def _places() -> list[Place]:
     return [(r[0], r[1], float(r[2]), float(r[3]), int(r[4])) for r in rows]
 
 
+SHORT = {"st": "saint", "ste": "sainte", "ft": "fort", "mt": "mount"}
+
+
+def _key(name: str) -> str:
+    """A place name as compared: lower case, with St., Ft. and Mt. spelled out as GeoNames spells them."""
+    words = name.strip().lower().replace(".", " ").split()
+    if words and words[0] in SHORT:
+        words[0] = SHORT[words[0]]
+    return " ".join(words)
+
+
 @lru_cache
 def _by_name() -> dict[tuple[str, str], tuple[float, float]]:
     out: dict[tuple[str, str], tuple[float, float]] = {}
     for name, state, lat, lon, _ in _places():  # largest first, so the bigger of two same-named places wins
-        out.setdefault((name.lower(), state), (lat, lon))
+        out.setdefault((_key(name), state), (lat, lon))
     return out
 
 
@@ -46,16 +57,22 @@ def compass(degrees: float) -> str:
     return COMPASS[int(((degrees % 360) + 22.5) // 45) % 8]
 
 
-def nearest(lat: float, lon: float, within_km: float = 80) -> tuple[str, str, float] | None:
-    """The closest place, with its state and how far away it is."""
-    best: tuple[str, str, float] | None = None
-    for name, state, la, lo, _ in _places():
+def nearest(lat: float, lon: float, within_km: float = 80) -> tuple[str, str, float, float, float] | None:
+    """The place to name a position by: the closest one, or a much bigger one barely farther away (Waco rather
+    than a suburb of it). Its name, state, distance, and where it is."""
+    near: list[tuple[float, Place]] = []
+    for place in _places():
+        _, _, la, lo, _ = place
         if abs(la - lat) > 1.0 or abs(lo - lon) > 1.4:
             continue
         d = km(lat, lon, la, lo)
-        if d <= within_km and (best is None or d < best[2]):
-            best = (name, state, d)
-    return best
+        if d <= within_km:
+            near.append((d, place))
+    if not near:
+        return None
+    closest = min(d for d, _ in near)
+    d, (name, state, la, lo, _) = max((x for x in near if x[0] <= closest * 1.6 + 3), key=lambda x: x[1][4])
+    return name, state, d, la, lo
 
 
 def locate(city: str | None, state: str | None) -> tuple[float, float] | None:
@@ -63,7 +80,7 @@ def locate(city: str | None, state: str | None) -> tuple[float, float] | None:
     code = code_of(state or "")
     if not city or not code:
         return None
-    return _by_name().get((city.strip().lower(), code))
+    return _by_name().get((_key(city), code))
 
 
 def describe(lat: float, lon: float, heading: float | None = None, moving: bool = False) -> str:
@@ -71,12 +88,11 @@ def describe(lat: float, lon: float, heading: float | None = None, moving: bool 
     found = nearest(lat, lon)
     if found is None:
         return f"{lat:.3f}, {lon:.3f}"
-    name, state, d = found
+    name, state, d, la, lo = found
     miles = d / 1.609
     if miles <= 8:
         where = f"near {name}, {state}"
     else:
-        la, lo = _by_name()[(name.lower(), state)]
         where = f"{miles:.0f} mi {compass(bearing(la, lo, lat, lon))} of {name}, {state}"
     if moving and heading is not None:
         return f"{BOUND[compass(heading)]} {where}"

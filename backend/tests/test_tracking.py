@@ -78,8 +78,8 @@ def test_a_policy_saves_as_versions_and_previews_on_real_positions(org):
     s = seed(org)
     truck = s["truck"]["id"]
     policies = org.get("/alert-policies").json()
-    assert [p["name"] for p in policies["policies"]] == ["Dwell at a stop over 2 h", "GPS stale over 15 min",
-                                                          "Highway sustained speeding", "Yard speed over 10 mph"]
+    assert [p["name"] for p in policies["policies"]] == ["Highway sustained speeding", "Yard speed over 10 mph",
+                                                          "Dwell at a stop over 2 h", "GPS stale over 15 min"]
     assert {c["key"]: c["connected"] for c in policies["channels"]}["telegram"] is False
     speed = next(p for p in policies["policies"] if p["kind"] == "speeding")
     org.post("/positions", {"samples": samples(truck, [66, 67, 68, 67, 66], 2.5)}, 200)
@@ -122,6 +122,8 @@ def test_record_alerts_follow_the_loads_and_clear_on_their_own(org):
     load = act(org, load, "arrive", occurred_at=at(40))
     watching = next(x for x in org.items("/incidents") if x["kind"] == "dwell")
     assert watching["state"] == "watching" and watching["title"] == "At pickup for 40 min"
+    # Detected when the condition began: on arrival, not when FlyFleet first looked.
+    assert abs(datetime.fromisoformat(watching["detected_at"]) - (datetime.now(UTC) - timedelta(minutes=40))) < timedelta(minutes=1)
     assert watching["detail"] == "Shipper DC · detention starts at 2 h"
     csv = org.get("/incidents", params={"format": "csv"}).text
     assert csv.startswith("﻿Number,Type,Incident") and "At pickup for 40 min" in csv
@@ -146,3 +148,8 @@ def test_who_sees_and_who_acts(org):
     assert out["kept"] == 1
     row = next(v for v in dispatcher.get("/fleet/live").json()["vehicles"] if v["vehicle_id"] == truck)
     assert row["position"]["source"] == "driver_app" and row["line"] == "Parked · Near Waco, TX"
+    # Inside a geofence, the truck is where the company says it is.
+    dispatcher.error("POST", "/geofences", 403, "FORBIDDEN", json={"name": "Yard", "lat": WACO[0], "lon": WACO[1]})
+    org.post("/geofences", {"name": "Waco yard", "kind": "yard", "lat": WACO[0], "lon": WACO[1], "radius_m": 300}, 201)
+    row = next(v for v in dispatcher.get("/fleet/live").json()["vehicles"] if v["vehicle_id"] == truck)
+    assert row["place"] == "At Waco yard" and row["line"] == "Parked · at Waco yard"

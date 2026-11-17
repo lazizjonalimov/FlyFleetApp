@@ -14,7 +14,8 @@ test("a new company starts empty: no sample records anywhere", async ({ page }) 
     ["equipment/trucks", "No trucks yet"],
     ["finance/invoices", "No invoices yet"],
     ["owners", "No owners yet"],
-    ["tracking", "Live positions need a telematics connection"],
+    ["tracking", "No positions yet"],
+    ["alerts", "Nothing needs anyone right now"],
     ["messages", "No conversations yet"],
   ] as const) {
     await open(page, account, path);

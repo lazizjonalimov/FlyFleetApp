@@ -777,6 +777,7 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .chkm{display:block;width:8px;height:2px;border-radius:1px;background:#fff}
 /* combobox: searchable states, makes, types */
 .ff .dd{position:relative}
+.ff .ddl.end{left:auto;right:0}
 .ff .ddb{display:flex;align-items:center;gap:8px;text-align:left;cursor:pointer}
 .ff .ddb .ddc{color:var(--mu);flex:none;transition:transform .15s}
 .ff .ddb[aria-expanded=true]{border-color:var(--pri);box-shadow:0 0 0 3px var(--prit)}

@@ -16,8 +16,8 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
     items: [
       ["dispatch", "Dispatch board", "dispatch", ["dispatch.read"]],
       ["loads", "Loads", "loads", ["loads.read"]],
-      ["tracking", "Live fleet", "pin", ["dispatch.read"]],
-      ["alerts", "Fleet alerts", "alert", ["dashboard.read"]],
+      ["tracking", "Live fleet", "pin", ["tracking.read"]],
+      ["alerts", "Fleet alerts", "alert", ["incidents.read"]],
       ["messages", "Messages", "msg", ["dispatch.read"]],
     ],
   },
@@ -104,7 +104,8 @@ export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mste
 export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, counts }: ShellInput) {
   const screen = typeof state.screen === "string" ? state.screen : "dashboard";
   const section = sectionOf(screen, state);
-  const required = SECTIONS[section];
+  // Alert policies sit in Settings but are read by whoever works the alerts, and changed by those allowed to.
+  const required = screen === "policy" ? { label: "Fleet alert policies", anyOf: ["incidents.read", "alert_policies.manage"] } : SECTIONS[section];
   const forbidden = !!required && !can(...required.anyOf);
   const overlay = typeof state.overlay === "string" ? state.overlay : "none";
   const modal = typeof state.modal === "string" ? state.modal : "none";

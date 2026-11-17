@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Problem } from "@/components/feedback/dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
+import { useAlertPolicyPage } from "./alert-policy";
 import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
@@ -33,7 +34,7 @@ const SUB: Record<Page, string> = {
   organization: "The company’s legal details, contact and time zone",
   numbering: "How loads and invoices are numbered",
   notifications: "Who is told what, and how",
-  policy: "When a fleet event becomes an alert, and who is told",
+  policy: "Rules that turn truck positions and records into incidents people act on",
   integrations: "Telematics, fuel cards, accounting and messaging providers",
   retention: "How long records and documents are kept",
   billing: "Your FlyFleet subscription",
@@ -120,6 +121,7 @@ export function SettingsScreen() {
   const page: Page = screen === "policy" ? "policy" : typeof state.setpage === "string" && state.setpage in SUB && state.setpage !== "policy" ? (state.setpage as Page) : "integrations";
   const organization = useQuery({ queryKey: [org, "organization"], queryFn: () => unwrap(api.GET("/api/v1/organization")), staleTime: 300_000 });
   const label = NAV.find((item) => item.page === page)?.l ?? "Settings";
+  const policy = useAlertPolicyPage(page === "policy");
   const go = (item: (typeof NAV)[number]) => {
     if (item.screen) return set(goTo(item.screen));
     if (item.page === "policy") return set({ ...goTo("policy"), setpage: "policy" });
@@ -140,6 +142,7 @@ export function SettingsScreen() {
           <h1 className="h1"><span>{label}</span></h1>
           <p className="sub"><span>{SUB[page]}</span></p>
         </div>
+        {policy.actions}
       </div>
       <div className="stg">
         <nav className="stnav" aria-label="Settings sections">
@@ -163,9 +166,7 @@ export function SettingsScreen() {
           {page === "integrations" ? (
             <EmptyState icon={I.link} title="No integrations connected" text="Telematics, fuel cards, accounting and messaging providers aren’t available to connect yet. Everything in FlyFleet works without them: loads, check calls, fuel and documents are entered here." />
           ) : null}
-          {page === "policy" ? (
-            <EmptyState icon={I.alert} title="No alert policies yet" text="Fleet alerts are worked out by FlyFleet from loads, dates and work orders — late or at-risk loads, expired paperwork, urgent repairs. Custom policies, such as speeding thresholds, need a telematics connection." />
-          ) : null}
+          {page === "policy" ? policy.body : null}
           {page === "notifications" ? <EmptyState icon={I.bell} title="Notifications aren’t sent yet" text="What needs attention shows under the bell and on the dashboard for each role. Email and text notifications aren’t available yet." /> : null}
           {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}
           {page === "billing" ? <EmptyState icon={I.dollar} title="Billing isn’t set up here yet" text="Your FlyFleet subscription isn’t managed in the app yet." /> : null}

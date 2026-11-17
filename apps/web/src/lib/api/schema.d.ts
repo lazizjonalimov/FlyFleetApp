@@ -6397,6 +6397,11 @@ export interface components {
             load_number: string;
             /** Next Stop */
             next_stop: string | null;
+            /** Next Stop At */
+            next_stop_at: [
+                number,
+                number
+            ] | null;
             /** Status */
             status: string;
         };

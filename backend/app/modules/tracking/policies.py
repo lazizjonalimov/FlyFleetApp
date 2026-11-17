@@ -51,11 +51,18 @@ DEFAULTS: list[dict[str, Any]] = [
 EVERYWHERE = {"trucks": "all", "hours": "all_day"}
 
 
+ORDER = {"speeding": 0, "yard_speed": 1, "dwell": 2, "gps_stale": 3}
+
+
+def _ordered(rows: list[AlertPolicy]) -> list[AlertPolicy]:
+    return sorted(rows, key=lambda r: (ORDER.get(r.kind, 9), r.name))
+
+
 def ensure(db: Session, p: Principal) -> list[AlertPolicy]:
     """The company's policies, starting it with the standard four the first time."""
-    rows = list(db.scalars(select(AlertPolicy).order_by(AlertPolicy.kind, AlertPolicy.name)))
+    rows = list(db.scalars(select(AlertPolicy)))
     if rows:
-        return rows
+        return _ordered(rows)
     for spec in DEFAULTS:
         row = AlertPolicy(organization_id=p.org_id, kind=spec["kind"], name=spec["name"], enabled=spec["enabled"],
                           version=1, settings=copy.deepcopy(spec["settings"]),
@@ -64,7 +71,7 @@ def ensure(db: Session, p: Principal) -> list[AlertPolicy]:
         db.add(row)
         db.flush()
         _snapshot(db, row, None, "Standard rule")
-    return list(db.scalars(select(AlertPolicy).order_by(AlertPolicy.kind, AlertPolicy.name)))
+    return _ordered(list(db.scalars(select(AlertPolicy))))
 
 
 def _snapshot(db: Session, row: AlertPolicy, user_id: uuid.UUID | None, note: str | None) -> None:

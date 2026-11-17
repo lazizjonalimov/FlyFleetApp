@@ -88,6 +88,11 @@ def live(db: Session, p: Principal) -> dict:
                 (incidents.SEVERITY_ORDER[best.severity], best.state == "acknowledged"):
             alerts[row.vehicle_id] = row
     names = _driver_names(db, {r.driver_id for r in roads.values()} | set(seats.values()))
+    fences = list(db.scalars(select(Geofence).where(Geofence.active.is_(True)).order_by(Geofence.name)))
+
+    def inside(lat: float, lon: float) -> Geofence | None:
+        return next((g for g in fences if places.km(lat, lon, float(g.lat), float(g.lon)) * 1000 <= g.radius_m), None)
+
     out = []
     for t in trucks:
         pos = latest.get(t.id)
@@ -95,7 +100,9 @@ def live(db: Session, p: Principal) -> dict:
         fresh = freshness(pos.recorded_at if pos else None, now)
         speed = float(pos.speed_mph) if pos and pos.speed_mph is not None else None
         moving = speed is not None and speed >= MOVING_MPH and fresh in ("live", "delayed")
-        place = places.describe(float(pos.lat), float(pos.lon), pos.heading, moving) if pos else None
+        fence = inside(float(pos.lat), float(pos.lon)) if pos and not moving else None
+        place = (f"At {fence.name}" if fence
+                 else places.describe(float(pos.lat), float(pos.lon), pos.heading, moving) if pos else None)
         alert = alerts.get(t.id)
         stop = road.next_stop if road else None
         at_stop = stop is not None and stop.arrived_at is not None and stop.departed_at is None
@@ -113,7 +120,8 @@ def live(db: Session, p: Principal) -> dict:
         elif moving:
             status = place + (f" · {incidents.LABEL[alert.kind].lower()}" if alert else "")
         else:
-            status = f"Stopped · {place}" if road else f"Parked · {place}"
+            where = place[0].lower() + place[1:] if fence else place
+            status = f"Stopped · {where}" if road else f"Parked · {where}"
         driver_id = road.driver_id if road else seats.get(t.id)
         out.append({
             "vehicle_id": t.id, "unit_number": t.unit_number, "status": t.status,
@@ -125,6 +133,7 @@ def live(db: Session, p: Principal) -> dict:
             "load": {"id": road.load.id, "load_number": road.load.load_number, "status": road.load.status,
                      "lane": f"{road.load.origin_city or '—'} → {road.load.destination_city or '—'}",
                      "customer": road.customer, "next_stop": (stop.name or stop.city) if stop else None,
+                     "next_stop_at": places.locate(stop.city, stop.state) if stop else None,
                      "eta": arrive, "appointment": appt,
                      "late_by_minutes": int((arrive - appt).total_seconds() // 60) if arrive and appt and arrive > appt else 0}
             if road else None,
@@ -137,10 +146,9 @@ def live(db: Session, p: Principal) -> dict:
               "stopped": sum(1 for x in out if x["position"] and not x["moving"] and x["freshness"] in ("live", "delayed")),
               "alerts": sum(1 for x in out if x["incident"]),
               "stale": sum(1 for x in out if x["freshness"] in ("stale",))}
-    fences = [{"id": g.id, "name": g.name, "kind": g.kind, "lat": float(g.lat), "lon": float(g.lon), "radius_m": g.radius_m}
-              for g in db.scalars(select(Geofence).where(Geofence.active.is_(True)).order_by(Geofence.name))]
     return {"now": now, "vehicles": out, "counts": counts, "reporting": reporting, "sources": sources,
-            "geofences": fences}
+            "geofences": [{"id": g.id, "name": g.name, "kind": g.kind, "lat": float(g.lat), "lon": float(g.lon),
+                           "radius_m": g.radius_m} for g in fences]}
 
 
 def track(db: Session, p: Principal, vehicle_id: uuid.UUID, since: datetime | None, until: datetime | None) -> dict:
