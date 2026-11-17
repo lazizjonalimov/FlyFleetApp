@@ -32,3 +32,35 @@ test("a truck's record: assign a team, see who owns it and its history", async (
   await expect(page.locator(".card", { hasText: "Owner and agreement" })).toContainText("None · company equipment");
   await expect(page.locator(".card", { hasText: "Ownership history" })).toContainText("Owned outright");
 });
+
+test("the trucks table: filter by make, change status in bulk, hide a column, export", async ({ page }) => {
+  const account = await signUp(page);
+  await viaApp(page, "POST", "/vehicles", { unit_number: "901", make: "Volvo", year: 2022, vin: "4V4NC9EH5NN000901", ...PAPERS });
+  await viaApp(page, "POST", "/vehicles", { unit_number: "902", make: "Volvo", year: 2023, ...PAPERS });
+  await viaApp(page, "POST", "/vehicles", { unit_number: "903", make: "Mack", year: 2021, ...PAPERS });
+  await open(page, account, "equipment/trucks");
+  await expect(page.locator(".kpis")).toContainText("Owned by outside owners");
+
+  await page.getByRole("button", { name: "Filter by make" }).click();
+  await page.getByRole("option", { name: /Volvo/ }).click();
+  await expect(page.getByRole("button", { name: "Remove filter Make: Volvo" })).toBeVisible();
+  await expect(page.locator(".tb2 .trow")).toHaveCount(2);
+
+  await page.locator(".trow", { hasText: "901" }).locator(".chk").click();
+  await page.locator(".trow", { hasText: "902" }).locator(".chk").click();
+  await page.getByRole("region", { name: "Bulk actions" }).getByRole("button", { name: "Change status" }).click();
+  const dialog = page.getByRole("dialog", { name: "Change the status of 2 trucks" });
+  await dialog.getByRole("radio", { name: "In the shop" }).click();
+  await dialog.getByRole("button", { name: "Change status" }).click();
+  await expect(page.getByRole("status")).toContainText("2 trucks · status changed");
+  await expect(page.locator(".trow", { hasText: "901" })).toContainText("In the shop");
+
+  await page.getByRole("button", { name: "Remove filter Make: Volvo" }).click();
+  await expect(page.locator(".tb2 .trow")).toHaveCount(3);
+  await page.getByRole("button", { name: "Columns" }).click();
+  await page.getByRole("group", { name: "Columns" }).getByText("VIN", { exact: true }).click();
+  await page.reload();
+  await expect(page.locator(".thead")).not.toContainText("VIN");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export" }).click()]);
+  expect(download.suggestedFilename()).toMatch(/^vehicles-\d{4}-\d{2}-\d{2}\.csv$/);
+});

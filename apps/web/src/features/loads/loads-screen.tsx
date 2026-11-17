@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Fragment } from "react";
 import { clsx } from "clsx";
 import { cell } from "@/components/data-table/cell";
@@ -10,6 +11,7 @@ import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
 import { useSoon } from "@/features/console/use-action";
 import { LOAD_TABS } from "@/features/lists/tabs";
+import { BulkBar, ColumnsButton, ExportButton, FilterChips, Pager } from "@/features/lists/list-screen";
 import { useList, type ListQuery } from "@/features/lists/use-list";
 import { LoadDrawer } from "@/features/loads/load-drawer";
 import { api, unwrap } from "@/lib/api/client";
@@ -18,6 +20,9 @@ import { formatMoney, toCents } from "@/lib/format/money";
 import { place, plural } from "@/lib/format/text";
 import type { LoadListItem } from "./load-data";
 import { riskOf, statusOf } from "./load-view";
+import { loadLabel } from "@/features/fleet/labels";
+
+const STATUSES = ["draft", "planned", "assigned", "dispatched", "at_pickup", "in_transit", "at_delivery", "delivered", "pod_review", "completed", "on_hold", "cancelled"] as const;
 
 /** Loads list with views, search, selection and the detail drawer. */
 export function LoadsScreen() {
@@ -26,6 +31,7 @@ export function LoadsScreen() {
   const zone = me.organization.timezone;
   const create = can("loads.create") ? () => set(goTo("newload")) : null;
   const open = (load: LoadListItem) => set({ screen: "loads", drawer: load.id, overlay: "none", modal: "none" });
+  const customers = useQuery({ queryKey: [me.organization.id, "customers", "filter"], queryFn: () => unwrap(api.GET("/api/v1/customers", { params: { query: { sort: "name", limit: 100 } } })), enabled: can("customers.read"), staleTime: 60_000 });
   const drawer = typeof state.drawer === "string" ? state.drawer : null;
 
   const list = useList<LoadListItem>({
@@ -37,7 +43,18 @@ export function LoadsScreen() {
     fetch: (query: ListQuery) => unwrap(api.GET("/api/v1/loads", { params: { query: query as never } })),
     defaultSort: "-pickup_at",
     tabs: LOAD_TABS,
-    bulk: ["Assign driver", "Change status", "Print BOLs", "Export"],
+    bulk: [
+      ...(can("dispatch.assign") ? [{ label: "Assign driver", go: () => set(goTo("dispatch")) }] : []),
+      { label: "Change status", go: soon("Changing several loads’ status") },
+      { label: "Print BOLs", go: soon("Printing bills of lading") },
+      "export" as const,
+    ],
+    noun: "loads",
+    filters: [
+      { key: "status", label: "Status", options: STATUSES.map((v) => ({ value: v, label: loadLabel(v) })) },
+      { key: "customer_id", label: "Customer", options: (customers.data?.items ?? []).map((c) => ({ value: c.id, label: c.name })) },
+      { key: "risk", label: "Risk", options: [["at_risk", "At risk"], ["unassigned", "Unassigned"], ["missing_pod", "Missing POD"]].map(([value, label]) => ({ value: value!, label: label! })), params: (value) => ({ view: value }) },
+    ],
     open,
     rowClass: (load) => (load.id === drawer ? "sel" : load.status === "cancelled" ? "dim" : ""),
     columns: [
@@ -84,10 +101,7 @@ export function LoadsScreen() {
               <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
               Import
             </button>
-            <button className="btn" onClick={soon("Exporting loads")}>
-              <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-              Export
-            </button>
+            <ExportButton L={L} cls="btn" />
             {create ? (
               <button className="btn pri" onClick={create}>
                 <Icon className="s14 b" d="M12 5v14M5 12h14" />
@@ -115,12 +129,7 @@ export function LoadsScreen() {
             <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" />
             <input placeholder={L.ph} aria-label="Search loads" value={L.qv} onChange={L.setQ} />
           </label>
-          {["Status", "Customer", "Risk"].map((filter) => (
-            <button key={filter} className="chip add" onClick={soon(`Filtering by ${filter.toLowerCase()}`)}>
-              <Icon className="s12 b" d="M12 5v14M5 12h14" />
-              {filter}
-            </button>
-          ))}
+          <FilterChips L={L} />
           <button className="lnk" style={{ color: "var(--mu)", padding: "0 4px" }} onClick={list.clearFilters}>Clear all</button>
           <span className="sp"></span>
           {noFin ? (
@@ -129,10 +138,7 @@ export function LoadsScreen() {
               Rates hidden for your role
             </span>
           ) : null}
-          <button className="btn sm" onClick={soon("Choosing columns")}>
-            <Icon className="s14" d="M3 4h18v16H3zM9 4v16M15 4v16" />
-            Columns
-          </button>
+          <ColumnsButton L={L} />
           <button className="btn sm" onClick={() => set({ lsort: byPickup ? "-pickup_at" : "pickup_at", lpage: [], lsel: [] })} aria-label={`Sort by pickup date, ${byPickup ? "earliest" : "latest"} first`}>
             <Icon className="s14" d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4" />
             Pickup date
@@ -173,24 +179,11 @@ export function LoadsScreen() {
           <div className="tfoot">
             <span className="num"><span>{L.foot}</span></span>
             <span className="sp"></span>
-            <div className="pg" style={{ marginLeft: "8px" }}>
-              <button aria-label="Previous page" disabled={!pager.previous} onClick={pager.previous ?? undefined}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
-              <button className="on" aria-current="page">{pager.page}</button>
-              <button aria-label="Next page" disabled={!pager.next} onClick={pager.next ?? undefined}><Icon className="s14" d="M9 6l6 6-6 6" /></button>
-            </div>
+            <Pager L={L} pager={pager} style={{ marginLeft: "8px" }} />
           </div>
         </div>
       </div>
-      {L.bulk ? (
-        <div className="bulk">
-          <span className="w5 num" style={{ marginRight: "10px" }}><span>{L.selN}</span>{" selected"}</span>
-          <span style={{ width: "1px", height: "20px", background: "#2A3550", marginRight: "4px" }}></span>
-          {L.bulkActs?.map((action) => (
-            <button key={action} onClick={soon(action)}>{action}</button>
-          ))}
-          <button onClick={L.clearSel} aria-label="Clear selection" className="bx"><Icon className="s14 b" d="M18 6L6 18M6 6l12 12" /></button>
-        </div>
-      ) : null}
+      <BulkBar L={L} />
       <LoadDrawer />
     </>
   );

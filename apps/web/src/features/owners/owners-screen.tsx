@@ -9,7 +9,7 @@ import { useList, type ListQuery } from "@/features/lists/use-list";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
 import { formatNumber, plural } from "@/lib/format/text";
-import { agreementKind, CATEGORY, ownerInitials, STATUS } from "./labels";
+import { AGREEMENT_KINDS, agreementKind, CATEGORY, ownerInitials, STATUS } from "./labels";
 
 type Owner = Schema<"OwnerRow">;
 
@@ -42,7 +42,14 @@ export function OwnersScreen() {
       { label: "Ended", params: { tab: "ended" } },
     ],
     frozen: 2,
-    bulk: ["Send statements", "Invite to portal", "Export"],
+    bulk: [
+      ...(can("settlements.read") ? [{ label: "Send statements", go: () => set({ ...goTo("settlements"), ltab: 1 }) }] : []),
+      ...(manage
+        ? [{ label: "Invite to portal", go: (owners: Owner[]) => { const next = owners.find((o) => !o.portal_users) ?? owners[0]; if (next) set({ screen: "owner", ownerId: next.id, otab: "acc", overlay: "none", modal: "none", drawer: null }); } }]
+        : []),
+      "export" as const,
+    ],
+    noun: "owners",
     open,
     rowClass: (o) => (o.status === "ended" ? "dim" : ""),
     kpis: [
@@ -52,7 +59,12 @@ export function OwnersScreen() {
       { label: "Owner-operators", value: s ? String(s.owner_operators) : "—", suffix: "", sub: "Drive at least one of their trucks", k: "info", sk: "mu" },
       { label: "Non-operating owners", value: s ? String(s.non_operating) : "—", suffix: "", sub: "Their trucks run with other drivers", k: "violet", sk: "mu" },
     ],
-    adds: ["Category", "Entity", "Agreement", "Portal"],
+    filters: [
+      { key: "category", label: "Category", options: [{ value: "owner_operators", label: "Owner-operator" }, { value: "non_operating", label: "Non-operating owner" }] },
+      { key: "entity_type", label: "Entity", options: [{ value: "individual", label: "Individual" }, { value: "business", label: "Business" }] },
+      { key: "agreement", label: "Agreement", options: Object.entries(AGREEMENT_KINDS).map(([value, [label]]) => ({ value, label })) },
+      { key: "portal", label: "Portal", options: [{ value: "true", label: "Portal on" }, { value: "false", label: "Portal off" }], params: (value) => ({ portal: value === "true" }) },
+    ],
     hidden: fin ? "" : "Pay and statements hidden for your role",
     pinned: s
       ? [

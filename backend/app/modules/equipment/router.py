@@ -19,6 +19,7 @@ from app.modules.fleet.models import UnitAssignment
 from app.modules.loads.models import Load, TrackingEvent
 from app.modules.loads.schemas import EquipmentType
 from app.modules.maintenance import service as maintenance
+from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import Terminal
 from app.modules.owners.models import EquipmentOwnership, Owner, OwnerAgreement
 from app.modules.owners.service import blocked_units
@@ -83,6 +84,15 @@ class UnitPlace(BaseModel):
     seen_at: datetime | None
 
 
+class NextService(BaseModel):
+    id: uuid.UUID
+    number: str
+    title: str
+    status: str
+    scheduled_for: date | None
+    odometer: int | None
+
+
 class UnitExtras(BaseModel):
     id: uuid.UUID
     compliance: Compliance
@@ -97,6 +107,10 @@ class UnitExtras(BaseModel):
     # Where it last reported from, and when.
     location: UnitPlace | None = None
     blocked_reason: str | None = None
+    # The next open work order: planned service, or the one it is in the shop for.
+    next_service: NextService | None = None
+    # Trailers: the truck pulling it on its current load.
+    truck: UnitDriver | None = None
     created_at: datetime
 
 
@@ -151,10 +165,12 @@ class UnitListParams(ListParams):
     ownership: Ownership | None = None
     terminal_id: uuid.UUID | None = None
     owner_id: uuid.UUID | None = None
+    make: str | None = Field(default=None, max_length=60)
+    year: int | None = Field(default=None, ge=1950, le=2100)
 
 
 class VehicleListParams(UnitListParams):
-    kind: Literal["on_loads", "owner", "team", "company", "shop"] | None = None
+    kind: Literal["on_loads", "available", "owner", "team", "company", "shop"] | None = None
 
 
 class TrailerListParams(UnitListParams):
@@ -193,6 +209,8 @@ def _presenter(kind: Literal["vehicle", "trailer"], schema, create_schema):
             seats = {r.vehicle_id: r for r in rows}
         places = last_places(db, kind, ids)
         blocked = blocked_units(db, ids if kind == "vehicle" else None, ids if kind == "trailer" else None) if ids else {}
+        services = next_services(db, kind, ids)
+        pulling = trucks_pulling(db, ids) if kind == "trailer" else {}
         out = []
         for u in units:
             seat = seats.get(u.id)
@@ -204,9 +222,75 @@ def _presenter(kind: Literal["vehicle", "trailer"], schema, create_schema):
                 co_driver=UnitDriver(id=seat.co_driver_id, name=names.get(seat.co_driver_id, ""))
                 if seat and seat.co_driver_id else None,
                 team_split=seat.team_split if seat and seat.co_driver_id else None,
-                location=places.get(u.id), blocked_reason=blocked.get(u.id)))
+                location=places.get(u.id), blocked_reason=blocked.get(u.id), next_service=services.get(u.id),
+                truck=pulling.get(u.id)))
         return out
     return present
+
+
+def next_services(db: Session, kind: Literal["vehicle", "trailer"], ids: list[uuid.UUID]) -> dict[uuid.UUID, NextService]:
+    """Each unit's next open work order: the one under way first, then the soonest planned."""
+    if not ids:
+        return {}
+    col = WorkOrder.vehicle_id if kind == "vehicle" else WorkOrder.trailer_id
+    rows = db.scalars(select(WorkOrder).where(col.in_(ids), WorkOrder.status.in_(maintenance.OPEN))
+                      .order_by(col, (WorkOrder.status == "in_progress").desc(), WorkOrder.scheduled_for.asc().nulls_last(),
+                                WorkOrder.created_at))
+    out: dict[uuid.UUID, NextService] = {}
+    for wo in rows:
+        out.setdefault(getattr(wo, col.key), NextService(id=wo.id, number=wo.number, title=wo.title, status=wo.status,
+                                                         scheduled_for=wo.scheduled_for, odometer=wo.odometer))
+    return out
+
+
+def trucks_pulling(db: Session, trailer_ids: list[uuid.UUID]) -> dict[uuid.UUID, UnitDriver]:
+    """The truck hauling each trailer on its current load."""
+    if not trailer_ids:
+        return {}
+    rows = db.execute(select(DispatchAssignment.trailer_id, Vehicle.id, Vehicle.unit_number)
+                      .join(Vehicle, Vehicle.id == DispatchAssignment.vehicle_id)
+                      .join(Load, Load.id == DispatchAssignment.load_id)
+                      .where(DispatchAssignment.trailer_id.in_(trailer_ids), DispatchAssignment.status == "active",
+                             Load.status.in_(LIVE)))
+    return {trailer_id: UnitDriver(id=vid, name=number) for trailer_id, vid, number in rows}
+
+
+def _search_also(kind: Literal["vehicle", "trailer"]):
+    """Search also finds a unit by its owner's name, and a truck by who drives it or a trailer by its truck."""
+    model = Vehicle if kind == "vehicle" else Trailer
+    own = EquipmentOwnership.vehicle_id if kind == "vehicle" else EquipmentOwnership.trailer_id
+
+    def conditions(pattern: str) -> list:
+        owners = (select(own).join(Owner, Owner.id == EquipmentOwnership.owner_id)
+                  .outerjoin(Person, Person.id == Owner.person_id)
+                  .where(EquipmentOwnership.effective_to.is_(None), own.is_not(None),
+                         or_(Owner.legal_name.ilike(pattern), Owner.dba.ilike(pattern),
+                             (Person.first_name + " " + Person.last_name).ilike(pattern))))
+        out = [model.id.in_(owners)]
+        if kind == "vehicle":
+            name = Driver.first_name + " " + Driver.last_name
+            out.append(Vehicle.id.in_(select(UnitAssignment.vehicle_id).join(
+                Driver, or_(Driver.id == UnitAssignment.driver_id, Driver.id == UnitAssignment.co_driver_id))
+                .where(UnitAssignment.effective_to.is_(None), name.ilike(pattern))))
+        else:
+            out.append(Trailer.id.in_(select(DispatchAssignment.trailer_id)
+                                      .join(Vehicle, Vehicle.id == DispatchAssignment.vehicle_id)
+                                      .join(Load, Load.id == DispatchAssignment.load_id)
+                                      .where(DispatchAssignment.status == "active", Load.status.in_(LIVE),
+                                             Vehicle.unit_number.ilike(pattern))))
+        return out
+    return conditions
+
+
+def _owner_name(kind: Literal["vehicle", "trailer"]):
+    """Sorts units by their owner's name, the carrier's own last."""
+    model = Vehicle if kind == "vehicle" else Trailer
+    own = EquipmentOwnership.vehicle_id if kind == "vehicle" else EquipmentOwnership.trailer_id
+    name = (select(func.min(func.coalesce(Owner.legal_name, Person.last_name + " " + Person.first_name)))
+            .select_from(EquipmentOwnership).join(Owner, Owner.id == EquipmentOwnership.owner_id)
+            .outerjoin(Person, Person.id == Owner.person_id)
+            .where(own == model.id, EquipmentOwnership.effective_to.is_(None)).correlate(model).scalar_subquery())
+    return func.coalesce(name, "~")
 
 
 def last_places(db: Session, kind: Literal["vehicle", "trailer"], ids: list[uuid.UUID]) -> dict[uuid.UUID, UnitPlace]:
@@ -238,7 +322,7 @@ def _unit_filter(kind: Literal["vehicle", "trailer"]):
         k = params.kind
         if k in ("on_loads", "loaded"):
             stmt = stmt.where(model.id.in_(busy))
-        elif k == "yard":
+        elif k in ("yard", "available"):
             stmt = stmt.where(model.id.not_in(busy), model.status == "active")
         elif k == "owner":
             stmt = stmt.where(model.id.in_(owned))
@@ -288,9 +372,10 @@ router.include_router(resource_router(
     create_schema=VehicleCreate, update_schema=VehicleUpdate, read_schema=VehicleRead,
     read_perm="equipment.read", write_perm="equipment.manage", list_params=VehicleListParams,
     search=("unit_number", "vin", "plate", "make", "model", "telematics_device", "engine"),
+    search_also=_search_also("vehicle"),
     sort={"unit_number": Vehicle.unit_number, "created_at": Vehicle.created_at,
           "make": func.coalesce(Vehicle.make, ""), "year": func.coalesce(Vehicle.year, 0),
-          "odometer": func.coalesce(Vehicle.odometer, 0)}, default_sort="unit_number",
+          "odometer": func.coalesce(Vehicle.odometer, 0), "owner": _owner_name("vehicle")}, default_sort="unit_number",
     present=_presenter("vehicle", VehicleRead, VehicleCreate), before_save=_vehicle_save,
     before_delete=_vehicle_delete, list_filter=_unit_filter("vehicle")))
 router.include_router(resource_router(
@@ -298,8 +383,10 @@ router.include_router(resource_router(
     create_schema=TrailerCreate, update_schema=TrailerUpdate, read_schema=TrailerRead,
     read_perm="equipment.read", write_perm="equipment.manage", list_params=TrailerListParams,
     search=("unit_number", "vin", "plate", "make", "model", "tracker"),
+    search_also=_search_also("trailer"),
     sort={"unit_number": Trailer.unit_number, "created_at": Trailer.created_at,
-          "type": Trailer.type, "make": func.coalesce(Trailer.make, ""), "year": func.coalesce(Trailer.year, 0)},
+          "type": Trailer.type, "make": func.coalesce(Trailer.make, ""), "year": func.coalesce(Trailer.year, 0),
+          "owner": _owner_name("trailer")},
     default_sort="unit_number",
     present=_presenter("trailer", TrailerRead, TrailerCreate), before_save=_trailer_save,
     before_delete=_trailer_delete, list_filter=_unit_filter("trailer")))

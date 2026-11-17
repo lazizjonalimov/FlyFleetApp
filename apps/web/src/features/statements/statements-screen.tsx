@@ -63,6 +63,7 @@ export function StatementsScreen() {
   const approveOwner = (t: OwnerRow) => void act(() => unwrap(api.POST("/api/v1/owner-settlements/{settlement_id}/approve", { params: { path: { settlement_id: t.id } }, body: { version: t.version } })), (x) => `Settlement ${x.number ?? ""} approved for ${t.owner_name}`);
   const payDriver = (t: DriverRow) => set({ ...addOf("payout"), fv: { "payout.statement": t.id } });
 
+  const owners = useQuery({ queryKey: [org.id, "owners", "filter"], queryFn: () => unwrap(api.GET("/api/v1/owners", { params: { query: { sort: "name", limit: 100 } } })), enabled: can("owners.read"), staleTime: 60_000 });
   const fetch = async (query: ListQuery): Promise<ListPage<Row>> => {
     const { source, ...rest } = query;
     if (source === "owner") {
@@ -136,7 +137,17 @@ export function StatementsScreen() {
     frozen: 1,
     open: (t) => (t.source === "driver" ? openDriver(t) : openOwner(t)),
     columns: tab === 1 ? ownerColumns : driverColumns,
-    adds: ["Status", "Pay type", "Truck owner"],
+    filters: [
+      { key: "status", label: "Status", options: Object.entries(STATUS).map(([value, [label]]) => ({ value, label })) },
+      ...(tab === 1
+        ? []
+        : [
+            { key: "pay_kind", label: "Pay type", options: Object.entries(PAY_KIND).map(([value, [label]]) => ({ value, label })) },
+            { key: "truck_owner", label: "Truck owner", options: [{ value: "Company fleet", label: "Company fleet" }, ...(owners.data?.items ?? []).map((o) => ({ value: o.name, label: o.name }))] },
+          ]),
+    ],
+    bulk: manage ? ["export" as const] : undefined,
+    noun: tab === 1 ? "owner settlements" : "driver statements",
     actions: manage
       ? [
           { l: "Export pay file", cls: "", ic: I.download, go: () => void exportPayFile() },

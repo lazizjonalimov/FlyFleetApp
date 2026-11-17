@@ -129,8 +129,10 @@ export type ListView = {
     b: string;
     go?: Fn;
   } | null;
-  chips: string[];
-  adds: string[];
+  /** Filters in force, each with a way to remove it. */
+  chips: { l: string; clear: Fn }[];
+  /** Filters that can be added: a menu of the values the company's records hold. */
+  adds: FilterMenu[];
   hidden: string;
   group: string;
   title: string;
@@ -168,9 +170,30 @@ export type ListView = {
   toggleAll?: Fn;
   bulk?: boolean;
   selN?: string;
-  bulkActs?: string[];
+  bulkActs?: { l: string; go: Fn }[];
   clearSel?: Fn;
   minw?: string;
+  /** Show or hide columns; the choice is remembered on this device. */
+  columns?: { l: string; on: boolean; locked: boolean; toggle: Fn }[];
+  colsOpen?: boolean;
+  toggleCols?: Fn;
+  closeMenus?: Fn;
+  /** Saves every matching row as a CSV file. */
+  exportAll?: Fn;
+  exporting?: boolean;
+  /** Numbered pages, as far as the count allows. */
+  pages?: { n: number; on: boolean; go: Fn }[];
+};
+
+export type FilterMenu = {
+  l: string;
+  open: boolean;
+  toggle: Fn;
+  q: string;
+  setQ: Fn;
+  search: boolean;
+  head: string;
+  opts: { l: string; n: string; go: Fn }[];
 };
 
 export type ComboboxField = {

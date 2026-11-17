@@ -2686,6 +2686,29 @@
         "title": "CostLinePatch",
         "type": "object"
       },
+      "Count": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "Count",
+        "type": "object"
+      },
       "CustomerCreate": {
         "properties": {
           "billing_address": {
@@ -4574,6 +4597,93 @@
           "name"
         ],
         "title": "DriverRef",
+        "type": "object"
+      },
+      "DriverSummary": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "available": {
+            "title": "Available",
+            "type": "integer"
+          },
+          "blocked": {
+            "title": "Blocked",
+            "type": "integer"
+          },
+          "dispatchable": {
+            "title": "Dispatchable",
+            "type": "integer"
+          },
+          "endorsements": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Endorsements",
+            "type": "array"
+          },
+          "expiring": {
+            "title": "Expiring",
+            "type": "integer"
+          },
+          "expiring_detail": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Expiring Detail",
+            "type": "array"
+          },
+          "inactive": {
+            "title": "Inactive",
+            "type": "integer"
+          },
+          "on_load": {
+            "title": "On Load",
+            "type": "integer"
+          },
+          "owner_operators": {
+            "title": "Owner Operators",
+            "type": "integer"
+          },
+          "owners_drivers": {
+            "title": "Owners Drivers",
+            "type": "integer"
+          },
+          "team_pairs": {
+            "title": "Team Pairs",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "inactive",
+          "dispatchable",
+          "blocked",
+          "on_load",
+          "available",
+          "team_pairs",
+          "teams",
+          "owner_operators",
+          "owners_drivers",
+          "expiring",
+          "expiring_detail",
+          "endorsements"
+        ],
+        "title": "DriverSummary",
         "type": "object"
       },
       "DriverTransition": {
@@ -9080,6 +9190,60 @@
           "by_unit"
         ],
         "title": "MonthOut",
+        "type": "object"
+      },
+      "NextService": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "odometer": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Odometer"
+          },
+          "scheduled_for": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scheduled For"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status",
+          "scheduled_for",
+          "odometer"
+        ],
+        "title": "NextService",
         "type": "object"
       },
       "NotDuplicate": {
@@ -15303,6 +15467,29 @@
       },
       "SeatRef": {
         "properties": {
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
           "partner_id": {
             "anyOf": [
               {
@@ -17505,6 +17692,16 @@
             ],
             "title": "Model"
           },
+          "next_service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextService"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "notes": {
             "anyOf": [
               {
@@ -17619,6 +17816,16 @@
             ],
             "title": "Tracker"
           },
+          "truck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitDriver"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "type": {
             "default": "dry_van",
             "enum": [
@@ -17673,6 +17880,124 @@
           "unit_number"
         ],
         "title": "TrailerRead",
+        "type": "object"
+      },
+      "TrailerSummary": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "by_type": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "By Type",
+            "type": "array"
+          },
+          "empty": {
+            "title": "Empty",
+            "type": "integer"
+          },
+          "in_shop": {
+            "title": "In Shop",
+            "type": "integer"
+          },
+          "loaded": {
+            "title": "Loaded",
+            "type": "integer"
+          },
+          "makes": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Makes",
+            "type": "array"
+          },
+          "owner_list": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Owner List",
+            "type": "array"
+          },
+          "owner_units": {
+            "title": "Owner Units",
+            "type": "integer"
+          },
+          "reefers": {
+            "title": "Reefers",
+            "type": "integer"
+          },
+          "reefers_loaded": {
+            "title": "Reefers Loaded",
+            "type": "integer"
+          },
+          "retired": {
+            "title": "Retired",
+            "type": "integer"
+          },
+          "service_due": {
+            "title": "Service Due",
+            "type": "integer"
+          },
+          "service_due_detail": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Service Due Detail",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "utilization_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilization Pct"
+          },
+          "yard_at": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Yard At",
+            "type": "array"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "loaded",
+          "empty",
+          "in_shop",
+          "retired",
+          "by_type",
+          "owner_units",
+          "owner_list",
+          "utilization_pct",
+          "yard_at",
+          "reefers",
+          "reefers_loaded",
+          "service_due",
+          "service_due_detail",
+          "makes",
+          "years"
+        ],
+        "title": "TrailerSummary",
         "type": "object"
       },
       "TrailerUpdate": {
@@ -18114,6 +18439,128 @@
           "mpg"
         ],
         "title": "TruckFuel",
+        "type": "object"
+      },
+      "TruckSummary": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "available": {
+            "title": "Available",
+            "type": "integer"
+          },
+          "available_at": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Available At",
+            "type": "array"
+          },
+          "company": {
+            "title": "Company",
+            "type": "integer"
+          },
+          "in_maintenance": {
+            "title": "In Maintenance",
+            "type": "integer"
+          },
+          "last_week_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Week Pct"
+          },
+          "makes": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Makes",
+            "type": "array"
+          },
+          "on_loads": {
+            "title": "On Loads",
+            "type": "integer"
+          },
+          "out_of_service": {
+            "title": "Out Of Service",
+            "type": "integer"
+          },
+          "owner_list": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Owner List",
+            "type": "array"
+          },
+          "owner_units": {
+            "title": "Owner Units",
+            "type": "integer"
+          },
+          "owners": {
+            "title": "Owners",
+            "type": "integer"
+          },
+          "retired": {
+            "title": "Retired",
+            "type": "integer"
+          },
+          "teams": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "utilization_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Utilization Pct"
+          },
+          "years": {
+            "items": {
+              "$ref": "#/components/schemas/Count"
+            },
+            "title": "Years",
+            "type": "array"
+          }
+        },
+        "required": [
+          "total",
+          "active",
+          "on_loads",
+          "available",
+          "in_maintenance",
+          "out_of_service",
+          "retired",
+          "company",
+          "owner_units",
+          "owners",
+          "utilization_pct",
+          "last_week_pct",
+          "available_at",
+          "teams",
+          "makes",
+          "years",
+          "owner_list"
+        ],
+        "title": "TruckSummary",
         "type": "object"
       },
       "UnitDriver": {
@@ -19422,6 +19869,16 @@
             ],
             "title": "Model"
           },
+          "next_service": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextService"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "notes": {
             "anyOf": [
               {
@@ -19572,6 +20029,16 @@
               }
             ],
             "title": "Transmission"
+          },
+          "truck": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitDriver"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "unit_number": {
             "maxLength": 40,
@@ -25956,7 +26423,10 @@
                     "company",
                     "owners_drivers",
                     "owner_operators",
-                    "team"
+                    "team",
+                    "available",
+                    "on_load",
+                    "not_dispatchable"
                   ],
                   "type": "string"
                 },
@@ -26041,6 +26511,64 @@
                 }
               ],
               "title": "Terminal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "endorsement",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z]{1,2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Endorsement"
+            }
+          },
+          {
+            "in": "query",
+            "name": "qualification",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ok",
+                    "expiring",
+                    "blocked"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Qualification"
+            }
+          },
+          {
+            "description": "Has signed in to the driver app",
+            "in": "query",
+            "name": "app",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Has signed in to the driver app",
+              "title": "App"
             }
           }
         ],
@@ -26198,6 +26726,82 @@
         "summary": "Create a driver",
         "tags": [
           "drivers"
+        ]
+      }
+    },
+    "/api/v1/drivers/summary": {
+      "get": {
+        "operationId": "driver_summary_api_v1_drivers_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The drivers table's figures and filter values",
+        "tags": [
+          "fleet"
         ]
       }
     },
@@ -34661,6 +35265,26 @@
               ],
               "title": "Portal"
             }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "owner_operators",
+                    "non_operating"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
           }
         ],
         "responses": {
@@ -39990,6 +40614,47 @@
               "description": "Settlements whose period starts on or before this day",
               "title": "Period To"
             }
+          },
+          {
+            "in": "query",
+            "name": "pay_kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "company",
+                    "team",
+                    "owners_driver",
+                    "owners_team"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pay Kind"
+            }
+          },
+          {
+            "description": "The truck owner's name, or Company fleet",
+            "in": "query",
+            "name": "truck_owner",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The truck owner's name, or Company fleet",
+              "title": "Truck Owner"
+            }
           }
         ],
         "responses": {
@@ -41971,6 +42636,41 @@
           },
           {
             "in": "query",
+            "name": "make",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Make"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 2100,
+                  "minimum": 1950,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "in": "query",
             "name": "type",
             "required": false,
             "schema": {
@@ -42173,6 +42873,82 @@
         "summary": "Create a trailer",
         "tags": [
           "equipment"
+        ]
+      }
+    },
+    "/api/v1/trailers/summary": {
+      "get": {
+        "operationId": "trailer_summary_api_v1_trailers_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrailerSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The trailers table's figures and filter values",
+        "tags": [
+          "fleet"
         ]
       }
     },
@@ -42709,6 +43485,41 @@
           },
           {
             "in": "query",
+            "name": "make",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 60,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Make"
+            }
+          },
+          {
+            "in": "query",
+            "name": "year",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 2100,
+                  "minimum": 1950,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "in": "query",
             "name": "kind",
             "required": false,
             "schema": {
@@ -42716,6 +43527,7 @@
                 {
                   "enum": [
                     "on_loads",
+                    "available",
                     "owner",
                     "team",
                     "company",
@@ -42885,6 +43697,82 @@
         "summary": "Create a truck",
         "tags": [
           "equipment"
+        ]
+      }
+    },
+    "/api/v1/vehicles/summary": {
+      "get": {
+        "operationId": "truck_summary_api_v1_vehicles_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The trucks table's figures and filter values",
+        "tags": [
+          "fleet"
         ]
       }
     },

@@ -122,6 +122,8 @@ class SettlementListParams(ListParams):
     driver_id: uuid.UUID | None = None
     period_from: date | None = Field(default=None, description="Settlements whose period ends on or after this day")
     period_to: date | None = Field(default=None, description="Settlements whose period starts on or before this day")
+    pay_kind: Literal["company", "team", "owners_driver", "owners_team"] | None = None
+    truck_owner: str | None = Field(default=None, max_length=200, description="The truck owner's name, or Company fleet")
 
 
 class SettlementSummary(BaseModel):

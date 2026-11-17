@@ -58,9 +58,10 @@ def list_owners(params: Annotated[s.OwnerListParams, Query()], p: Principal = De
         stmt = stmt.where(Owner.status == params.status)
     if params.portal is not None:
         stmt = stmt.where(Owner.portal_enabled.is_(params.portal))
-    ids = service.filter_ids(db, tab)
-    if ids is not None:
-        stmt = stmt.where(Owner.id.in_(ids))
+    for which in (tab, params.category):
+        ids = service.filter_ids(db, which)
+        if ids is not None:
+            stmt = stmt.where(Owner.id.in_(ids))
     if params.agreement:
         stmt = stmt.where(Owner.id.in_(select(OwnerAgreement.owner_id).where(OwnerAgreement.kind == params.agreement)))
     name = func.coalesce(Owner.legal_name, select(func.concat(Person.first_name, " ", Person.last_name))

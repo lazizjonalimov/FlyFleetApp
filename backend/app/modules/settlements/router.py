@@ -42,6 +42,14 @@ def list_settlements(params: Annotated[s.SettlementListParams, Query()], p: Prin
     if params.q and params.q.strip():
         pattern = like(params.q.strip())
         stmt = stmt.where(or_(DriverSettlement.number.ilike(pattern), name.ilike(pattern)))
+    if params.pay_kind or params.truck_owner:
+        # Worked out per statement from who drove what for whom, so narrowed among the statements that match so far.
+        candidates = [st for st, _ in db.execute(stmt.limit(2000)).all()]
+        contexts = service.pay_contexts(db, p, candidates)
+        keep = [st.id for st in candidates
+                if (not params.pay_kind or contexts[st.id].pay_kind == params.pay_kind)
+                and (not params.truck_owner or (contexts[st.id].truck_owner or "") == params.truck_owner)]
+        stmt = stmt.where(DriverSettlement.id.in_(keep))
     sortable = {"created_at": DriverSettlement.created_at, "period_end": DriverSettlement.period_end,
                 "net_pay": DriverSettlement.net_pay}
     rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, "-created_at"), DriverSettlement.id,

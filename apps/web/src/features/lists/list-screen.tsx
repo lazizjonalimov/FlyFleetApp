@@ -8,6 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { EmptyState, ErrorState, FilteredEmpty, Skeleton } from "@/components/feedback/states";
 import { tx } from "@/features/console/dom";
 import type { ListResult } from "./use-list";
+import type React from "react";
 
 /**
  * The shared list screen: a title and actions, tabs, figures, search and filters, and one table that sorts,
@@ -111,18 +112,7 @@ export function ListScreen({ list }: { list: ListResult }) {
             <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" />
             <input placeholder={L.ph} aria-label={`Search ${L.title}`} value={L.qv} onChange={L.setQ} />
           </label>
-          {L.chips.map((ch, i) => (
-            <button key={i} className="chip">
-              <span>{ch}</span>
-              <Icon className="s12 b" d="M18 6L6 18M6 6l12 12" />
-            </button>
-          ))}
-          {L.adds.map((ad, i) => (
-            <button key={i} className="chip add">
-              <Icon className="s12 b" d="M12 5v14M5 12h14" />
-              <span>{ad}</span>
-            </button>
-          ))}
+          <FilterChips L={L} />
           <span className="sp"></span>
           {L.hidden ? (
             <span className="fs12 mu r g6">
@@ -130,14 +120,8 @@ export function ListScreen({ list }: { list: ListResult }) {
               {tx(L.hidden)}
             </span>
           ) : null}
-          <button className="btn sm">
-            <Icon className="s14" d="M3 4h18v16H3zM9 4v16M15 4v16" />
-            Columns
-          </button>
-          <button className="btn sm">
-            <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-            Export
-          </button>
+          <ColumnsButton L={L} />
+          <ExportButton L={L} />
         </div>
         <div className="card oh c" style={{ flex: "1", minHeight: "0", margin: "0 24px 24px" }}>
           <div className={L.tsc}>
@@ -196,24 +180,125 @@ export function ListScreen({ list }: { list: ListResult }) {
           <div className="tfoot">
             <span className="num"><span>{L.foot}</span></span>
             <span className="sp"></span>
-            <div className="pg">
-              <button aria-label="Previous page" disabled={!pager.previous} onClick={pager.previous ?? undefined}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
-              <button className="on" aria-current="page">{pager.page}</button>
-              <button aria-label="Next page" disabled={!pager.next} onClick={pager.next ?? undefined}><Icon className="s14" d="M9 6l6 6-6 6" /></button>
-            </div>
+            <Pager L={L} pager={pager} />
           </div>
         </div>
       </div>
-      {L.bulk ? (
-        <div className="bulk" role="region" aria-label="Bulk actions">
-          <span className="w5 num" style={{ marginRight: "10px" }}>{tx(L.selN)}{" selected"}</span>
-          <span style={{ width: "1px", height: "20px", background: "#2A3550", marginRight: "4px" }}></span>
-          {L.bulkActs?.map((ba, i) => (
-            <button key={i}><span>{ba}</span></button>
-          ))}
-          <button onClick={L.clearSel} aria-label="Clear selection" className="bx"><Icon className="s14 b" d="M18 6L6 18M6 6l12 12" /></button>
-        </div>
-      ) : null}
+      <BulkBar L={L} />
     </>
+  );
+}
+
+type L = ListResult["L"];
+
+/** Filters in force as chips, and the filters that can be added, each a menu of the company's own values. */
+export function FilterChips({ L }: { L: L }) {
+  return (
+    <>
+      {L.chips.map((ch) => (
+        <button key={ch.l} className="chip" onClick={ch.clear} aria-label={`Remove filter ${ch.l}`}>
+          <span>{ch.l}</span>
+          <Icon className="s12 b" d="M18 6L6 18M6 6l12 12" />
+        </button>
+      ))}
+      {L.adds.map((ad) => (
+        <div key={ad.l} className="dd">
+          <button className="chip add" onClick={ad.toggle} aria-haspopup="listbox" aria-expanded={ad.open} aria-label={`Filter by ${ad.l.toLowerCase()}`}>
+            <Icon className="s12 b" d="M12 5v14M5 12h14" />
+            <span>{ad.l}</span>
+          </button>
+          {ad.open ? (
+            <>
+              <div className="ddcatch" onClick={L.closeMenus}></div>
+              <div className="ddl" style={{ width: "260px" }}>
+                {ad.search ? (
+                  <label className="dds">
+                    <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" />
+                    <input autoFocus defaultValue={ad.q} placeholder={`Search ${ad.l.toLowerCase()}`} aria-label={`Search ${ad.l.toLowerCase()}`} onInput={ad.setQ} />
+                  </label>
+                ) : null}
+                <div className="ddh">{tx(ad.head)}</div>
+                <div className="ddo" role="listbox" aria-label={ad.l}>
+                  {ad.opts.map((o) => (
+                    <button key={o.l} className="ddi" role="option" aria-selected="false" onClick={o.go}>
+                      <span className="f1 ell"><span>{o.l}</span></span>
+                      {o.n ? <span className="fs12 mu num">{o.n}</span> : null}
+                    </button>
+                  ))}
+                  {!ad.opts.length ? <div className="fs12 mu" style={{ padding: "6px 8px" }}>Nothing matches</div> : null}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Show or hide columns; the first column always stays. Remembered on this device. */
+export function ColumnsButton({ L, cls = "btn sm" }: { L: L; cls?: string }) {
+  return (
+    <div className="dd">
+      <button className={cls} onClick={L.toggleCols} aria-haspopup="true" aria-expanded={!!L.colsOpen}>
+        <Icon className="s14" d="M3 4h18v16H3zM9 4v16M15 4v16" />
+        Columns
+      </button>
+      {L.colsOpen ? (
+        <>
+          <div className="ddcatch" onClick={L.closeMenus}></div>
+          <div className="ddl" style={{ left: "auto", right: "0", width: "240px" }} role="group" aria-label="Columns">
+            <div className="ddh">Columns to show · kept on this device</div>
+            <div className="ddo" style={{ maxHeight: "320px" }}>
+              {L.columns?.filter((c) => c.l).map((c) => (
+                <label key={c.l} className="ddi" style={{ cursor: c.locked ? "default" : "pointer" }}>
+                  <input type="checkbox" checked={c.on} disabled={c.locked} onChange={c.toggle} />
+                  <span className="f1 ell"><span>{c.l}</span></span>
+                  {c.locked ? <span className="fs11 mu">Always</span> : null}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+/** Saves every row matching the tab, search and filters as a CSV file. */
+export function ExportButton({ L, cls = "btn sm" }: { L: L; cls?: string }) {
+  return (
+    <button className={cls} onClick={L.exportAll} disabled={L.exporting} aria-busy={L.exporting}>
+      <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+      {L.exporting ? "Exporting…" : "Export"}
+    </button>
+  );
+}
+
+/** Previous, numbered pages and next. */
+export function Pager({ L, pager, style }: { L: L; pager: ListResult["pager"]; style?: React.CSSProperties }) {
+  return (
+    <div className="pg" style={style}>
+      <button aria-label="Previous page" disabled={!pager.previous} onClick={pager.previous ?? undefined}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
+      {(L.pages?.length ? L.pages : [{ n: pager.page, on: true, go: () => undefined }]).map((pg) => (
+        <button key={pg.n} className={pg.on ? "on" : ""} aria-current={pg.on ? "page" : undefined} aria-label={`Page ${pg.n}`} onClick={pg.go}>{pg.n}</button>
+      ))}
+      <button aria-label="Next page" disabled={!pager.next} onClick={pager.next ?? undefined}><Icon className="s14" d="M9 6l6 6-6 6" /></button>
+    </div>
+  );
+}
+
+/** The bar that appears with a selection: how many, what can be done with them, and clear. */
+export function BulkBar({ L }: { L: L }) {
+  if (!L.bulk) return null;
+  return (
+    <div className="bulk" role="region" aria-label="Bulk actions">
+      <span className="w5 num" style={{ marginRight: "10px" }}>{tx(L.selN)}{" selected"}</span>
+      <span style={{ width: "1px", height: "20px", background: "#2A3550", marginRight: "4px" }}></span>
+      {L.bulkActs?.map((ba) => (
+        <button key={ba.l} onClick={ba.go}><span>{ba.l}</span></button>
+      ))}
+      <button onClick={L.clearSel} aria-label="Clear selection" className="bx"><Icon className="s14 b" d="M18 6L6 18M6 6l12 12" /></button>
+    </div>
   );
 }

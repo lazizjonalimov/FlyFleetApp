@@ -753,6 +753,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/drivers/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The drivers table's figures and filter values */
+        get: operations["driver_summary_api_v1_drivers_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/drivers/{item_id}": {
         parameters: {
             query?: never;
@@ -2761,6 +2778,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/trailers/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trailers table's figures and filter values */
+        get: operations["trailer_summary_api_v1_trailers_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/trailers/{item_id}": {
         parameters: {
             query?: never;
@@ -2809,6 +2843,23 @@ export interface paths {
         put?: never;
         /** Create a truck */
         post: operations["create__api_v1_vehicles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vehicles/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The trucks table's figures and filter values */
+        get: operations["truck_summary_api_v1_vehicles_summary_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3708,6 +3759,15 @@ export interface components {
             /** Unit Cost */
             unit_cost?: number | string | null;
         };
+        /** Count */
+        Count: {
+            /** Count */
+            count: number;
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
         /** CustomerCreate */
         CustomerCreate: {
             /** Billing Address */
@@ -4220,6 +4280,37 @@ export interface components {
             pay_by: string;
             /** Status */
             status?: string | null;
+        };
+        /** DriverSummary */
+        DriverSummary: {
+            /** Active */
+            active: number;
+            /** Available */
+            available: number;
+            /** Blocked */
+            blocked: number;
+            /** Dispatchable */
+            dispatchable: number;
+            /** Endorsements */
+            endorsements: components["schemas"]["Count"][];
+            /** Expiring */
+            expiring: number;
+            /** Expiring Detail */
+            expiring_detail: components["schemas"]["Count"][];
+            /** Inactive */
+            inactive: number;
+            /** On Load */
+            on_load: number;
+            /** Owner Operators */
+            owner_operators: number;
+            /** Owners Drivers */
+            owners_drivers: number;
+            /** Team Pairs */
+            team_pairs: number;
+            /** Teams */
+            teams: string[];
+            /** Total */
+            total: number;
         };
         /** DriverTransition */
         DriverTransition: {
@@ -5559,6 +5650,24 @@ export interface components {
             owner_gross: string;
             /** Revenue */
             revenue: string;
+        };
+        /** NextService */
+        NextService: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Odometer */
+            odometer: number | null;
+            /** Scheduled For */
+            scheduled_for: string | null;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
         };
         /** NotDuplicate */
         NotDuplicate: {
@@ -7449,6 +7558,10 @@ export interface components {
         };
         /** SeatRef */
         SeatRef: {
+            /** Owner Id */
+            owner_id?: string | null;
+            /** Owner Name */
+            owner_name?: string | null;
             /** Partner Id */
             partner_id?: string | null;
             /** Partner Name */
@@ -8115,6 +8228,7 @@ export interface components {
             make?: string | null;
             /** Model */
             model?: string | null;
+            next_service?: components["schemas"]["NextService"] | null;
             /** Notes */
             notes?: string | null;
             /**
@@ -8146,6 +8260,7 @@ export interface components {
             terminal_id?: string | null;
             /** Tracker */
             tracker?: string | null;
+            truck?: components["schemas"]["UnitDriver"] | null;
             /**
              * Type
              * @default dry_van
@@ -8158,6 +8273,43 @@ export interface components {
             vin?: string | null;
             /** Year */
             year?: number | null;
+        };
+        /** TrailerSummary */
+        TrailerSummary: {
+            /** Active */
+            active: number;
+            /** By Type */
+            by_type: components["schemas"]["Count"][];
+            /** Empty */
+            empty: number;
+            /** In Shop */
+            in_shop: number;
+            /** Loaded */
+            loaded: number;
+            /** Makes */
+            makes: components["schemas"]["Count"][];
+            /** Owner List */
+            owner_list: components["schemas"]["Count"][];
+            /** Owner Units */
+            owner_units: number;
+            /** Reefers */
+            reefers: number;
+            /** Reefers Loaded */
+            reefers_loaded: number;
+            /** Retired */
+            retired: number;
+            /** Service Due */
+            service_due: number;
+            /** Service Due Detail */
+            service_due_detail: components["schemas"]["Count"][];
+            /** Total */
+            total: number;
+            /** Utilization Pct */
+            utilization_pct: number | null;
+            /** Yard At */
+            yard_at: components["schemas"]["Count"][];
+            /** Years */
+            years: components["schemas"]["Count"][];
         };
         /** TrailerUpdate */
         TrailerUpdate: {
@@ -8260,6 +8412,43 @@ export interface components {
             /** Mpg */
             mpg: string | null;
             vehicle: components["schemas"]["Ref"];
+        };
+        /** TruckSummary */
+        TruckSummary: {
+            /** Active */
+            active: number;
+            /** Available */
+            available: number;
+            /** Available At */
+            available_at: components["schemas"]["Count"][];
+            /** Company */
+            company: number;
+            /** In Maintenance */
+            in_maintenance: number;
+            /** Last Week Pct */
+            last_week_pct: number | null;
+            /** Makes */
+            makes: components["schemas"]["Count"][];
+            /** On Loads */
+            on_loads: number;
+            /** Out Of Service */
+            out_of_service: number;
+            /** Owner List */
+            owner_list: components["schemas"]["Count"][];
+            /** Owner Units */
+            owner_units: number;
+            /** Owners */
+            owners: number;
+            /** Retired */
+            retired: number;
+            /** Teams */
+            teams: string[];
+            /** Total */
+            total: number;
+            /** Utilization Pct */
+            utilization_pct: number | null;
+            /** Years */
+            years: components["schemas"]["Count"][];
         };
         /** UnitDriver */
         UnitDriver: {
@@ -8645,6 +8834,7 @@ export interface components {
             make?: string | null;
             /** Model */
             model?: string | null;
+            next_service?: components["schemas"]["NextService"] | null;
             /** Notes */
             notes?: string | null;
             /** Odometer */
@@ -8682,6 +8872,7 @@ export interface components {
             terminal_id?: string | null;
             /** Transmission */
             transmission?: string | null;
+            truck?: components["schemas"]["UnitDriver"] | null;
             /** Unit Number */
             unit_number: string;
             /** Vin */
@@ -12331,11 +12522,15 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                kind?: ("company" | "owners_drivers" | "owner_operators" | "team") | null;
+                kind?: ("company" | "owners_drivers" | "owner_operators" | "team" | "available" | "on_load" | "not_dispatchable") | null;
                 employer_owner_id?: string | null;
                 status?: ("active" | "inactive" | "terminated") | null;
                 driver_type?: ("company" | "owner_operator" | "contractor") | null;
                 terminal_id?: string | null;
+                endorsement?: string | null;
+                qualification?: ("ok" | "expiring" | "blocked") | null;
+                /** @description Has signed in to the driver app */
+                app?: boolean | null;
             };
             header?: never;
             path?: never;
@@ -12419,6 +12614,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DriverRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_summary_api_v1_drivers_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverSummary"];
                 };
             };
             /** @description Unauthorized */
@@ -17677,6 +17937,7 @@ export interface operations {
                 entity_type?: ("individual" | "business") | null;
                 agreement?: ("owner_operator_lease" | "equipment_lease" | "fleet_lease" | "rental") | null;
                 portal?: boolean | null;
+                category?: ("owner_operators" | "non_operating") | null;
             };
             header?: never;
             path?: never;
@@ -21068,6 +21329,9 @@ export interface operations {
                 period_from?: string | null;
                 /** @description Settlements whose period starts on or before this day */
                 period_to?: string | null;
+                pay_kind?: ("company" | "team" | "owners_driver" | "owners_team") | null;
+                /** @description The truck owner's name, or Company fleet */
+                truck_owner?: string | null;
             };
             header?: never;
             path?: never;
@@ -22393,6 +22657,8 @@ export interface operations {
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
                 owner_id?: string | null;
+                make?: string | null;
+                year?: number | null;
                 type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
                 kind?: ("loaded" | "yard" | "reefer" | "owner" | "no_tracker" | "shop") | null;
             };
@@ -22478,6 +22744,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrailerRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    trailer_summary_api_v1_trailers_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrailerSummary"];
                 };
             };
             /** @description Unauthorized */
@@ -22816,7 +23147,9 @@ export interface operations {
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
                 owner_id?: string | null;
-                kind?: ("on_loads" | "owner" | "team" | "company" | "shop") | null;
+                make?: string | null;
+                year?: number | null;
+                kind?: ("on_loads" | "available" | "owner" | "team" | "company" | "shop") | null;
             };
             header?: never;
             path?: never;
@@ -22900,6 +23233,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    truck_summary_api_v1_vehicles_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TruckSummary"];
                 };
             };
             /** @description Unauthorized */

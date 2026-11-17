@@ -13,20 +13,7 @@ import type { DocumentType } from "@/lib/upload";
 
 type Detail = Schema<"OwnerDetail">;
 
-/** Saves rows as a CSV file the browser downloads. */
-export function downloadCsv(filename: string, header: string[], rows: (string | number | null | undefined)[][]) {
-  const esc = (v: string | number | null | undefined) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const text = [header, ...rows].map((r) => r.map(esc).join(",")).join("\n");
-  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+export { downloadCsv } from "@/lib/csv";
 
 /** Change who owns one of this owner's units from a date: to another owner, or back to the carrier. */
 export function TransferDialog({ owner, onClose }: { owner: Detail; onClose: () => void }) {

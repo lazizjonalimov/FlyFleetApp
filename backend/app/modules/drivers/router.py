@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
@@ -17,16 +17,16 @@ from app.modules.drivers.models import Driver, DriverQualification
 from app.modules.equipment.models import Vehicle
 from app.modules.fleet.models import UnitAssignment
 from app.modules.organizations.models import Membership, Terminal
-from app.modules.owners.models import Owner
+from app.modules.owners.models import EquipmentOwnership, Owner
 from app.modules.people import service as people
 from app.modules.people.models import Person
-from app.modules.safety.rules import Compliance, driver_issues, summarize
+from app.modules.safety.rules import WARN_DAYS, Compliance, driver_issues, summarize
 
 DriverType = Literal["company", "owner_operator", "contractor"]
 DriverStatus = Literal["active", "inactive", "terminated"]
 PayType = Literal["per_mile", "percent", "flat"]
 PayBy = Literal["carrier", "owner", "carrier_for_owner"]
-DriverKind = Literal["company", "owners_drivers", "owner_operators", "team"]
+DriverKind = Literal["company", "owners_drivers", "owner_operators", "team", "available", "on_load", "not_dispatchable"]
 QualificationType = Literal["mvr", "drug_test", "road_test", "employment_application", "annual_review", "hazmat",
                             "twic", "training", "other"]
 
@@ -92,6 +92,9 @@ class SeatRef(BaseModel):
     partner_id: uuid.UUID | None = None
     partner_name: str | None = None
     team_split: str | None = None
+    # Who owns the truck today, when it isn't the carrier.
+    owner_id: uuid.UUID | None = None
+    owner_name: str | None = None
 
 
 class DriverRead(BaseModel):
@@ -141,6 +144,9 @@ class DriverListParams(ListParams):
     status: DriverStatus | None = None
     driver_type: DriverType | None = None
     terminal_id: uuid.UUID | None = None
+    endorsement: str | None = Field(default=None, min_length=1, max_length=2, pattern=r"^[A-Za-z]{1,2}$")
+    qualification: Literal["ok", "expiring", "blocked"] | None = None
+    app: bool | None = Field(default=None, description="Has signed in to the driver app")
 
 
 class QualificationCreate(BaseModel):
@@ -177,14 +183,59 @@ def seats_of(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, SeatRef]:
                              or_(UnitAssignment.driver_id.in_(ids), UnitAssignment.co_driver_id.in_(ids)))).all()
     partners = {x for seat, _ in rows for x in (seat.driver_id, seat.co_driver_id) if x}
     names = {d.id: f"{d.first_name} {d.last_name}" for d in db.scalars(select(Driver).where(Driver.id.in_(partners)))}
+    owners: dict[uuid.UUID, tuple[uuid.UUID, str]] = {}
+    vehicles = [seat.vehicle_id for seat, _ in rows]
+    if vehicles:
+        for vehicle_id, owner_id, legal, first, last in db.execute(
+                select(EquipmentOwnership.vehicle_id, Owner.id, Owner.legal_name, Person.first_name, Person.last_name)
+                .join(Owner, Owner.id == EquipmentOwnership.owner_id).outerjoin(Person, Person.id == Owner.person_id)
+                .where(EquipmentOwnership.vehicle_id.in_(vehicles), EquipmentOwnership.effective_to.is_(None))
+                .order_by(EquipmentOwnership.share_pct.desc())):
+            owners.setdefault(vehicle_id, (owner_id, legal or f"{first or ''} {last or ''}".strip()))
     out = {}
     for seat, unit_number in rows:
+        owner_id, owner_name = owners.get(seat.vehicle_id, (None, None))
         for me, other, role in ((seat.driver_id, seat.co_driver_id, "primary"), (seat.co_driver_id, seat.driver_id, "co_driver")):
             if me in ids:
                 out[me] = SeatRef(vehicle_id=seat.vehicle_id, unit_number=unit_number, seat=role, partner_id=other,
                                   partner_name=names.get(other) if other else None,
-                                  team_split=seat.team_split if seat.co_driver_id else None)
+                                  team_split=seat.team_split if seat.co_driver_id else None,
+                                  owner_id=owner_id, owner_name=owner_name)
     return out
+
+
+LIVE = ("assigned", "dispatched", "at_pickup", "in_transit", "at_delivery")
+
+
+def _busy_drivers():
+    from app.modules.dispatch.models import DispatchAssignment
+    from app.modules.loads.models import Load
+    on = (select(DispatchAssignment.driver_id).join(Load, Load.id == DispatchAssignment.load_id)
+          .where(DispatchAssignment.status == "active", Load.status.in_(LIVE)))
+    co = (select(DispatchAssignment.co_driver_id).join(Load, Load.id == DispatchAssignment.load_id)
+          .where(DispatchAssignment.status == "active", Load.status.in_(LIVE), DispatchAssignment.co_driver_id.is_not(None)))
+    return Driver.id.in_(on) | Driver.id.in_(co)
+
+
+def _blocked(today: date):
+    """Papers that stop a driver from being dispatched: a lapsed CDL or medical card, or a required item."""
+    return or_(Driver.cdl_expiry < today, Driver.medical_cert_expiry < today,
+               Driver.id.in_(select(DriverQualification.driver_id).where(DriverQualification.required.is_(True),
+                                                                         DriverQualification.expires_on < today)))
+
+
+def _expiring(today: date):
+    soon = today + timedelta(days=WARN_DAYS)
+    return or_(Driver.cdl_expiry.between(today, soon), Driver.medical_cert_expiry.between(today, soon),
+               Driver.id.in_(select(DriverQualification.driver_id).where(DriverQualification.expires_on.between(today, soon))))
+
+
+def _search_also(pattern: str) -> list:
+    """Search also finds a driver by the truck they are seated in."""
+    return [Driver.id.in_(select(UnitAssignment.driver_id).join(Vehicle, Vehicle.id == UnitAssignment.vehicle_id)
+                          .where(UnitAssignment.effective_to.is_(None), Vehicle.unit_number.ilike(pattern))),
+            Driver.id.in_(select(UnitAssignment.co_driver_id).join(Vehicle, Vehicle.id == UnitAssignment.vehicle_id)
+                          .where(UnitAssignment.effective_to.is_(None), Vehicle.unit_number.ilike(pattern)))]
 
 
 def present(db: Session, drivers: list[Driver], p: Principal) -> list[DriverRead]:
@@ -280,7 +331,25 @@ def _person_for(db: Session, p: Principal, data: dict, driver: Driver | None) ->
         people.apply(person, {"date_of_birth": dob})
 
 
-def _list_filter(db: Session, stmt, params: DriverListParams):
+def _list_filter(db: Session, stmt, params: DriverListParams, p: Principal):
+    today = p.today()
+    if params.endorsement:
+        stmt = stmt.where(func.concat(" ", func.replace(func.coalesce(Driver.endorsements, ""), ",", " "), " ")
+                          .ilike(f"% {params.endorsement.upper()} %"))
+    if params.qualification == "blocked":
+        stmt = stmt.where(_blocked(today))
+    elif params.qualification == "expiring":
+        stmt = stmt.where(~_blocked(today), _expiring(today))
+    elif params.qualification == "ok":
+        stmt = stmt.where(~_blocked(today), ~_expiring(today))
+    if params.app is not None:
+        stmt = stmt.where(Driver.user_id.is_not(None) if params.app else Driver.user_id.is_(None))
+    if params.kind == "available":
+        stmt = stmt.where(Driver.status == "active", ~_busy_drivers(), ~_blocked(today))
+    elif params.kind == "on_load":
+        stmt = stmt.where(_busy_drivers())
+    elif params.kind == "not_dispatchable":
+        stmt = stmt.where(Driver.status == "active", _blocked(today))
     if params.employer_owner_id:
         stmt = stmt.where(Driver.employer_owner_id == params.employer_owner_id)
     if params.kind == "company":
@@ -319,11 +388,15 @@ router.include_router(resource_router(
     prefix="/drivers", tag="drivers", entity="driver", label="driver", model=Driver,
     create_schema=DriverCreate, update_schema=DriverUpdate, read_schema=DriverRead,
     read_perm="drivers.read", write_perm="drivers.manage", list_params=DriverListParams,
-    search=("first_name", "last_name", "employee_number", "phone", "email"),
+    search=("first_name", "last_name", "employee_number", "phone", "email"), search_also=_search_also,
     sort={"name": Driver.last_name, "created_at": Driver.created_at,
           "hire_date": func.coalesce(Driver.hire_date, literal(date(9999, 1, 1))),
           "cdl_expiry": func.coalesce(Driver.cdl_expiry, literal(date(9999, 1, 1))),
-          "medical_cert_expiry": func.coalesce(Driver.medical_cert_expiry, literal(date(9999, 1, 1)))},
+          "medical_cert_expiry": func.coalesce(Driver.medical_cert_expiry, literal(date(9999, 1, 1))),
+          "employee_number": func.coalesce(Driver.employee_number, ""), "status": Driver.status,
+          # Blocked first, then expiring soon, then in order: the soonest expiry decides.
+          "qualification": func.least(func.coalesce(Driver.cdl_expiry, literal(date(9999, 1, 1))),
+                                      func.coalesce(Driver.medical_cert_expiry, literal(date(9999, 1, 1))))},
     default_sort="name", present=present, audit_redact=("cdl_number", "pay_rate", "date_of_birth"),
     before_save=_before_save, before_delete=_before_delete, list_filter=_list_filter))
 router.include_router(child_router(

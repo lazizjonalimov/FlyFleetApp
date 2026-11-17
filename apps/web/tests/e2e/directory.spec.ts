@@ -48,7 +48,7 @@ test("trucks and trailers: added, listed, and blocked when a paper has lapsed", 
   await viaApp(page, "POST", "/vehicles", { unit_number: "701", ownership: "owned", status: "active", year: 2022, registration_expiry: day(-3) });
   await open(page, account, "equipment/trucks");
   await expect(page.locator(".tb2")).toContainText("701");
-  await expect(page.locator(".tb2")).toContainText("expired");
+  await expect(page.locator(".trow", { hasText: "701" })).toContainText("Not dispatchable");
   await page.locator(".trow", { hasText: "701" }).click();
   await expect(page.getByRole("heading", { name: "701", level: 1 })).toBeVisible();
   await expect(page.locator(".main")).toContainText("can’t be dispatched");

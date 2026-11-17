@@ -5,6 +5,7 @@
 
 Anything with real business rules (loads, dispatch, invoices, settlements) gets a hand-written router instead.
 """
+import inspect
 import uuid
 from collections.abc import Callable
 from typing import Annotated, Any
@@ -39,10 +40,12 @@ def like(q: str) -> str:
     return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
-def apply_filters(stmt, model, params: ListParams, search: tuple[str, ...]):
-    if params.q and search:
+def apply_filters(stmt, model, params: ListParams, search: tuple[str, ...],
+                  search_also: Callable[[str], list[Any]] | None = None):
+    if params.q and (search or search_also):
         pattern = like(params.q.strip())
-        stmt = stmt.where(or_(*[getattr(model, c).ilike(pattern) for c in search]))
+        stmt = stmt.where(or_(*[getattr(model, c).ilike(pattern) for c in search],
+                              *(search_also(pattern) if search_also else [])))
     for name in type(params).model_fields:
         if name in _COMMON:
             continue
@@ -50,6 +53,10 @@ def apply_filters(stmt, model, params: ListParams, search: tuple[str, ...]):
         if value is not None and hasattr(model, name):  # other filters are applied by the router's list_filter
             stmt = stmt.where(getattr(model, name) == value)
     return stmt
+
+
+def _arity(fn: Callable[..., Any]) -> int:
+    return len(inspect.signature(fn).parameters)
 
 
 Hook = Callable[[Session, Principal, dict[str, Any], Any], None]
@@ -75,14 +82,17 @@ def resource_router(
     present: Callable[[Session, list[Any], Principal], list[Any]] | None = None,
     audit_redact: tuple[str, ...] = (), before_save: Hook | None = None, before_delete: Guard | None = None,
     archivable: bool = False, deletable: bool = True, detail: bool = True,
-    list_filter: Callable[[Session, Any, Any], Any] | None = None,
+    list_filter: Callable[..., Any] | None = None,
+    search_also: Callable[[str], list[Any]] | None = None,
 ) -> APIRouter:
     """
     present        shapes a page of rows for a particular caller in one go (masking a field for some roles,
                    attaching values worked out from other tables) without a query per row
     before_save    validates or adjusts incoming data against the database; raise to reject
     before_delete  raise to refuse a delete or an archive
-    list_filter    narrows the list statement for filters that aren't plain columns (stmt, params) -> stmt
+    list_filter    narrows the list statement for filters that aren't plain columns
+                   (db, stmt, params[, principal]) -> stmt
+    search_also    more conditions the search text matches, for names held in other tables (pattern) -> [cond]
     archivable     adds /archive and /restore (status 'archived' <-> 'active') for records that must not vanish
     """
     r = APIRouter(prefix=prefix, tags=[tag])
@@ -98,9 +108,9 @@ def resource_router(
     @r.get("", response_model=Page[read_schema], summary=f"List {label}s")
     def list_(params: Annotated[list_params, Query()], p: Principal = Depends(require(read_perm)),
               db: Session = Depends(get_db)):
-        stmt = apply_filters(select(model), model, params, search)
+        stmt = apply_filters(select(model), model, params, search, search_also)
         if list_filter:
-            stmt = list_filter(db, stmt, params)
+            stmt = list_filter(db, stmt, params, p) if _arity(list_filter) > 3 else list_filter(db, stmt, params)
         rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, default_sort), model.id,
                               cursor=params.cursor, limit=params.limit, count=params.count)
         return envelope(show_all(db, rows, p), info)

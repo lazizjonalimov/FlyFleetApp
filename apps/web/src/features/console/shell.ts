@@ -93,7 +93,7 @@ export type ShellInput = {
 };
 
 /** Moving to a section closes whatever was open on the way and starts its list afresh. */
-export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, overlay: "none", panel: "none", modal: "none", lsel: [], lsort: null, dd: null, ltab: 0, lq: "", lpage: [] });
+export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, overlay: "none", panel: "none", modal: "none", lsel: [], lsort: null, dd: null, ltab: 0, lq: "", lpage: [], lf: {} });
 
 /** Opening the add flow for a kind of record. */
 export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mstep: "manual", overlay: "none", dd: null, ddq: "", fv: {}, ferr: {} });

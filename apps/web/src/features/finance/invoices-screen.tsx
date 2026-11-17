@@ -89,7 +89,6 @@ export function InvoicesScreen() {
             segs: AGES.map(([key, l, k]) => ({ l, k, v: money(String(totals[key] ?? "0")), w: `${(((toCents(String(totals[key] ?? "0")) ?? 0) / owed) * 100).toFixed(2)}%` })),
           }
         : undefined,
-    adds: [],
     empty: {
       icon: I.invoice,
       title: "No invoices yet",

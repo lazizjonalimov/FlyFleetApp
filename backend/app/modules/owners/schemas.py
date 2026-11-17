@@ -238,6 +238,7 @@ class OwnerListParams(ListParams):
     entity_type: EntityType | None = None
     agreement: AgreementKind | None = None
     portal: bool | None = None
+    category: Literal["owner_operators", "non_operating"] | None = None
 
 
 # ------------------------------------------------------------------ out
