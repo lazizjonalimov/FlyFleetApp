@@ -579,6 +579,23 @@ export interface paths {
         patch: operations["update__api_v1_customers__parent_id__contacts__item_id__patch"];
         trace?: never;
     };
+    "/api/v1/dashboard/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What needs a person, one row per thing, with the one action for each */
+        get: operations["dashboard_attention_api_v1_dashboard_attention_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/exceptions": {
         parameters: {
             query?: never;
@@ -2224,6 +2241,26 @@ export interface paths {
         put?: never;
         /** Add Note */
         post: operations["add_note_api_v1_loads__load_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/pod-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask the driver for the signed proof of delivery
+         * @description Whoever changes loads, or reviews their proof of delivery, can ask the driver for it.
+         */
+        post: operations["request_pod_api_v1_loads__load_id__pod_request_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4630,6 +4667,68 @@ export interface components {
             trailer: components["schemas"]["Ref"] | null;
             vehicle: components["schemas"]["Ref"];
         };
+        /** AttentionItem */
+        AttentionItem: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "review" | "acknowledge" | "assign" | "request_pod" | "check" | "follow_up" | "open" | "view";
+            /** Action Label */
+            action_label: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Detail */
+            detail: string;
+            /** Driver Id */
+            driver_id?: string | null;
+            /** Incident Id */
+            incident_id?: string | null;
+            /** Incident Version */
+            incident_version?: number | null;
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Load Id */
+            load_id?: string | null;
+            /** Ref */
+            ref: string | null;
+            /** Ref Code */
+            ref_code: boolean;
+            /** Tag */
+            tag: string;
+            /** Target Id */
+            target_id?: string | null;
+            /** Target Type */
+            target_type?: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "bad" | "warn" | "info" | "late";
+            /** Trailer Id */
+            trailer_id?: string | null;
+            /** Vehicle Id */
+            vehicle_id?: string | null;
+        };
+        /** AttentionOut */
+        AttentionOut: {
+            /** Items */
+            items: components["schemas"]["AttentionItem"][];
+            /** Total */
+            total: number;
+            /**
+             * View
+             * @enum {string}
+             */
+            view: "operations" | "billing";
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -5426,6 +5525,7 @@ export interface components {
         DashboardSummary: {
             fleet?: components["schemas"]["Fleet"] | null;
             loads?: components["schemas"]["BoardSummary"] | null;
+            outlook?: components["schemas"]["Outlook"] | null;
             receivables?: components["schemas"]["Receivables"] | null;
             revenue?: components["schemas"]["Revenue"] | null;
             safety?: components["schemas"]["SafetySummary"] | null;
@@ -5436,6 +5536,12 @@ export interface components {
              * Format: date
              */
             today: string;
+            /**
+             * View
+             * @default operations
+             * @enum {string}
+             */
+            view: "operations" | "billing";
         };
         /** DefectIn */
         DefectIn: {
@@ -7351,6 +7457,15 @@ export interface components {
             appointment: string | null;
             /** Customer */
             customer: string;
+            /** Delivery Appointment */
+            delivery_appointment?: string | null;
+            /** Delivery Eta */
+            delivery_eta?: string | null;
+            /**
+             * Delivery Late By Minutes
+             * @default 0
+             */
+            delivery_late_by_minutes: number;
             /** Eta */
             eta: string | null;
             /**
@@ -7876,6 +7991,11 @@ export interface components {
             name: string;
             /** Role */
             role: string;
+            /**
+             * Role Label
+             * @description The role's name as the company sees it, a custom role's included
+             */
+            role_label: string;
             /** Slug */
             slug: string;
             /** Status */
@@ -8291,6 +8411,52 @@ export interface components {
             pickup_at: string | null;
             /** Status */
             status: string;
+        };
+        /**
+         * Outlook
+         * @description The next few hours, for the dashboard's figures.
+         */
+        Outlook: {
+            /**
+             * Deliveries
+             * @description Loads due at a delivery by `until`, not yet there
+             */
+            deliveries: number;
+            /**
+             * Deliveries On Time
+             * @description Of those, the ones with no open late or at-risk alert
+             */
+            deliveries_on_time: number;
+            /**
+             * Drivers Free
+             * @description Drivers on a load whose last delivery is due by `until`
+             */
+            drivers_free: number;
+            /**
+             * Late
+             * @description Loads already past an appointment
+             */
+            late: number;
+            /** Trucks In Shop */
+            trucks_in_shop: number;
+            /** Trucks Out Of Service */
+            trucks_out_of_service: number;
+            /**
+             * Unassigned Today
+             * @description Loads with nobody assigned that pick up today
+             */
+            unassigned_today: number;
+            /**
+             * Until
+             * Format: date-time
+             * @description The top of the hour about four hours from now
+             */
+            until: string;
+            /**
+             * Will Miss
+             * @description Loads whose ETA misses an appointment
+             */
+            will_miss: number;
         };
         /** OverrideIn */
         OverrideIn: {
@@ -9692,6 +9858,26 @@ export interface components {
             /** Status */
             status?: string | null;
         };
+        /** PodRequestOut */
+        PodRequestOut: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Driver */
+            driver: string;
+            /**
+             * Sent
+             * @description False when the driver isn't on the driver app, so nothing reached them
+             */
+            sent: boolean;
+            /**
+             * Times
+             * @description How many times the driver has been asked for this load
+             */
+            times: number;
+        };
         /** PoliciesOut */
         PoliciesOut: {
             /** Channels */
@@ -10217,8 +10403,18 @@ export interface components {
         Receivables: {
             /** Currency */
             currency: string;
+            /**
+             * Draft Amount
+             * @description What the draft invoices add up to
+             */
+            draft_amount: string;
             /** Draft Invoices */
             draft_invoices: number;
+            /**
+             * Oldest Overdue Days
+             * @description Days past due of the oldest unpaid invoice
+             */
+            oldest_overdue_days: number | null;
             /** Open Balance */
             open_balance: string;
             /** Open Invoices */
@@ -10996,6 +11192,13 @@ export interface components {
             currency: string;
             /** Drafts */
             drafts: number;
+            /**
+             * Drafts From
+             * @description The earliest week the statements waiting for approval cover
+             */
+            drafts_from?: string | null;
+            /** Drafts To */
+            drafts_to?: string | null;
             /** Paid This Month */
             paid_this_month: string;
             /**
@@ -15805,6 +16008,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ContactRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_attention_api_v1_dashboard_attention_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttentionOut"];
                 };
             };
             /** @description Unauthorized */
@@ -23489,6 +23759,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    request_pod_api_v1_loads__load_id__pod_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PodRequestOut"];
                 };
             };
             /** @description Unauthorized */

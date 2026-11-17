@@ -55,17 +55,23 @@ def test_tokens_are_rejected_when_missing_forged_or_malformed(client, make_org):
 
 ROLE_CHECKS = [
     # role, (method, url, body, allowed?)
-    ("dispatcher", [("POST", "/customers", {"name": "New"}, True), ("POST", "/drivers", {"first_name": "A", "last_name": "B"}, False),
-                    ("POST", "/vehicles", {"unit_number": "X1"}, False), ("GET", "/invoices", None, True),
+    # The dispatcher plans and assigns loads: customers to read, no money, no compliance records.
+    ("dispatcher", [("GET", "/customers", None, True), ("POST", "/customers", {"name": "New"}, False),
+                    ("POST", "/drivers", {"first_name": "A", "last_name": "B"}, False),
+                    ("POST", "/vehicles", {"unit_number": "X1"}, False), ("GET", "/invoices", None, False),
                     ("GET", "/payments", None, False), ("GET", "/members", None, False),
+                    ("GET", "/safety/expirations", None, False),
                     ("GET", "/audit-logs", None, False), ("GET", "/dispatch/board", None, True)]),
     ("safety_manager", [("POST", "/drivers", {"first_name": "A", "last_name": "B"}, True), ("POST", "/customers", {"name": "N"}, False),
+                        ("GET", "/customers", None, True), ("GET", "/dispatch/board", None, False),
                         ("GET", "/safety/expirations", None, True), ("GET", "/invoices", None, False),
                         ("POST", "/vehicles", {"unit_number": "X2"}, False)]),
     ("fleet_manager", [("POST", "/vehicles", {"unit_number": "X3"}, True), ("POST", "/trailers", {"unit_number": "X4"}, True),
-                       ("POST", "/drivers", {"first_name": "A", "last_name": "B"}, False), ("GET", "/invoices", None, False)]),
+                       ("POST", "/drivers", {"first_name": "A", "last_name": "B"}, False), ("GET", "/invoices", None, False),
+                       ("GET", "/expenses", None, False), ("GET", "/customers", None, False)]),
     ("accountant", [("GET", "/invoices", None, True), ("GET", "/payments", None, True), ("GET", "/finance/receivables", None, True),
                     ("POST", "/customers", {"name": "N"}, False), ("GET", "/dispatch/board", None, False),
+                    ("GET", "/conversations", None, True), ("GET", "/fleet/live", None, False),
                     ("GET", "/reports/ar-aging", None, True)]),
     ("viewer", [("GET", "/loads", None, True), ("GET", "/customers", None, True), ("GET", "/invoices", None, True),
                 ("GET", "/dispatch/board", None, True), ("POST", "/customers", {"name": "N"}, False),
@@ -126,10 +132,10 @@ def test_owner_rules(org):
 
 
 def test_role_change_and_deactivation_take_effect_on_the_next_request(org):
-    user = org.add_user("dispatcher")
-    user.post("/customers", {"name": "Before"}, 201)
-    org.patch(f"/members/{user.user_id}", {"role": "viewer"}, 200)
-    user.error("POST", "/customers", 403, "FORBIDDEN", json={"name": "After"})     # same token, new role
+    user = org.add_user("accountant")
+    user.get("/invoices", 200)
+    org.patch(f"/members/{user.user_id}", {"role": "dispatcher"}, 200)
+    user.error("GET", "/invoices", 403, "FORBIDDEN")                                # same token, new role
     org.patch(f"/members/{user.user_id}", {"active": False}, 200)
     user.error("GET", "/customers", 401, "UNAUTHENTICATED")                         # removed member loses access
     r = user.c.post("/api/v1/auth/login", json={"email": user.email, "password": PASSWORD})

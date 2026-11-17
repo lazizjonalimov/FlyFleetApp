@@ -119,7 +119,7 @@ def test_an_invitation_link_joins_the_company_once(org, client):
     client.post("/api/v1/auth/signup", json={"organization_name": "Beta Haul", "full_name": "Bea Bell",
                                              "email": bea_email, "password": PASSWORD})
     invite = org.post("/invitations", {"email": bea_email, "full_name": "Bea Bell", "role": "viewer"}, 201).json()
-    assert invite["invitation"]["role_label"] == "Read-only manager"
+    assert invite["invitation"]["role_label"] == "Read-only"
     bea_token = invite["path"].removeprefix("/invite/")
     assert client.get(f"/api/v1/auth/invitations/{bea_token}").json()["existing_account"] is True
     wrong = client.post("/api/v1/auth/accept-invitation", json={"token": bea_token, "password": "not-her-password"})
@@ -138,7 +138,7 @@ def test_the_audit_log_by_kind_with_names_and_an_export(org):
     org.put("/roles/dispatcher", {"permissions": ["dashboard.read", "loads.read"], "version": 0}, 200)
     ops = org.items("/audit-logs", group="operations")
     created = next(e for e in ops if e["action"] == "load.created")
-    assert created["entity_label"] == load["load_number"] and created["actor_role"] == "Owner"
+    assert created["entity_label"] == load["load_number"] and created["actor_role"] == "Main Admin"
     assert created["source"] == "Web"
     perms = org.items("/audit-logs", group="permissions")
     assert [e["action"] for e in perms] == ["role.changed"]

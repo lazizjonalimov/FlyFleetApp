@@ -58,6 +58,11 @@ export function useDashboardData(period: "today" | "week" | "month") {
     enabled: can("loads.read"),
   });
   const ready = useQuery({ queryKey: [org.id, "loads", "dashboard", "ready"], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { view: "ready_to_invoice", sort: "delivery_at", limit: 8, count: true } } })), refetchInterval: minute, enabled: money });
+  // Billing's queue: delivered loads whose proof of delivery is waiting for review, or hasn't come in.
+  const inReview = useQuery({ queryKey: [org.id, "loads", "dashboard", "pod_review"], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { status: ["pod_review"], sort: "delivery_at", limit: 8 } } })), refetchInterval: minute, enabled: money });
+  const noPod = useQuery({ queryKey: [org.id, "loads", "dashboard", "missing_pod"], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { view: "missing_pod", sort: "delivery_at", limit: 8 } } })), refetchInterval: minute, enabled: money });
+  const attention = useQuery({ queryKey: [org.id, "dashboard", "attention"], queryFn: () => unwrap(api.GET("/api/v1/dashboard/attention", { params: { query: { limit: 6 } } })), refetchInterval: minute, enabled: can("dashboard.read") });
+  const live = useQuery({ queryKey: [org.id, "fleet", "live"], queryFn: () => unwrap(api.GET("/api/v1/fleet/live")), refetchInterval: 30_000, enabled: can("tracking.read") });
   const trailers = useQuery({ queryKey: [org.id, "trailers", "dashboard"], queryFn: () => unwrap(api.GET("/api/v1/trailers", { params: { query: { limit: 100 } } })), refetchInterval: minute, enabled: can("equipment.read") });
   const trucks = useQuery({ queryKey: [org.id, "vehicles", "dashboard"], queryFn: () => unwrap(api.GET("/api/v1/vehicles", { params: { query: { limit: 100 } } })), refetchInterval: minute, enabled: can("equipment.read") });
   const expiring = useQuery({ queryKey: [org.id, "safety", "dashboard", "expiring"], queryFn: () => unwrap(api.GET("/api/v1/safety/expirations", { params: { query: { state: "expiring", within_days: 30, sort: "expires_on", limit: 5 } } })), refetchInterval: minute, enabled: can("safety.read") });
@@ -114,6 +119,10 @@ export function useDashboardData(period: "today" | "week" | "month") {
     exceptions,
     deliveries,
     ready,
+    inReview,
+    noPod,
+    attention,
+    live,
     trailers,
     trucks,
     expiring,

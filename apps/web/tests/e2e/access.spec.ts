@@ -17,7 +17,7 @@ test("roles: a template role changed and saved, with its history", async ({ page
   await expect(page.locator(".tmside")).toContainText("granted Reports › Export for Dispatcher");
   await expect(page.getByText("Changed for this company")).toBeVisible();
   // The owner's role is FlyFleet's own and can't be changed.
-  await page.getByRole("navigation", { name: "Roles" }).getByRole("button", { name: /^Owner System/ }).click();
+  await page.getByRole("navigation", { name: "Roles" }).getByRole("button", { name: /^Main Admin System/ }).click();
   await expect(page.getByRole("button", { name: "Loads — View" })).toBeDisabled();
 });
 

@@ -289,6 +289,41 @@ def on_dispatched(db: Session, p: Principal, load: Load, assignment: DispatchAss
                     load_id=load.id)
 
 
+def request_pod(db: Session, p: Principal, load: Load) -> dict[str, Any]:
+    """Ask the driver who hauled a delivered load for its signed proof of delivery: a card in their conversation,
+    and in the driver app when they are on it. Each ask is counted on the load's missing-POD alert."""
+    from app.modules.tracking import incidents
+    from app.modules.tracking.models import Incident
+    if load.status != "delivered":
+        raise Conflict("A proof of delivery can be asked for once the load is delivered and until one is in",
+                       code="WRONG_STATE")
+    hauled = db.scalar(select(DispatchAssignment).where(DispatchAssignment.load_id == load.id,
+                                                        DispatchAssignment.status.in_(("active", "completed")))
+                       .order_by(DispatchAssignment.created_at.desc()).limit(1))
+    if hauled is None:
+        raise Conflict("Nobody hauled this load, so there is no driver to ask", code="NO_DRIVER")
+    driver = db.get(Driver, hauled.driver_id)
+    customer = db.scalar(select(Customer.name).where(Customer.id == load.customer_id))
+    where = ", ".join(x for x in (customer, load.destination_city) if x)
+    msg = tell_driver(db, p.org_id, driver.id, event="pod_request", title=f"Proof of delivery needed for {load.load_number}",
+                      body=f"{where} · upload the signed POD in the app" if where else "Upload the signed POD in the app",
+                      load_id=load.id)
+    sent = "app" in reached(msg)
+    now = datetime.now(UTC)
+    times = 1
+    row = db.scalar(select(Incident).where(Incident.kind == "pod_missing", Incident.load_id == load.id,
+                                           Incident.state != "resolved"))
+    who = _user_name(db, p.user_id) or "Someone"
+    if row is not None:
+        times = int((row.data or {}).get("pod_requests", 0)) + 1
+        row.data = {**(row.data or {}), "pod_requests": times, "pod_requested_at": now.isoformat()}
+        how = "driver app" if sent else "not sent: not on the driver app"
+        incidents._event(db, row, "requested", now, f"{who} asked {_name(driver)} for the POD · {how}",
+                         "info" if sent else "warn", p.user_id)
+    audit(db, p, "load.pod_requested", "load", load.id, {"driver": _name(driver), "sent": sent, "times": times})
+    return {"driver": _name(driver), "sent": sent, "times": times, "conversation_id": msg.conversation_id}
+
+
 def on_driver_replied(db: Session, driver: Driver, msg: Message) -> None:
     """A reply from a driver who was just alerted goes on the alert's trail. It doesn't acknowledge the alert:
     someone in the office still does that."""

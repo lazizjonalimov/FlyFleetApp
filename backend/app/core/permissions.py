@@ -20,16 +20,16 @@ class Role(StrEnum):
 
 
 ROLE_LABELS = {
-    Role.OWNER: ("Owner", "Everything, including companies and ownership"),
+    Role.OWNER: ("Main Admin", "Everything, including team & billing"),
     Role.ADMIN: ("Administrator", "Everything except granting ownership"),
-    Role.DISPATCHER: ("Dispatcher", "Loads, dispatch, customers and load documents"),
-    Role.SAFETY_MANAGER: ("Safety manager", "Driver qualification, inspections and compliance documents"),
-    Role.FLEET_MANAGER: ("Fleet manager", "Trucks, trailers and maintenance"),
-    Role.ACCOUNTANT: ("Accountant", "Invoices, payments, expenses and settlements"),
-    Role.VIEWER: ("Read-only manager", "Can see operations and reports but change nothing"),
+    Role.DISPATCHER: ("Dispatcher", "Plans and assigns loads"),
+    Role.SAFETY_MANAGER: ("Safety Manager", "Compliance, documents, alerts"),
+    Role.FLEET_MANAGER: ("Fleet Manager", "Equipment and maintenance"),
+    Role.ACCOUNTANT: ("Accounting", "Invoices, payments, statements"),
+    Role.VIEWER: ("Read-only", "Dashboards and reports"),
     Role.DRIVER: ("Driver", "Driver app only: own assignments"),
     Role.CUSTOMER: ("Customer", "Customer portal only"),
-    Role.OWNER_PORTAL: ("Owner portal", "Owner portal · their own equipment only"),
+    Role.OWNER_PORTAL: ("Equipment owner", "Owner portal · their own equipment"),
 }
 
 # Permission catalogue, grouped the way the role matrix screen shows it.
@@ -104,32 +104,36 @@ READ: set[str] = {p for p in ALL if p.endswith(".read")}
 ROLE_PERMISSIONS: dict[Role, set[str]] = {
     Role.OWNER: set(ALL),
     Role.ADMIN: set(ALL),
+    # Plans and assigns loads. No money, and no finance or safety records unless the company grants them.
     Role.DISPATCHER: {
         "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
-        "loads.read", "loads.create", "loads.update", "loads.cancel", "loads.close", "loads.rates.read",
+        "loads.read", "loads.create", "loads.update", "loads.cancel", "loads.close",
         "dispatch.read", "dispatch.assign",
-        "customers.read", "customers.manage", "drivers.read", "equipment.read", "owners.read",
-        "safety.read", "maintenance.read", "documents.read", "documents.upload",
-        "invoices.read", "tracking.read", "incidents.read", "incidents.manage",
+        "customers.read", "drivers.read", "equipment.read", "owners.read",
+        "maintenance.read", "documents.read", "documents.upload",
+        "tracking.read", "incidents.read", "incidents.manage",
     },
+    # Compliance, documents and alerts: sees the operation, doesn't dispatch it.
     Role.SAFETY_MANAGER: {
         "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
-        "loads.read", "dispatch.read",
+        "loads.read", "customers.read",
         "drivers.read", "drivers.manage", "drivers.sensitive.read", "equipment.read", "owners.read",
         "safety.read", "safety.manage", "maintenance.read",
         "documents.read", "documents.upload", "documents.delete",
         "tracking.read", "incidents.read", "incidents.manage", "alert_policies.manage",
     },
+    # Equipment and maintenance, with the inspections that keep it on the road.
     Role.FLEET_MANAGER: {
         "dashboard.read", "reports.read", "tasks.read", "tasks.assign", "messages.read", "messages.send",
         "loads.read", "dispatch.read", "drivers.read",
         "equipment.read", "equipment.manage", "owners.read", "safety.read", "safety.manage",
         "maintenance.read", "maintenance.manage",
-        "documents.read", "documents.upload", "expenses.read", "expenses.manage",
+        "documents.read", "documents.upload",
         "tracking.read", "incidents.read", "incidents.manage",
     },
     Role.ACCOUNTANT: {
         "dashboard.read", "reports.read", "reports.export", "tasks.read", "tasks.assign",
+        "messages.read", "messages.send",
         "loads.read", "loads.rates.read", "loads.close", "customers.read", "drivers.read",
         "drivers.sensitive.read", "equipment.read", "owners.read", "owners.sensitive.read",
         "documents.read", "documents.upload",

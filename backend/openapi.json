@@ -1529,6 +1529,217 @@
         "title": "AssignmentOut",
         "type": "object"
       },
+      "AttentionItem": {
+        "properties": {
+          "action": {
+            "enum": [
+              "review",
+              "acknowledge",
+              "assign",
+              "request_pod",
+              "check",
+              "follow_up",
+              "open",
+              "view"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "action_label": {
+            "title": "Action Label",
+            "type": "string"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "driver_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Id"
+          },
+          "incident_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incident Id"
+          },
+          "incident_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incident Version"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "load_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Id"
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref"
+          },
+          "ref_code": {
+            "title": "Ref Code",
+            "type": "boolean"
+          },
+          "tag": {
+            "title": "Tag",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Type"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "bad",
+              "warn",
+              "info",
+              "late"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "trailer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Id"
+          },
+          "vehicle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Id"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "tag",
+          "tone",
+          "title",
+          "ref",
+          "ref_code",
+          "detail",
+          "at",
+          "action",
+          "action_label"
+        ],
+        "title": "AttentionItem",
+        "type": "object"
+      },
+      "AttentionOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AttentionItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "view": {
+            "enum": [
+              "operations",
+              "billing"
+            ],
+            "title": "View",
+            "type": "string"
+          }
+        },
+        "required": [
+          "view",
+          "total",
+          "items"
+        ],
+        "title": "AttentionOut",
+        "type": "object"
+      },
       "AuditOut": {
         "properties": {
           "action": {
@@ -4085,6 +4296,16 @@
               }
             ]
           },
+          "outlook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Outlook"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "receivables": {
             "anyOf": [
               {
@@ -4122,6 +4343,15 @@
           "today": {
             "format": "date",
             "title": "Today",
+            "type": "string"
+          },
+          "view": {
+            "default": "operations",
+            "enum": [
+              "operations",
+              "billing"
+            ],
+            "title": "View",
             "type": "string"
           }
         },
@@ -10316,6 +10546,35 @@
             "title": "Customer",
             "type": "string"
           },
+          "delivery_appointment": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Appointment"
+          },
+          "delivery_eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Eta"
+          },
+          "delivery_late_by_minutes": {
+            "default": 0,
+            "title": "Delivery Late By Minutes",
+            "type": "integer"
+          },
           "eta": {
             "anyOf": [
               {
@@ -12122,6 +12381,11 @@
             "title": "Role",
             "type": "string"
           },
+          "role_label": {
+            "description": "The role's name as the company sees it, a custom role's included",
+            "title": "Role Label",
+            "type": "string"
+          },
           "slug": {
             "title": "Slug",
             "type": "string"
@@ -12142,7 +12406,8 @@
           "role",
           "status",
           "timezone",
-          "base_currency"
+          "base_currency",
+          "role_label"
         ],
         "title": "MeOrganization",
         "type": "object"
@@ -13419,6 +13684,68 @@
           "delivery_at"
         ],
         "title": "OtherLoad",
+        "type": "object"
+      },
+      "Outlook": {
+        "description": "The next few hours, for the dashboard's figures.",
+        "properties": {
+          "deliveries": {
+            "description": "Loads due at a delivery by `until`, not yet there",
+            "title": "Deliveries",
+            "type": "integer"
+          },
+          "deliveries_on_time": {
+            "description": "Of those, the ones with no open late or at-risk alert",
+            "title": "Deliveries On Time",
+            "type": "integer"
+          },
+          "drivers_free": {
+            "description": "Drivers on a load whose last delivery is due by `until`",
+            "title": "Drivers Free",
+            "type": "integer"
+          },
+          "late": {
+            "description": "Loads already past an appointment",
+            "title": "Late",
+            "type": "integer"
+          },
+          "trucks_in_shop": {
+            "title": "Trucks In Shop",
+            "type": "integer"
+          },
+          "trucks_out_of_service": {
+            "title": "Trucks Out Of Service",
+            "type": "integer"
+          },
+          "unassigned_today": {
+            "description": "Loads with nobody assigned that pick up today",
+            "title": "Unassigned Today",
+            "type": "integer"
+          },
+          "until": {
+            "description": "The top of the hour about four hours from now",
+            "format": "date-time",
+            "title": "Until",
+            "type": "string"
+          },
+          "will_miss": {
+            "description": "Loads whose ETA misses an appointment",
+            "title": "Will Miss",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "until",
+          "deliveries",
+          "deliveries_on_time",
+          "will_miss",
+          "late",
+          "unassigned_today",
+          "drivers_free",
+          "trucks_in_shop",
+          "trucks_out_of_service"
+        ],
+        "title": "Outlook",
         "type": "object"
       },
       "OverrideIn": {
@@ -18153,6 +18480,37 @@
         "title": "PersonRole",
         "type": "object"
       },
+      "PodRequestOut": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "sent": {
+            "description": "False when the driver isn't on the driver app, so nothing reached them",
+            "title": "Sent",
+            "type": "boolean"
+          },
+          "times": {
+            "description": "How many times the driver has been asked for this load",
+            "title": "Times",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "driver",
+          "sent",
+          "times",
+          "conversation_id"
+        ],
+        "title": "PodRequestOut",
+        "type": "object"
+      },
       "PoliciesOut": {
         "properties": {
           "channels": {
@@ -19691,9 +20049,26 @@
             "title": "Currency",
             "type": "string"
           },
+          "draft_amount": {
+            "description": "What the draft invoices add up to",
+            "title": "Draft Amount",
+            "type": "string"
+          },
           "draft_invoices": {
             "title": "Draft Invoices",
             "type": "integer"
+          },
+          "oldest_overdue_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Days past due of the oldest unpaid invoice",
+            "title": "Oldest Overdue Days"
           },
           "open_balance": {
             "title": "Open Balance",
@@ -19727,6 +20102,8 @@
           "open_invoices",
           "overdue_invoices",
           "draft_invoices",
+          "draft_amount",
+          "oldest_overdue_days",
           "ready_to_invoice_loads",
           "ready_to_invoice_amount"
         ],
@@ -21872,6 +22249,31 @@
           "drafts": {
             "title": "Drafts",
             "type": "integer"
+          },
+          "drafts_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The earliest week the statements waiting for approval cover",
+            "title": "Drafts From"
+          },
+          "drafts_to": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Drafts To"
           },
           "paid_this_month": {
             "title": "Paid This Month",
@@ -32975,6 +33377,96 @@
         "summary": "Update a contact",
         "tags": [
           "customers"
+        ]
+      }
+    },
+    "/api/v1/dashboard/attention": {
+      "get": {
+        "operationId": "dashboard_attention_api_v1_dashboard_attention_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttentionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What needs a person, one row per thing, with the one action for each",
+        "tags": [
+          "dashboard"
         ]
       }
     },
@@ -44865,6 +45357,95 @@
           }
         ],
         "summary": "Add Note",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/pod-request": {
+      "post": {
+        "description": "Whoever changes loads, or reviews their proof of delivery, can ask the driver for it.",
+        "operationId": "request_pod_api_v1_loads__load_id__pod_request_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PodRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ask the driver for the signed proof of delivery",
         "tags": [
           "loads"
         ]

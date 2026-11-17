@@ -45,6 +45,9 @@ def test_money_on_a_unit_needs_the_rates_permission_and_a_sane_period(org):
               params={"date_from": WEEK["date_to"], "date_to": WEEK["date_from"]})
     week = org.get(f"/trailers/{s['trailer']['id']}/money", params=WEEK).json()
     assert week["revenue"] == "0.00" and week["driver_pay"] is not None
-    # Without rates there is no money on a unit; a dispatcher sees rates but not driver pay.
+    # Without rates there is no money on a unit; rates without statements show the money but not driver pay.
     org.add_user("safety_manager").error("GET", f"/vehicles/{s['truck']['id']}/money", 403, "FORBIDDEN", params=WEEK)
-    assert org.add_user("dispatcher").get(f"/vehicles/{s['truck']['id']}/money", params=WEEK).json()["driver_pay"] is None
+    dispatcher = org.add_user("dispatcher")
+    dispatcher.error("GET", f"/vehicles/{s['truck']['id']}/money", 403, "FORBIDDEN", params=WEEK)
+    org.post("/permission-overrides", {"user_id": dispatcher.user_id, "permission": "loads.rates.read", "effect": "allow"}, 201)
+    assert dispatcher.get(f"/vehicles/{s['truck']['id']}/money", params=WEEK).json()["driver_pay"] is None

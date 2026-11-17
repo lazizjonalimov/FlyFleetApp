@@ -113,7 +113,9 @@ def test_team_conversations_are_for_their_members(org):
     safety.error("GET", f"/conversations/{team['id']}", 404, "NOT_FOUND")
     assert safety.get("/conversations").json()["items"] == []
     org.error("POST", "/conversations", 422, "VALIDATION_ERROR", json={"kind": "team", "title": "Solo", "members": []})
-    org.add_user("accountant").error("GET", "/conversations", 403, "FORBIDDEN")
+    quiet = org.add_user("accountant")
+    org.post("/permission-overrides", {"user_id": quiet.user_id, "permission": "messages.read", "effect": "deny"}, 201)
+    quiet.error("GET", "/conversations", 403, "FORBIDDEN")
     viewer = org.add_user("viewer")
     viewer.get("/conversations")
     viewer.error("POST", "/conversations", 403, "FORBIDDEN", json={"kind": "team", "title": "x", "members": []})

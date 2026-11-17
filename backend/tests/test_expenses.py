@@ -97,8 +97,9 @@ def test_roles_decide_who_sees_and_records_expenses(org):
     assert len(viewer.items("/expenses")) == 1
     viewer.error("POST", "/expenses", 403, "FORBIDDEN", json={"category": "tolls", "incurred_on": str(TODAY), "amount": "1.00"})
     assert viewer.items("/expenses")[0]["editable"] is False
-    fleet = org.add_user("fleet_manager")
-    spend(fleet, category="fuel", gallons="50", amount="190.00", jurisdiction="IN", vehicle_id=s["truck"]["id"])
+    # Fuel and other spending belong to finance; the fleet manager's money is on work orders.
+    org.add_user("fleet_manager").error("GET", "/expenses", 403, "FORBIDDEN")
+    spend(org, category="fuel", gallons="50", amount="190.00", jurisdiction="IN", vehicle_id=s["truck"]["id"])
     accountant = org.add_user("accountant")
     spend(accountant, category="permits", amount="45.00")
     assert len(org.items("/expenses")) == 3

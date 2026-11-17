@@ -4,7 +4,7 @@ import { buildShell, goTo } from "./shell";
 
 const me = (role: string): Me => ({
   user: { id: "u1", email: "olive@example.com", full_name: "Olive Owner" },
-  organization: { id: "o1", name: "Acme Trucking", slug: "acme", role, status: "active", timezone: "America/Chicago", base_currency: "USD" },
+  organization: { id: "o1", name: "Acme Trucking", slug: "acme", role, role_label: role === "owner" ? "Main Admin" : role, status: "active", timezone: "America/Chicago", base_currency: "USD" },
   account: { id: "a1", name: "Acme Trucking", is_owner: true, max_companies: 10 },
   memberships: [],
   permissions: [],
@@ -47,6 +47,6 @@ describe("navigation for a role", () => {
   });
 
   it("names who is signed in from the session", () => {
-    expect(shell("owner", []).view.user).toEqual({ ini: "OO", name: "Olive Owner", role: "Owner", email: "olive@example.com" });
+    expect(shell("owner", []).view.user).toEqual({ ini: "OO", name: "Olive Owner", role: "Main Admin", email: "olive@example.com" });
   });
 });

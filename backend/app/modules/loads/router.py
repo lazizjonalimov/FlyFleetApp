@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core import scope as team_scope
@@ -57,6 +58,25 @@ def transition(load_id: uuid.UUID, body: s.TransitionIn, p: Principal = Depends(
                        occurred_at=body.occurred_at)
     db.commit()
     return service.load_detail(db, p, load_id)
+
+
+class PodRequestOut(BaseModel):
+    driver: str
+    sent: bool = Field(description="False when the driver isn't on the driver app, so nothing reached them")
+    times: int = Field(description="How many times the driver has been asked for this load")
+    conversation_id: uuid.UUID
+
+
+@router.post("/loads/{load_id}/pod-request", response_model=PodRequestOut,
+             summary="Ask the driver for the signed proof of delivery")
+def request_pod(load_id: uuid.UUID, p: Principal = Depends(require("loads.update", "loads.close")),
+                db: Session = Depends(get_db)):
+    """Whoever changes loads, or reviews their proof of delivery, can ask the driver for it."""
+    from app.modules.messaging import service as messaging
+    load = service.lock_load(db, load_id, p)
+    out = messaging.request_pod(db, p, load)
+    db.commit()
+    return PodRequestOut(**out)
 
 
 @router.put("/loads/{load_id}/stops", response_model=s.LoadDetail)

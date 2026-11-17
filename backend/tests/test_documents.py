@@ -119,7 +119,8 @@ def test_licence_and_medical_scans_follow_the_same_rule_as_the_numbers_on_them(o
     assert safety.get(f"/documents/{licence['id']}/download").content == PDF
 
     # A role that can't see a kind of record can't attach to it either.
-    assert intent(safety, "customer", s["customer"]["id"], expect=403).json()["error"]["code"] == "FORBIDDEN"
+    fleet = org.add_user("fleet_manager")
+    assert intent(fleet, "customer", s["customer"]["id"], expect=403).json()["error"]["code"] == "FORBIDDEN"
     org.add_user("viewer").error("POST", "/documents/upload-intents", 403, "FORBIDDEN", json={})
     dispatcher.error("DELETE", f"/documents/{licence['id']}", 403, "FORBIDDEN")
 

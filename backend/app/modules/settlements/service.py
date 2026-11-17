@@ -358,12 +358,15 @@ def detail(db: Session, p: Principal, settlement_id: uuid.UUID) -> s.SettlementD
 
 def summary(db: Session, p: Principal) -> s.SettlementSummary:
     today = p.today()
-    drafts, approved, to_pay = db.execute(select(
+    drafts, approved, to_pay, first, last = db.execute(select(
         func.count().filter(DriverSettlement.status == "draft"), func.count().filter(DriverSettlement.status == "approved"),
-        func.coalesce(func.sum(DriverSettlement.net_pay).filter(DriverSettlement.status == "approved"), 0))).one()
+        func.coalesce(func.sum(DriverSettlement.net_pay).filter(DriverSettlement.status == "approved"), 0),
+        func.min(DriverSettlement.period_start).filter(DriverSettlement.status == "draft"),
+        func.max(DriverSettlement.period_end).filter(DriverSettlement.status == "draft"))).one()
     paid = db.scalar(select(func.coalesce(func.sum(DriverSettlement.net_pay), 0))
                      .where(DriverSettlement.status == "paid", DriverSettlement.paid_on >= today.replace(day=1)))
-    return s.SettlementSummary(currency=p.currency, drafts=drafts, to_pay=to_pay, approved_unpaid=approved, paid_this_month=paid)
+    return s.SettlementSummary(currency=p.currency, drafts=drafts, drafts_from=first, drafts_to=last, to_pay=to_pay,
+                               approved_unpaid=approved, paid_this_month=paid)
 
 
 def pay_contexts(db: Session, p: Principal, settlements: list[DriverSettlement]) -> dict[uuid.UUID, s.PayContext]:

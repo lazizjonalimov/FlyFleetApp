@@ -129,6 +129,8 @@ class SettlementListParams(ListParams):
 class SettlementSummary(BaseModel):
     currency: str
     drafts: int
+    drafts_from: date | None = Field(default=None, description="The earliest week the statements waiting for approval cover")
+    drafts_to: date | None = None
     to_pay: Money = Field(description="Approved and not yet paid")
     approved_unpaid: int
     paid_this_month: Money

@@ -7,6 +7,7 @@ import { goTo } from "@/features/console/shell";
 import { useAction } from "@/features/console/use-action";
 import { ListScreen } from "@/features/lists/list-screen";
 import { useList, type ListPage, type ListQuery } from "@/features/lists/use-list";
+import { usePodRequest } from "@/features/loads/use-pod-request";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
 import { formatNumber, plural } from "@/lib/format/text";
@@ -22,6 +23,7 @@ const STATE: Record<string, [string, string]> = { open: ["Open", "bad"], notifie
 export function AlertsScreen() {
   const { me, I, can, set } = useConsole();
   const act = useAction();
+  const requestPod = usePodRequest();
   const org = me.organization;
   const counts = useQuery({ queryKey: [org.id, "incidents", "counts"], queryFn: () => unwrap(api.GET("/api/v1/incidents/counts")) });
   const members = useQuery({ queryKey: [org.id, "members", "owners"], queryFn: () => unwrap(api.GET("/api/v1/members")), enabled: can("incidents.manage") || can("users.manage"), staleTime: 60_000 });
@@ -50,7 +52,8 @@ export function AlertsScreen() {
     if (r.kind === "gps_stale") return ["Check", () => onMap(r), ""];
     if (r.kind === "at_risk") return ["Review", () => toLoad(r), ""];
     if (r.kind === "unassigned") return ["Assign", () => set({ ...goTo("dispatch"), ...(r.load?.id && can("dispatch.assign") ? { panel: "assign", assignLoad: r.load.id } : {}) }), ""];
-    if (r.kind === "pod_missing") return ["Request", () => toLoad(r), ""];
+    if (r.kind === "pod_missing" && r.load?.id && can("loads.update", "loads.close")) return ["Request", () => void requestPod(r.load!.id!), ""];
+    if (r.kind === "pod_missing") return ["Open", () => toLoad(r), ""];
     if (r.kind === "out_of_service") return ["Open", () => set(goTo("maintenance")), ""];
     if (r.kind === "documents") return ["Open", () => (r.driver?.id ? set({ screen: "driver", driverId: r.driver.id }) : r.vehicle?.id ? set({ screen: "truck", unitId: r.vehicle.id, unitKind: "truck" }) : set(goTo("safety"))), ""];
     return r.load?.id ? ["Open", () => toLoad(r), ""] : null;

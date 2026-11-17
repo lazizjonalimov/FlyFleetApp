@@ -2,13 +2,13 @@
 import csv
 import io
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import case, func, literal, or_, select
 from sqlalchemy.orm import Session
 
@@ -32,8 +32,10 @@ from app.modules.loads.schemas import BoardSummary
 from app.modules.maintenance import service as maintenance
 from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import Terminal
+from app.modules.reports import attention
 from app.modules.safety.router import SafetySummary, summary_counts
 from app.modules.settlements import service as settlements
+from app.modules.tracking.models import Incident
 
 router = APIRouter()
 DELIVERED = ("delivered", "pod_review", "completed")
@@ -57,11 +59,26 @@ class Revenue(BaseModel):
     miles_this_month: int
 
 
+class Outlook(BaseModel):
+    """The next few hours, for the dashboard's figures."""
+    until: datetime = Field(description="The top of the hour about four hours from now")
+    deliveries: int = Field(description="Loads due at a delivery by `until`, not yet there")
+    deliveries_on_time: int = Field(description="Of those, the ones with no open late or at-risk alert")
+    will_miss: int = Field(description="Loads whose ETA misses an appointment")
+    late: int = Field(description="Loads already past an appointment")
+    unassigned_today: int = Field(description="Loads with nobody assigned that pick up today")
+    drivers_free: int = Field(description="Drivers on a load whose last delivery is due by `until`")
+    trucks_in_shop: int
+    trucks_out_of_service: int
+
+
 class DashboardSummary(BaseModel):
     """Each block is present only if the caller's role may see it."""
     today: date
     timezone: str
+    view: Literal["operations", "billing"] = "operations"
     loads: BoardSummary | None = None
+    outlook: Outlook | None = None
     fleet: Fleet | None = None
     safety: SafetySummary | None = None
     receivables: Receivables | None = None
@@ -111,12 +128,54 @@ def _fleet(db: Session, p: Principal) -> Fleet:
                  trucks_on_load=on_load[1], trucks_unavailable=trucks[1], trailers_active=trailers)
 
 
+def _outlook(db: Session, p: Principal) -> Outlook:
+    now, until = attention.next_hours(p)
+    due = func.coalesce(LoadStop.appt_end, LoadStop.appt_start)
+    open_kinds = ("late", "at_risk")
+    alerted = select(Incident.load_id).where(Incident.kind.in_(open_kinds), Incident.state != "resolved",
+                                             Incident.load_id.is_not(None))
+    coming = team_scope.where(
+        select(Load.id).join(LoadStop, LoadStop.load_id == Load.id)
+        .where(LoadStop.type == "delivery", LoadStop.arrived_at.is_(None), due >= now, due <= until,
+               Load.status.in_(("planned", "assigned", *loads.ROLLING))).distinct(),
+        team_scope.loads(p.scope)).subquery()
+    deliveries, on_time = db.execute(select(func.count(), func.count().filter(coming.c.id.not_in(alerted)))
+                                     .select_from(coming)).one()
+    flagged = dict(db.execute(team_scope.where(
+        select(Incident.kind, func.count(func.distinct(Incident.load_id)))
+        .join(Load, Load.id == Incident.load_id)
+        .where(Incident.kind.in_(open_kinds), Incident.state != "resolved").group_by(Incident.kind),
+        team_scope.loads(p.scope))).all())
+    # A driver frees up when the last delivery on their load is due before the window closes.
+    last_due = (select(func.max(due)).where(LoadStop.load_id == Load.id, LoadStop.type == "delivery")
+                .correlate(Load).scalar_subquery())
+    free = db.scalar(team_scope.where(
+        select(func.count(func.distinct(DispatchAssignment.driver_id)))
+        .join(Load, Load.id == DispatchAssignment.load_id)
+        .where(DispatchAssignment.status == "active", Load.status.in_(loads.ROLLING), last_due <= until),
+        team_scope.vehicles(p.scope, DispatchAssignment.vehicle_id))) or 0
+    shop, out_of_service = db.execute(team_scope.where(
+        select(func.count().filter(Vehicle.status == "in_maintenance"), func.count().filter(Vehicle.status == "out_of_service"))
+        .select_from(Vehicle), team_scope.vehicles(p.scope, Vehicle.id))).one()
+    start, end = loads.day_bounds(p.timezone, p.today())
+    unassigned_today = db.scalar(team_scope.where(
+        select(func.count()).select_from(Load).where(Load.status == "planned", Load.pickup_at >= start,
+                                                     Load.pickup_at < end),
+        team_scope.loads(p.scope))) or 0
+    return Outlook(until=until, deliveries=deliveries, deliveries_on_time=on_time, will_miss=flagged.get("at_risk", 0),
+                   late=flagged.get("late", 0), unassigned_today=unassigned_today, drivers_free=free,
+                   trucks_in_shop=shop, trucks_out_of_service=out_of_service)
+
+
 @router.get("/dashboard/summary", response_model=DashboardSummary, tags=["dashboard"])
 def dashboard_summary(terminal_id: uuid.UUID | None = None, p: Principal = Depends(require("dashboard.read")),
                       db: Session = Depends(get_db)):
-    out = DashboardSummary(today=p.today(), timezone=p.timezone)
+    out = DashboardSummary(today=p.today(), timezone=p.timezone,
+                           view="billing" if attention.billing_view(p) else "operations")
     if p.can("loads.read"):
         out.loads = loads.board_summary(db, p, terminal_id)
+        # Alerts are brought up to date by the attention list and the alerts screens; these are their counts.
+        out.outlook = _outlook(db, p)
     if p.can("drivers.read") and p.can("equipment.read"):
         out.fleet = _fleet(db, p)
     if p.can("safety.read"):
@@ -189,6 +248,15 @@ def dashboard_exceptions(p: Principal = Depends(require("dashboard.read")), db: 
             status="draft")
     order = {"high": 0, "medium": 1, "low": 2}
     return sorted(found, key=lambda e: order[e.severity])
+
+
+@router.get("/dashboard/attention", response_model=attention.AttentionOut, tags=["dashboard"],
+            summary="What needs a person, one row per thing, with the one action for each")
+def dashboard_attention(limit: int = Query(default=6, ge=1, le=100), p: Principal = Depends(require("dashboard.read")),
+                        db: Session = Depends(get_db)):
+    out = attention.attention(db, p, limit)
+    db.commit()
+    return out
 
 
 # ---------------------------------------------------------------- search

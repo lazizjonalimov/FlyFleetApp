@@ -19,7 +19,7 @@ test("a member added with a role sees only what the role allows", async ({ page,
   await signIn(other, email, "a long temporary pass");
   await other.waitForURL(/\/dashboard$/);
   await live(other);
-  await expect(other.getByRole("button", { name: "Account menu" })).toContainText("Safety manager");
+  await expect(other.getByRole("button", { name: "Account menu" })).toContainText("Safety Manager");
   await expect(nav(other, "Invoices")).toHaveAttribute("aria-label", /no access/);
   await open(other, account, "finance/invoices");
   await expect(other.locator(".main")).toContainText("You don’t have access to Invoices");

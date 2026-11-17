@@ -258,11 +258,13 @@ def test_finance_is_closed_to_roles_without_it(org):
     s = seed(org)
     invoice, load = issued(org, s)
     dispatcher = org.add_user("dispatcher")
-    assert dispatcher.get(f"/invoices/{invoice['id']}").json()["payments"] == []      # may see invoices, not payments
+    dispatcher.error("GET", f"/invoices/{invoice['id']}", 403, "FORBIDDEN")         # no money for a dispatcher
+    org.post("/permission-overrides", {"user_id": dispatcher.user_id, "permission": "invoices.read", "effect": "allow"}, 201)
+    assert dispatcher.get(f"/invoices/{invoice['id']}").json()["payments"] == []      # given invoices, still not payments
     dispatcher.error("POST", "/invoices", 403, "FORBIDDEN", json={"customer_id": s["customer"]["id"]})
     dispatcher.error("POST", f"/invoices/{invoice['id']}/void", 403, "FORBIDDEN", json={"reason": "x"})
     dispatcher.error("POST", "/payments", 403, "FORBIDDEN", json={})
     safety = org.add_user("safety_manager")
     safety.error("GET", f"/invoices/{invoice['id']}", 403, "FORBIDDEN")
     assert safety.get(f"/loads/{load['id']}").json()["invoice"] is None
-    assert safety.get(f"/customers/{s['customer']['id']}", expect=403).json()["error"]["code"] == "FORBIDDEN"
+    assert safety.get(f"/customers/{s['customer']['id']}").json()["stats"]["open_balance"] is None   # the customer, not what it owes

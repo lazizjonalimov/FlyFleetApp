@@ -19,6 +19,7 @@ from app.core.errors import AppError, Conflict, Forbidden, Invalid, NotFound, Un
 from app.core.permissions import ROLE_LABELS, Role
 from app.core.ratelimit import FailureLimiter
 from app.core.security import create_token, hash_password, verify_password
+from app.modules.access import service as access
 from app.modules.organizations import schemas as s
 from app.modules.organizations.models import Account, AuditLog, Membership, Organization, User
 
@@ -152,7 +153,8 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     return s.MeOut(
         user=s.MeUser(id=p.user_id, email=p.email, full_name=p.full_name),
         organization=s.MeOrganization(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role,
-                                      status=p.org_status, timezone=p.timezone, base_currency=p.currency),
+                                      status=p.org_status, timezone=p.timezone, base_currency=p.currency,
+                                      role_label=access.label_of(db, p.role)),
         account=s.MeAccount(id=account.id, name=account.name, is_owner=p.is_account_owner,
                             max_companies=account.max_companies),
         memberships=user_organizations(db, p.user_id),

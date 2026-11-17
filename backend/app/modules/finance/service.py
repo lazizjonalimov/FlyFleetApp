@@ -369,10 +369,13 @@ def receivables(db: Session, p: Principal) -> s.Receivables:
         func.coalesce(func.sum(balance).filter(Invoice.status == "issued", overdue), 0),
         func.count().filter(Invoice.status == "issued"),
         func.count().filter(Invoice.status == "issued", overdue),
-        func.count().filter(Invoice.status == "draft")).select_from(Invoice)).one()
+        func.count().filter(Invoice.status == "draft"),
+        func.coalesce(func.sum(Invoice.total).filter(Invoice.status == "draft"), 0),
+        func.min(Invoice.due_date).filter(Invoice.status == "issued", overdue, balance > 0)).select_from(Invoice)).one()
     ready = db.execute(select(func.count(), func.coalesce(func.sum(Load.customer_rate + Load.charges_total), 0))
                        .where(Load.status == "completed", Load.billing_status == "unbilled",
                               Load.invoice_id.is_(None))).one()
     return s.Receivables(currency=p.currency, open_balance=row[0], overdue_balance=row[1], open_invoices=row[2],
-                         overdue_invoices=row[3], draft_invoices=row[4], ready_to_invoice_loads=ready[0],
-                         ready_to_invoice_amount=ready[1])
+                         overdue_invoices=row[3], draft_invoices=row[4], draft_amount=row[5],
+                         oldest_overdue_days=(today - row[6]).days if row[6] else None,
+                         ready_to_invoice_loads=ready[0], ready_to_invoice_amount=ready[1])

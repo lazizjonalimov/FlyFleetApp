@@ -302,6 +302,32 @@ def eta(road: OnTheRoad, position: VehiclePosition | None, now: datetime) -> tup
     return max(now, position.recorded_at + timedelta(hours=hours)), stop
 
 
+def delivery_eta(road: OnTheRoad, position: VehiclePosition | None, now: datetime) -> tuple[datetime | None, LoadStop | None]:
+    """When the truck reaches the load's last delivery: to its next stop as `eta` works it out, then stop to stop at
+    the same planning speed, with no time allowed at the stops. None when a leg can't be put on the map."""
+    last = next((s for s in reversed(road.stops) if s.type == "delivery"), None)
+    if last is None or last.arrived_at is not None:
+        return None, last
+    ahead = [s for s in road.stops if s.departed_at is None]
+    if not ahead:
+        return None, last
+    first = ahead[0]
+    if first.arrived_at is not None:
+        at = now  # at that stop now; leaving it is the next leg
+    else:
+        at, _ = eta(road, position, now)
+        if at is None:
+            return None, last
+    for before, stop in zip(ahead, ahead[1:], strict=False):
+        a, b = places.locate(before.city, before.state), places.locate(stop.city, stop.state)
+        if a is None or b is None:
+            return None, last
+        at += timedelta(hours=places.km(*a, *b) * ROAD_FACTOR / AVERAGE_KMH)
+        if stop.id == last.id:
+            break
+    return at, last
+
+
 # ---------------------------------------------------------------- speed rules, from positions
 def evaluate_speed(db: Session, p: Principal, vehicle_ids: list[uuid.UUID], now: datetime) -> list[Incident]:
     """Run the speed rules over the trucks that just reported. One incident per episode: more speeding inside the

@@ -182,6 +182,8 @@ class Receivables(BaseModel):
     open_invoices: int
     overdue_invoices: int
     draft_invoices: int
+    draft_amount: Money = Field(description="What the draft invoices add up to")
+    oldest_overdue_days: int | None = Field(description="Days past due of the oldest unpaid invoice")
     ready_to_invoice_loads: int
     ready_to_invoice_amount: Money
 

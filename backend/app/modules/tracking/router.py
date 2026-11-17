@@ -118,6 +118,10 @@ class LiveLoad(BaseModel):
     eta: datetime | None
     appointment: datetime | None
     late_by_minutes: int
+    # At the load's last delivery: from the truck's position through the stops still ahead, at planning speed.
+    delivery_eta: datetime | None = None
+    delivery_appointment: datetime | None = None
+    delivery_late_by_minutes: int = 0
 
 
 class FleetPerson(BaseModel):

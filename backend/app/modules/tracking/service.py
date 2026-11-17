@@ -110,6 +110,8 @@ def live(db: Session, p: Principal) -> dict:
         at_stop = stop is not None and stop.arrived_at is not None and stop.departed_at is None
         arrive, _ = incidents.eta(road, pos, now) if road else (None, None)
         appt = (stop.appt_end or stop.appt_start) if stop else None
+        deliver, last = incidents.delivery_eta(road, pos, now) if road else (None, None)
+        deliver_appt = (last.appt_end or last.appt_start) if last else None
         if alert and alert.kind in ("speeding", "yard_speed"):
             status = f"{place} · {incidents.LABEL[alert.kind].lower()}" if place else incidents.LABEL[alert.kind]
         elif at_stop:
@@ -137,7 +139,10 @@ def live(db: Session, p: Principal) -> dict:
                      "customer": road.customer, "next_stop": (stop.name or stop.city) if stop else None,
                      "next_stop_at": places.locate(stop.city, stop.state) if stop else None,
                      "eta": arrive, "appointment": appt,
-                     "late_by_minutes": int((arrive - appt).total_seconds() // 60) if arrive and appt and arrive > appt else 0}
+                     "late_by_minutes": int((arrive - appt).total_seconds() // 60) if arrive and appt and arrive > appt else 0,
+                     "delivery_eta": deliver, "delivery_appointment": deliver_appt,
+                     "delivery_late_by_minutes": int((deliver - deliver_appt).total_seconds() // 60)
+                     if deliver and deliver_appt and deliver > deliver_appt else 0}
             if road else None,
             "incident": {"id": alert.id, "number": alert.number, "kind": alert.kind, "label": incidents.LABEL[alert.kind],
                          "severity": alert.severity, "state": alert.state, "title": alert.title} if alert else None,

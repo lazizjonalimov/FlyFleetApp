@@ -6,13 +6,17 @@ import { cell } from "@/components/data-table/cell";
 import { BasicCell } from "@/components/data-table/cells";
 import { EmptyState } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
-import { placeOf, SEVERITY_TONE, areaOf } from "@/features/alerts/exceptions";
+import { placeOf } from "@/features/alerts/exceptions";
 import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
+import { useAction } from "@/features/console/use-action";
 import type { Cell } from "@/features/console/view";
 import { loadLabel, loadTone } from "@/features/fleet/labels";
 import { LOAD_TABS, tabFor } from "@/features/lists/tabs";
 import { riskOf } from "@/features/loads/load-view";
+import { usePodRequest } from "@/features/loads/use-pod-request";
+import { api, unwrap } from "@/lib/api/client";
+import type { Schema } from "@/lib/api/types";
 import { formatDate, formatDateTime, timeZoneLabel, toLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
 import { formatNumber, humanize, place, plural } from "@/lib/format/text";
@@ -39,6 +43,10 @@ const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whol
 const monthName = (day: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" }).format(new Date(`${day}T12:00:00Z`));
 const longMonth = (day: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long" }).format(new Date(`${day}T12:00:00Z`));
 const span = (from: string, to: string) => `${formatDate(from).replace(/, \d{4}$/, "")}–${new Date(`${to}T12:00:00Z`).getUTCDate()}`;
+/** "1h 40m", "35m". */
+const minutes = (total: number) => (total >= 60 ? `${Math.floor(total / 60)}h${total % 60 ? ` ${total % 60}m` : ""}` : `${total}m`);
+
+type Attention = Schema<"AttentionItem">;
 
 type Kpi = { label: string; value: string; suffix: string; sub: string; k: string; sk: string; go?: () => void };
 type Widget =
@@ -49,6 +57,7 @@ type Widget =
 /** Role-aware dashboard: KPIs, financials, exceptions, today’s work and fleet availability. */
 export function DashboardScreen() {
   const { me, can, set } = useConsole();
+  const act = useAction();
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
   const [view, setView] = useState<Record<string, "chart" | "table">>({});
   const [tip, setTip] = useState<string | null>(null);
@@ -59,77 +68,149 @@ export function DashboardScreen() {
   const money = (value: string | number | null | undefined) => formatMoney(value, currency);
   const s = data.summary.data;
   const loads = s?.loads;
+  const outlook = s?.outlook;
   const fleet = s?.fleet;
   const receivables = s?.receivables;
   const safety = s?.safety ?? undefined;
-  const billing = me.organization.role === "accountant";
+  // Finance roles that don't run the road get the billing overview, as the server decides it.
+  const billing = s ? s.view === "billing" : can("invoices.read") && !can("dispatch.read") && !can("tracking.read");
+  const team = me.scope?.team_name ?? null;
   const exceptions = data.exceptions.data ?? [];
   const exception = (code: string) => exceptions.find((each) => each.code === code);
   const loadsTab = (params: Record<string, string>) => set({ ...goTo("loads"), ltab: tabFor(LOAD_TABS, params) });
   const dash = "—";
   const n = (value: number | undefined) => (value === undefined ? dash : formatNumber(value));
+  const hm = (iso: string) => toLocalInput(iso, zone).slice(11);
+  const dayOf = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(iso));
+  const shortDay = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "short", day: "numeric" }).format(new Date(iso));
+  const now = new Date();
 
   const trucksTotal = data.trucks.data?.items.length ?? (fleet ? fleet.trucks_active + fleet.trucks_unavailable : undefined);
+  const available = fleet ? Math.max(0, fleet.drivers_active - fleet.drivers_on_load - (safety?.drivers_blocked ?? 0)) : undefined;
+  const attention = data.attention.data?.items ?? [];
+  const oldestReview = attention.find((a) => a.kind === "pod_review");
+  const reviewAge = oldestReview ? Math.max(0, Math.round((now.getTime() - Date.parse(oldestReview.at)) / 86_400_000)) : null;
+  const statements = data.statements.data;
   const kpis: Kpi[] = billing
     ? [
         { label: "Ready to invoice", value: n(receivables?.ready_to_invoice_loads), suffix: "", sub: receivables ? `est. ${short(receivables.ready_to_invoice_amount, currency)}` : "", k: "brand", sk: "mu", go: () => loadsTab({ view: "ready_to_invoice" }) },
-        { label: "POD review", value: n(exception("POD_REVIEW")?.count ?? (data.exceptions.isSuccess ? 0 : undefined)), suffix: "", sub: "Approve to invoice", k: "info", sk: "mu", go: () => { const e = exception("POD_REVIEW"); if (e) set(placeOf(e)!); } },
-        { label: "Draft invoices", value: n(receivables?.draft_invoices), suffix: "", sub: "Started, not issued", k: "mu", sk: "mu", go: () => set({ ...goTo("invoices"), ltab: 1 }) },
+        { label: "POD review", value: n(exception("POD_REVIEW")?.count ?? (data.exceptions.isSuccess ? 0 : undefined)), suffix: "", sub: reviewAge === null ? "Approve to invoice" : reviewAge < 1 ? "oldest today" : `oldest ${plural(reviewAge, "day")}`, k: "info", sk: "mu", go: () => { const e = exception("POD_REVIEW"); if (e) set(placeOf(e)!); } },
+        { label: "Draft invoices", value: n(receivables?.draft_invoices), suffix: "", sub: receivables ? (receivables.draft_invoices ? short(receivables.draft_amount, currency) : "None started") : "", k: "mu", sk: "mu", go: () => set({ ...goTo("invoices"), ltab: 1 }) },
         { label: "Overdue", value: receivables ? short(receivables.overdue_balance, currency) : dash, suffix: "", sub: receivables ? plural(receivables.overdue_invoices, "invoice") : "", k: "bad", sk: receivables?.overdue_invoices ? "bad" : "mu", go: () => set({ ...goTo("invoices"), ltab: 2 }) },
         { label: `Collected · ${monthName(data.today)}`, value: data.month.ready ? short(data.month.cash, currency) : dash, suffix: "", sub: data.month.ready ? plural(data.month.payments, "payment") : "", k: "ok", sk: "mu" },
-        { label: "Statements to approve", value: n(data.statements.data?.drafts), suffix: "", sub: data.statements.data ? `${short(data.statements.data.to_pay, currency)} approved, unpaid` : "", k: "warn", sk: data.statements.data?.drafts ? "warn" : "mu", go: () => set({ ...goTo("settlements"), ltab: 1 }) },
+        { label: "Statements to approve", value: n(statements?.drafts), suffix: "", sub: statements ? (statements.drafts && statements.drafts_from && statements.drafts_to ? span(statements.drafts_from, statements.drafts_to).replace("–", " – ") : "None waiting") : "", k: "warn", sk: statements?.drafts ? "warn" : "mu", go: () => set({ ...goTo("settlements"), ltab: 0 }) },
       ]
     : [
-        { label: "Unassigned loads", value: n(loads?.unassigned), suffix: "", sub: loads ? `${formatNumber(loads.pickups_today)} pick up today` : "", k: "warn", sk: loads?.unassigned ? "warn" : "mu", go: () => loadsTab({ view: "unassigned" }) },
-        { label: "Late or at risk", value: n(loads?.at_risk), suffix: "", sub: exception("LOADS_AT_RISK")?.detail ?? "Nothing late right now", k: "bad", sk: loads?.at_risk ? "bad" : "mu", go: () => loadsTab({ view: "at_risk" }) },
-        { label: "Deliveries today", value: n(loads?.deliveries_today), suffix: "", sub: loads ? `${formatNumber(loads.in_transit)} on the road` : "", k: "info", sk: "mu", go: () => loadsTab({ view: "deliveries_today" }) },
-        { label: "Drivers available", value: fleet ? formatNumber(Math.max(0, fleet.drivers_active - fleet.drivers_on_load - (safety?.drivers_blocked ?? 0))) : dash, suffix: fleet ? ` / ${formatNumber(fleet.drivers_active)}` : "", sub: safety ? `${formatNumber(safety.drivers_blocked)} can’t be dispatched` : "", k: "ok", sk: "mu", go: () => set(goTo("drivers")) },
-        { label: "Trucks unavailable", value: n(fleet?.trucks_unavailable), suffix: trucksTotal !== undefined ? ` / ${formatNumber(trucksTotal)}` : "", sub: safety ? `${formatNumber(safety.units_blocked)} blocked by paperwork` : "", k: "mu", sk: "mu", go: () => set(goTo("trucks")) },
+        { label: "Unassigned loads", value: n(loads?.unassigned), suffix: "", sub: loads && outlook ? (team && loads.unassigned ? `Tagged for ${team} or shared` : `${formatNumber(outlook.unassigned_today)} pick up today`) : "", k: "warn", sk: outlook?.unassigned_today ? "warn" : "mu", go: () => (can("dispatch.assign") ? set({ ...goTo("dispatch") }) : loadsTab({ view: "unassigned" })) },
+        { label: "Late or at risk", value: n(loads?.at_risk), suffix: "", sub: !outlook ? "" : outlook.will_miss ? `${formatNumber(outlook.will_miss)} will miss ${outlook.will_miss === 1 ? "its" : "their"} appointment` : outlook.late ? `${formatNumber(outlook.late)} past ${outlook.late === 1 ? "an appointment" : "appointments"}` : loads?.at_risk ? "Picking up within a day with no driver" : "Nothing late right now", k: "bad", sk: loads?.at_risk ? "bad" : "mu", go: () => set(goTo("alerts")) },
+        { label: "Deliveries next 4 h", value: n(outlook?.deliveries), suffix: "", sub: outlook ? `${formatNumber(outlook.deliveries_on_time)} on schedule` : "", k: "info", sk: "mu", go: () => loadsTab({ view: "deliveries_today" }) },
+        { label: "Drivers available", value: available === undefined ? dash : formatNumber(available), suffix: fleet ? ` / ${formatNumber(fleet.drivers_active)}` : "", sub: outlook?.drivers_free ? `${formatNumber(outlook.drivers_free)} more free by ${hm(outlook.until)}` : safety?.drivers_blocked ? `${formatNumber(safety.drivers_blocked)} can’t be dispatched` : fleet ? `${formatNumber(fleet.drivers_on_load)} on a load` : "", k: "ok", sk: "mu", go: () => set(goTo(can("dispatch.read") ? "dispatch" : "drivers")) },
+        { label: "Trucks unavailable", value: n(fleet?.trucks_unavailable), suffix: trucksTotal !== undefined ? ` / ${formatNumber(trucksTotal)}` : "", sub: [outlook?.trucks_in_shop ? `${formatNumber(outlook.trucks_in_shop)} in shop` : "", outlook?.trucks_out_of_service ? `${formatNumber(outlook.trucks_out_of_service)} out of service` : "", safety?.units_blocked ? `${formatNumber(safety.units_blocked)} blocked by paperwork` : ""].filter(Boolean).join(" · ") || (fleet ? "Every truck can run" : ""), k: "mu", sk: "mu", go: () => set(goTo(can("maintenance.read") ? "maintenance" : "trucks")) },
         can("invoices.read")
-          ? { label: "Overdue invoices", value: receivables ? short(receivables.overdue_balance, currency) : dash, suffix: "", sub: receivables ? plural(receivables.overdue_invoices, "invoice") : "", k: "bad", sk: receivables?.overdue_invoices ? "bad" : "mu", go: () => set({ ...goTo("invoices"), ltab: 2 }) }
-          : { label: "POD missing", value: n(loads?.missing_pod), suffix: "", sub: "Delivered, waiting for paperwork", k: "bad", sk: loads?.missing_pod ? "bad" : "mu", go: () => loadsTab({ view: "missing_pod" }) },
+          ? { label: "Overdue invoices", value: receivables ? short(receivables.overdue_balance, currency) : dash, suffix: "", sub: receivables ? `${plural(receivables.overdue_invoices, "invoice")}${receivables.oldest_overdue_days ? ` · oldest ${plural(receivables.oldest_overdue_days, "day")}` : ""}` : "", k: "bad", sk: "mu", go: () => set({ ...goTo("invoices"), ltab: 2 }) }
+          : { label: "POD missing", value: n(loads?.missing_pod), suffix: "", sub: "Blocks invoicing", k: "bad", sk: loads?.missing_pod ? "bad" : "mu", go: () => loadsTab({ view: "missing_pod" }) },
       ];
 
-  // the table under Needs attention
+  // Needs attention: each row's one action.
+  const onMap = (a: Attention) => set({ ...goTo("tracking"), ...(a.vehicle_id ? { vehicle: a.vehicle_id } : {}) });
+  const openLoad = (id: string) => set({ screen: "loads", drawer: id, overlay: "none", modal: "none" });
+  const requestPod = usePodRequest();
+  const askForPod = (a: Attention) => (a.load_id ? requestPod(a.load_id) : undefined);
+  const runAction = (a: Attention) => {
+    if (a.action === "acknowledge" && a.incident_id) {
+      void act(() => unwrap(api.POST("/api/v1/incidents/{incident_id}/actions", { params: { path: { incident_id: a.incident_id! } }, body: { action: "acknowledge", version: a.incident_version ?? undefined } })), `${a.ref ?? "Alert"} acknowledged`);
+      return;
+    }
+    if (a.action === "request_pod") return void askForPod(a);
+    if (a.action === "assign" && a.load_id) return set({ ...goTo("dispatch"), panel: "assign", assignLoad: a.load_id });
+    if (a.action === "check" || a.kind === "speeding" || a.kind === "yard_speed" || a.kind === "gps_stale") return onMap(a);
+    if (a.action === "follow_up" || a.target_type === "invoice") return set({ ...goTo("invoices"), ltab: 2, lq: a.ref ?? "" });
+    if (a.target_type === "inspection") return set({ ...goTo("inspections"), lq: a.ref ?? "" });
+    if (a.target_type === "work_order") return set(goTo("maintenance"));
+    if (a.target_type === "settlement" && a.target_id) return set({ screen: "stmt", statementId: a.target_id });
+    if (a.target_type === "customer") return set({ ...goTo("customers"), lq: a.ref ?? "" });
+    if (a.kind === "documents") {
+      if (a.driver_id) return set({ screen: "driver", driverId: a.driver_id });
+      if (a.vehicle_id || a.trailer_id) return set({ screen: "truck", unitId: a.vehicle_id ?? a.trailer_id, unitKind: a.vehicle_id ? "truck" : "trailer" });
+      return set(goTo("safety"));
+    }
+    if (a.load_id) return openLoad(a.load_id);
+    if (a.vehicle_id || a.trailer_id) return set({ screen: "truck", unitId: a.vehicle_id ?? a.trailer_id, unitKind: a.vehicle_id ? "truck" : "trailer" });
+  };
+  /** When it started: "4m ago", "Yesterday", "Nov 1". */
+  const ago = (a: Attention) => {
+    if (a.kind === "invoice_overdue" || a.kind === "credit") return shortDay(a.at);
+    const gone = Math.max(0, Math.round((now.getTime() - Date.parse(a.at)) / 60_000));
+    if (gone < 1) return "now";
+    if (gone < 60) return `${gone}m ago`;
+    if (gone < 24 * 60 && dayOf(a.at) === dayOf(now.toISOString())) return `${Math.floor(gone / 60)}h ago`;
+    const days = Math.round((Date.parse(`${dayOf(now.toISOString())}T12:00:00Z`) - Date.parse(`${dayOf(a.at)}T12:00:00Z`)) / 86_400_000);
+    if (days <= 1) return billing ? "1d ago" : "Yesterday";
+    return days < 7 ? `${days}d ago` : shortDay(a.at);
+  };
+
+  // the table under Needs attention: today's deliveries with where each truck will get in
+  const etaOf = new Map((data.live.data?.vehicles ?? []).filter((v) => v.load).map((v) => [v.load!.id, v.load!]));
   const deliveryRows = (data.deliveries.data?.items ?? []).map((load) => {
     const risk = riskOf(load);
+    const live = etaOf.get(load.id);
+    const eta: Cell = load.delivered_at
+      ? cell.risk(`${period === "today" ? hm(load.delivered_at) : shortDay(load.delivered_at)} · delivered`, "ok")
+      : live?.delivery_eta
+        ? live.delivery_late_by_minutes > 0
+          ? cell.risk(`${hm(live.delivery_eta)} · +${minutes(live.delivery_late_by_minutes)}`, live.delivery_late_by_minutes >= 60 ? "bad" : "late")
+          : cell.risk(`${hm(live.delivery_eta)} · on time`, "ok")
+        : risk
+          ? cell.risk(risk.label, risk.tone)
+          : cell.text(load.assignment ? "No position" : "Not dispatched", "", "mu fs12");
     return {
       key: load.id,
-      open: () => set({ screen: "loads", drawer: load.id, overlay: "none", modal: "none" }),
+      open: () => openLoad(load.id),
       cells: [
-        cell.id(load.load_number, () => set({ screen: "loads", drawer: load.id, overlay: "none", modal: "none" })),
+        cell.id(load.load_number, () => openLoad(load.id)),
         cell.text(load.customer.name),
         cell.text(place(load.destination_city, load.destination_state), "", "t2"),
-        cell.text(load.delivery_at ? (period === "today" ? toLocalInput(load.delivery_at, zone).slice(11) : formatDateTime(load.delivery_at, zone)) : dash, "", "num"),
-        risk ? cell.risk(risk.label, risk.tone) : load.delivered_at ? cell.risk("Delivered", "ok") : cell.text(""),
-        load.assignment ? cell.text(load.assignment.driver.name) : cell.maybe(null),
+        cell.text(load.delivery_at ? (period === "today" ? toLocalInput(load.delivery_at, zone).slice(11) : formatDateTime(load.delivery_at, zone)) : dash, "", "num t3"),
+        eta,
+        load.assignment ? cell.text(load.assignment.driver.name, "", "t2") : cell.maybe(null),
         cell.badge(loadLabel(load.status), loadTone(load.status)),
       ] as Cell[],
     };
   });
-  const readyRows = (data.ready.data?.items ?? []).map((load) => ({
+  // Billing's queue: approved and ready, then the PODs waiting for review, then the ones that haven't come in.
+  type Queued = Schema<"LoadListItem">;
+  const queue: [Queued, "ready" | "review" | "missing"][] = [
+    ...(data.ready.data?.items ?? []).map((load) => [load, "ready"] as [Queued, "ready"]),
+    ...(data.inReview.data?.items ?? []).map((load) => [load, "review"] as [Queued, "review"]),
+    ...(data.noPod.data?.items ?? []).map((load) => [load, "missing"] as [Queued, "missing"]),
+  ].slice(0, 8);
+  const readyRows = queue.map(([load, state]) => ({
     key: load.id,
-    open: () => set({ screen: "load", loadId: load.id, overlay: "none", modal: "none" }),
+    open: () => openLoad(load.id),
     cells: [
-      cell.id(load.load_number, () => set({ screen: "load", loadId: load.id, overlay: "none", modal: "none" })),
+      cell.id(load.load_number, () => openLoad(load.id)),
       cell.text(load.customer.name),
-      cell.text(load.delivered_at ? formatDate(load.delivered_at.slice(0, 10)).replace(/, \d{4}$/, "") : dash, "", "num t2"),
-      cell.badge("Approved", "ok"),
+      cell.text(load.delivered_at ? shortDay(load.delivered_at) : dash, "", "num t3"),
+      state === "ready" ? cell.badge("Approved", "ok") : state === "review" ? cell.badge("In review", "info") : cell.badge("Missing", "bad"),
       cell.money(money(load.revenue)),
-      can("invoices.create") ? cell.button("Create invoice", () => set({ modal: "add", kind: "invoice", mstep: "manual", overlay: "none", fv: { "invoice.customer": load.customer.id, "invoice.loads": [load.id] } })) : cell.text(""),
+      state === "ready"
+        ? can("invoices.create") ? cell.button("Create draft", () => set({ modal: "add", kind: "invoice", mstep: "manual", overlay: "none", fv: { "invoice.customer": load.customer.id, "invoice.loads": [load.id] } })) : cell.text("")
+        : state === "review"
+          ? cell.button("Review POD", () => openLoad(load.id), "pri")
+          : can("loads.update", "loads.close") ? cell.button("Request POD", () => void askForPod({ load_id: load.id } as Attention), "pri") : cell.text(""),
     ] as Cell[],
   }));
   const deliveredCount = data.deliveries.data?.items.filter((load) => ["delivered", "pod_review", "completed"].includes(load.status)).length ?? 0;
   const deliveryTotal = data.deliveries.data?.page.total_count ?? data.deliveries.data?.items.length ?? 0;
   const t = billing
-    ? { title: "Ready to invoice", sub: "Delivered, with a reviewed POD", link: "Invoices", go: () => set(goTo("invoices")), cols: "92px minmax(0,1.2fr) 76px 112px 108px 120px", head: ["Load", "Customer", "Delivered", "POD", "Amount", ""], rows: readyRows, loading: data.ready.isPending, empty: "Nothing is waiting to be invoiced" }
+    ? { title: "Ready to invoice", sub: "Delivered, with a reviewed POD", link: "Invoices", go: () => set(goTo("invoices")), cols: "92px minmax(0,1.2fr) 76px 112px 108px 120px", head: ["Load", "Customer", "Delivered", "POD", "Est. amount", ""], rows: readyRows, loading: data.ready.isPending, empty: "Nothing is waiting to be invoiced" }
     : {
         title: `Deliveries ${period === "today" ? "today" : period === "week" ? "this week" : "this month"}`,
         sub: data.deliveries.data ? `${formatNumber(Math.max(0, deliveryTotal - deliveredCount))} of ${formatNumber(deliveryTotal)} remaining` : "",
         link: "Open in Loads",
         go: () => loadsTab({ view: "deliveries_today" }),
-        cols: "88px minmax(0,1.15fr) minmax(0,1fr) 112px 126px minmax(0,0.9fr) 100px",
-        head: ["Load", "Customer", "Destination", "Appt", "Risk", "Driver", "Status"],
+        cols: `88px minmax(0,1.15fr) minmax(0,1fr) ${period === "today" ? "56px" : "112px"} 132px minmax(0,0.9fr) 100px`,
+        head: ["Load", "Customer", "Destination", "Appt", "ETA", "Driver", "Status"],
         rows: deliveryRows,
         loading: data.deliveries.isPending,
         empty: `No deliveries ${period === "today" ? "today" : period === "week" ? "this week" : "this month"}`,
@@ -145,12 +226,12 @@ export function DashboardScreen() {
   const availability: Widget | null = fleet
     ? {
         kind: "avail",
-        title: "Fleet availability",
-        note: "Now",
+        title: team ? `${team} availability` : "Fleet availability",
+        note: "Live",
         rows: [
           { label: "Drivers", total: fleet.drivers_active, segs: segs([["On a load", fleet.drivers_on_load, "brand"], ["Available", Math.max(0, fleet.drivers_active - fleet.drivers_on_load - (safety?.drivers_blocked ?? 0)), "ok"], ["Can’t be dispatched", safety?.drivers_blocked ?? 0, "bad"]]) },
           ...(truckItems.length
-            ? [{ label: "Trucks", total: truckItems.length, segs: segs([["On a load", truckItems.filter((u) => u.status === "active" && u.current_load).length, "brand"], ["Available", truckItems.filter((u) => u.status === "active" && !u.current_load).length, "ok"], ["In shop", truckItems.filter((u) => u.status === "in_maintenance").length, "warn"], ["Out of service", truckItems.filter((u) => u.status === "out_of_service").length, "bad"]]) }]
+            ? [{ label: "Trucks", total: truckItems.length, segs: segs([["Active", truckItems.filter((u) => u.status === "active" && u.current_load).length, "brand"], ["Available", truckItems.filter((u) => u.status === "active" && !u.current_load).length, "ok"], ["In shop", truckItems.filter((u) => u.status === "in_maintenance").length, "warn"], ["Out of service", truckItems.filter((u) => u.status === "out_of_service").length, "bad"]]) }]
             : []),
           ...(trailerItems.length
             ? [{ label: "Trailers", total: trailerItems.length, segs: segs([["Loaded", trailerItems.filter((u) => u.status === "active" && u.current_load).length, "brand"], ["Empty", trailerItems.filter((u) => u.status === "active" && !u.current_load).length, "ok"], ["In shop", trailerItems.filter((u) => u.status === "in_maintenance" || u.status === "out_of_service").length, "warn"]]) }]
@@ -172,17 +253,23 @@ export function DashboardScreen() {
           foot: "Three numbers on purpose — estimates, invoices and cash are never added together.",
         }
       : null;
-  const onTheRoad: Widget | null = loads
+  // Live fleet: what the trucks themselves report, from the positions coming in.
+  const fleetNow = data.live.data;
+  const unitsOf = (list: { unit_number: string }[]) => (list.length > 3 ? `${list.slice(0, 3).map((v) => v.unit_number).join(", ")} +${list.length - 3}` : list.map((v) => v.unit_number).join(", "));
+  // Speeding now: an open speed alert on a truck that is reporting and moving at this moment.
+  const speedingNow = (fleetNow?.vehicles ?? []).filter((v) => v.incident && (v.incident.kind === "speeding" || v.incident.kind === "yard_speed") && v.freshness === "live" && v.moving);
+  const quiet = (fleetNow?.vehicles ?? []).filter((v) => v.freshness === "stale" || (v.freshness === "none" && v.load));
+  const onTheRoad: Widget | null = fleetNow
     ? {
         kind: "list",
-        title: "Live fleet",
+        title: team ? `Live fleet · ${team}` : "Live fleet",
         link: "Open map",
         go: () => set(goTo("tracking")),
         items: [
-          { a: "In transit", b: "Picked up, heading to delivery", chip: formatNumber(loads.in_transit), k: "brand" },
-          { a: "Picking up today", b: "Pickups scheduled today", chip: formatNumber(loads.pickups_today), k: "mu" },
-          { a: "Delivering today", b: "Deliveries scheduled today", chip: formatNumber(loads.deliveries_today), k: "mu" },
-          { a: "On hold", b: "Keeping their driver and equipment", chip: formatNumber(loads.on_hold), k: loads.on_hold ? "warn" : "mu" },
+          { a: "Moving", b: fleetNow.reporting ? `Vehicle-reported speed, updated ${hm(fleetNow.now)}` : "No truck is reporting its position yet", chip: formatNumber(fleetNow.counts.moving), k: "brand" },
+          { a: "Stopped or idle", b: "Customers, yards and the shop", chip: formatNumber(fleetNow.counts.stopped), k: "mu" },
+          { a: "Speeding now", b: speedingNow.length ? `${unitsOf(speedingNow)} · ${speedingNow[0].incident!.title}` : "Nobody over a speed policy", chip: formatNumber(speedingNow.length), k: speedingNow.length ? "bad" : "mu" },
+          { a: "Stale or no signal", b: quiet.length ? unitsOf(quiet) : "Every truck on a load is reporting", chip: formatNumber(quiet.length), k: quiet.length ? "warn" : "mu" },
         ],
         empty: "",
       }
@@ -209,7 +296,10 @@ export function DashboardScreen() {
       }
     : null;
   const role = me.organization.role;
-  const side = (billing ? [monthWidget, agingWidget] : role === "safety_manager" ? [availability, expiringWidget] : role === "owner" || role === "admin" ? [availability, monthWidget, onTheRoad, expiringWidget] : [availability, onTheRoad]).filter((w): w is Widget => !!w);
+  // As the design gives them out: admins see money, the live fleet and expirations; dispatch and the fleet manager
+  // the live fleet; safety the expirations; anyone else whichever of the two their role can see.
+  const rest = role === "owner" || role === "admin" ? [onTheRoad, expiringWidget] : role === "dispatcher" || role === "fleet_manager" ? [onTheRoad] : role === "safety_manager" ? [expiringWidget] : [onTheRoad ?? expiringWidget];
+  const side = (billing ? [monthWidget, agingWidget] : [availability, monthWidget, ...rest]).filter((w): w is Widget => !!w);
 
   // financials
   const weekTotals = data.weekly.totals.map((total) => cents(total));
@@ -255,7 +345,6 @@ export function DashboardScreen() {
   const c = toggle("c");
   const sp = toggle("s");
   const weekLabel = (day: string) => formatDate(day).replace(/, \d{4}$/, "");
-  const now = new Date();
 
   return (
     <div className="scr">
@@ -268,7 +357,7 @@ export function DashboardScreen() {
           </div>
           <h1 className="h1"><span>{billing ? "Billing overview" : "Dashboard"}</span></h1>
           <p className="sub">
-            <span>{`${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long", month: "short", day: "numeric" }).format(now)} · updated ${data.summary.dataUpdatedAt ? toLocalInput(new Date(data.summary.dataUpdatedAt).toISOString(), zone).slice(11) : dash} ${timeZoneLabel(zone)}`}</span>
+            <span>{`${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "long", month: "short", day: "numeric" }).format(now)} · updated ${data.summary.dataUpdatedAt ? toLocalInput(new Date(data.summary.dataUpdatedAt).toISOString(), zone).slice(11) : dash} ${timeZoneLabel(zone)}${team ? ` · ${team}` : ""}`}</span>
           </p>
         </div>
         <div className="r g8">
@@ -520,34 +609,31 @@ export function DashboardScreen() {
       ) : null}
       <div className="dgrid">
         <div className="c g16">
-          <section className="card oh">
+          <section className="card oh" aria-label="Needs attention">
             <div className="ch">
               <h2 className="h2">Needs attention</h2>
-              <span className="cnt" data-k={exceptions.some((e) => e.severity === "high") ? "bad" : "warn"}><span>{exceptions.length}</span></span>
+              <span className="cnt" data-k={attention.some((a) => a.tone === "bad") ? "bad" : "warn"}><span>{formatNumber(data.attention.data?.total ?? 0)}</span></span>
               <span className="sp"></span>
-              <button className="lnk" onClick={() => set(goTo("alerts"))}>View all exceptions</button>
+              {can("incidents.read") ? <button className="lnk" onClick={() => set(goTo("alerts"))}>View all exceptions</button> : null}
             </div>
-            {data.exceptions.isSuccess && !exceptions.length ? <EmptyState icon="M5 12l5 5 9-10" title="Nothing needs you right now" text="Late loads, expired paperwork, overdue invoices and urgent repairs show up here." /> : null}
-            {exceptions.slice(0, 6).map((a) => {
-              const target = placeOf(a);
-              return (
-                <div key={a.code} className="attn">
-                  <span className="badge" data-k={SEVERITY_TONE[a.severity] ?? "mu"}>
-                    <i></i>
-                    <span>{areaOf(a)}</span>
-                  </span>
-                  <div className="mw0">
-                    <div className="r g8">
-                      <span className="fs13 w5 ell"><span>{a.title}</span></span>
-                      <span className="fs12 t3 w5 nw mono"><span>{formatNumber(a.count)}</span></span>
-                    </div>
-                    <div className="fs12 mu ell"><span>{a.detail}</span></div>
+            {data.attention.isSuccess && !attention.length ? <EmptyState icon="M5 12l5 5 9-10" title="Nothing needs you right now" text={billing ? "Proof of delivery to review, overdue invoices and statements waiting for approval show up here." : "Late and at-risk loads, speeding, missing paperwork and trucks out of service show up here."} /> : null}
+            {attention.map((a) => (
+              <div key={a.key} className="attn">
+                <span className="badge" data-k={a.tone}>
+                  <i></i>
+                  <span>{a.tag}</span>
+                </span>
+                <div className="mw0">
+                  <div className="r g8">
+                    <span className="fs13 w5 ell"><span>{a.title}</span></span>
+                    {a.ref ? <span className={clsx("fs12 t3 w5 nw", a.ref_code && "mono")}><span>{a.ref}</span></span> : null}
                   </div>
-                  <span className="fs12 mu num rt"><span>now</span></span>
-                  {target ? <button className="btn sm" onClick={() => set(target)}><span>Review</span></button> : <span></span>}
+                  <div className="fs12 mu ell"><span>{a.detail}</span></div>
                 </div>
-              );
-            })}
+                <span className="fs12 mu num rt"><span>{ago(a)}</span></span>
+                <button className="btn sm" onClick={() => runAction(a)}><span>{a.action_label}</span></button>
+              </div>
+            ))}
           </section>
           <section className="card oh">
             <div className="ch">

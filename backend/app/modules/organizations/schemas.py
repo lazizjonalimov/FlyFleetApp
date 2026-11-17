@@ -72,6 +72,7 @@ class MeUser(BaseModel):
 class MeOrganization(OrgRef):
     timezone: str
     base_currency: str
+    role_label: str = Field(description="The role's name as the company sees it, a custom role's included")
 
 
 class MeAccount(BaseModel):
