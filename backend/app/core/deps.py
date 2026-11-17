@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.db import new_session
 from app.core.errors import Conflict, Forbidden, NotFound, Unauthorized
 from app.core.permissions import has_permission, permissions_for
+from app.core.scope import Scope, load_scope
 from app.core.security import decode_token
 from app.modules.organizations.models import Account, Membership, Organization, User
 
@@ -37,6 +38,10 @@ class Principal:
     org_status: str = "active"
     account_id: uuid.UUID | None = None
     is_account_owner: bool = False
+    # The part of the fleet a dispatch team's dispatcher sees; None for the whole fleet.
+    scope: Scope | None = None
+    # An administrator seeing the console as a dispatch team's dispatcher would. Nothing can be changed.
+    preview: bool = False
 
     def today(self) -> date:
         """The current date where this company operates (not the server's date)."""
@@ -66,13 +71,30 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         row = db.execute(
             select(Membership.role, User.full_name, User.email, User.token_version, Organization.timezone,
                    Organization.base_currency, Organization.name, Organization.slug, Organization.status,
-                   Organization.account_id, Account.owner_user_id)
+                   Organization.account_id, Account.owner_user_id, Organization.dispatchers_without_team)
             .join(User, User.id == Membership.user_id)
             .join(Organization, Organization.id == Membership.organization_id)
             .join(Account, Account.id == Organization.account_id)
             .where(Membership.user_id == user_id, Membership.organization_id == org_id,
                    Membership.active.is_(True), User.active.is_(True))
         ).first()
+        role, scope, preview = (row.role, None, False) if row else (None, None, False)
+        if row is not None and row.token_version == version:
+            preview_team = request.headers.get("x-preview-team")
+            if preview_team:
+                # Someone who manages the team sees what a team's dispatcher would, without acting as them.
+                if not has_permission(row.role, "users.manage"):
+                    raise Forbidden("Only someone who manages the team can preview a dispatch team")
+                if request.method not in ("GET", "HEAD"):
+                    raise Forbidden("Nothing can be changed in a preview. Exit the preview to make changes.",
+                                    code="PREVIEW_READ_ONLY")
+                try:
+                    team_id = uuid.UUID(preview_team)
+                except ValueError as e:
+                    raise NotFound("Dispatch team not found") from e
+                role, scope, preview = "dispatcher", load_scope(db, team_id=team_id), True
+            elif row.role == "dispatcher":
+                scope = load_scope(db, user_id=user_id, without_team=row.dispatchers_without_team)
     finally:
         db.close()
     if row is None:
@@ -87,9 +109,10 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
 
     request.state.principal = (user_id, org_id)
     return Principal(
-        user_id=user_id, org_id=org_id, role=row.role, full_name=row.full_name, email=row.email,
+        user_id=user_id, org_id=org_id, role=role, full_name=row.full_name, email=row.email,
         timezone=row.timezone, currency=row.base_currency, org_name=row.name, org_slug=row.slug,
-        org_status=row.status, account_id=row.account_id, is_account_owner=row.owner_user_id == user_id)
+        org_status=row.status, account_id=row.account_id, is_account_owner=row.owner_user_id == user_id,
+        scope=scope, preview=preview)
 
 
 def get_db(p: Principal = Depends(get_principal)) -> Iterator[Session]:

@@ -5,9 +5,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.deps import Principal
-from app.core.errors import Conflict, Invalid
+from app.core.errors import Conflict, Forbidden, Invalid
 from app.modules.dispatch import eligibility
 from app.modules.dispatch.models import DispatchAssignment
 from app.modules.drivers.models import Driver
@@ -15,6 +16,7 @@ from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.fleet.models import UnitAssignment
 from app.modules.loads import service as loads
 from app.modules.loads.models import Load, LoadStatusEvent
+from app.modules.teams.models import DispatchTeamVehicle
 
 
 def _lock(db: Session, model, id_: uuid.UUID | None, field: str, label: str):
@@ -45,6 +47,13 @@ def assign(db: Session, p: Principal, load: Load, driver_id: uuid.UUID, vehicle_
     driver = _lock(db, Driver, driver_id, "driver_id", "Driver")
     vehicle = _lock(db, Vehicle, vehicle_id, "vehicle_id", "Truck")
     trailer = _lock(db, Trailer, trailer_id, "trailer_id", "Trailer")
+    if not team_scope.has_vehicle(p.scope, vehicle.id):
+        raise Forbidden(f"{vehicle.unit_number} isn’t one of your dispatch team’s trucks",
+                        details={"vehicle_id": str(vehicle.id)})
+    # A load on a team's truck is that team's, and stays tagged for it if it comes off the truck.
+    team = db.scalar(select(DispatchTeamVehicle.team_id).where(DispatchTeamVehicle.vehicle_id == vehicle.id))
+    if team is not None:
+        load.dispatch_team_id = team
 
     now = datetime.now(UTC)
     problems = eligibility.blocking(eligibility.check_trio(db, load, driver, vehicle, trailer, p.today(), now))

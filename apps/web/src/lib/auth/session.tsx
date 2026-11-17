@@ -1,13 +1,50 @@
 "use client";
 
-import { createContext, useCallback, useContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { api, unwrap } from "@/lib/api/client";
+import { setPreviewTeam } from "@/lib/api/preview";
 import type { Me } from "@/lib/api/types";
 
 const SessionContext = createContext<Me | null>(null);
 
-/** Makes the signed-in user and their active company available to client components in the workspace. */
+type Preview = { start: (teamId: string) => Promise<void>; stop: () => void; on: boolean };
+const PreviewContext = createContext<Preview>({ start: async () => {}, stop: () => {}, on: false });
+
+/**
+ * Makes the signed-in user and their active company available to client components in the workspace. While
+ * a dispatch team is previewed, it is the team's view instead: a dispatcher's role and the team's trucks.
+ */
 export function SessionProvider({ me, children }: { me: Me; children: React.ReactNode }) {
-  return <SessionContext.Provider value={me}>{children}</SessionContext.Provider>;
+  const client = useQueryClient();
+  const [previewed, setPreviewed] = useState<Me | null>(null);
+  const start = useCallback(async (teamId: string) => {
+    setPreviewTeam(teamId);
+    try {
+      const view = await unwrap(api.GET("/api/v1/auth/me"));
+      client.removeQueries({ queryKey: [me.organization.id] });
+      setPreviewed(view);
+    } catch (error) {
+      setPreviewTeam(null);
+      throw error;
+    }
+  }, [client, me.organization.id]);
+  const stop = useCallback(() => {
+    setPreviewTeam(null);
+    client.removeQueries({ queryKey: [me.organization.id] });
+    setPreviewed(null);
+  }, [client, me.organization.id]);
+  const preview = useMemo(() => ({ start, stop, on: previewed !== null }), [start, stop, previewed]);
+  return (
+    <PreviewContext.Provider value={preview}>
+      <SessionContext.Provider value={previewed ?? me}>{children}</SessionContext.Provider>
+    </PreviewContext.Provider>
+  );
+}
+
+/** Seeing the console as a dispatch team's dispatchers would, and leaving that view. */
+export function usePreview(): Preview {
+  return useContext(PreviewContext);
 }
 
 export function useSession(): Me {

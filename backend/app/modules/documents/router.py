@@ -16,9 +16,10 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import exists, select
+from sqlalchemy import and_, exists, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.config import get_settings
 from app.core.crud import ListParams, like
@@ -180,9 +181,29 @@ def _check_entity(db: Session, p: Principal, entity_type: str, entity_id: uuid.U
         raise Forbidden("Your role does not allow handling tax or bank documents")
 
 
+def _outside_team(p: Principal):
+    """Documents filed with a load, driver or truck the caller's dispatch team doesn't cover; None for everyone
+    who sees the whole fleet."""
+    if p.scope is None:
+        return None
+    from app.modules.drivers.models import Driver as D
+    from app.modules.equipment.models import Vehicle as V
+    from app.modules.loads.models import Load as L
+    elsewhere = or_(
+        and_(DocumentLink.entity_type == "load", DocumentLink.entity_id.notin_(select(L.id).where(team_scope.loads(p.scope)))),
+        and_(DocumentLink.entity_type == "driver",
+             DocumentLink.entity_id.notin_(select(D.id).where(team_scope.drivers(p.scope, D.id)))),
+        and_(DocumentLink.entity_type == "vehicle",
+             DocumentLink.entity_id.notin_(select(V.id).where(team_scope.vehicles(p.scope, V.id)))))
+    return exists(select(DocumentLink.id).where(DocumentLink.document_id == Document.id, elsewhere))
+
+
 def _get(db: Session, p: Principal, document_id: uuid.UUID, *, uploaded: bool = True) -> Document:
     doc = db.get(Document, document_id)
     if doc is None or (uploaded and doc.upload_status != "uploaded"):
+        raise NotFound("Document not found")
+    outside = _outside_team(p)
+    if outside is not None and db.scalar(select(Document.id).where(Document.id == document_id, outside)):
         raise NotFound("Document not found")
     if (doc.type in SENSITIVE and not _see_sensitive(p)) or (doc.type in OWNER_SENSITIVE and not p.can("owners.sensitive.read")):
         raise NotFound("Document not found")  # hidden rather than refused: its existence is not disclosed
@@ -315,6 +336,9 @@ def complete_upload(document_id: uuid.UUID, p: Principal = Depends(require("docu
 def list_documents(params: Annotated[DocumentListParams, Query()],
                    p: Principal = Depends(require("documents.read")), db: Session = Depends(get_db)):
     stmt = select(Document).where(Document.upload_status == "uploaded")
+    outside = _outside_team(p)
+    if outside is not None:
+        stmt = stmt.where(~outside)
     if not _see_sensitive(p):
         stmt = stmt.where(Document.type.notin_(SENSITIVE))
     if not p.can("owners.sensitive.read"):

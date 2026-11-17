@@ -77,6 +77,8 @@ class Organization(Base, IdMixin, TimestampMixin):
     settlement_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     work_order_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     incident_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # What a dispatcher on no dispatch team sees: "all" the fleet, or "none" until they are put on a team.
+    dispatchers_without_team: Mapped[str] = mapped_column(String(4), default="all", server_default="all")
     __table_args__ = (
         CheckConstraint("status IN ('active','archived')", name="status_valid"),
         CheckConstraint("base_currency ~ '^[A-Z]{3}$'", name="currency_code"),

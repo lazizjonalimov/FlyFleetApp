@@ -15,6 +15,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.deps import Principal
 from app.core.errors import Conflict, Forbidden, Invalid, NotFound
@@ -109,15 +110,9 @@ def driver_conversation(db: Session, org_id: uuid.UUID, driver_id: uuid.UUID,
     return db.scalar(select(Conversation).where(Conversation.kind == "driver", Conversation.driver_id == driver_id))
 
 
-def can_see(p: Principal, conv: Conversation) -> bool:
-    if conv.kind == "team":
-        return str(p.user_id) in (conv.members or [])
-    return True
-
-
 def get(db: Session, p: Principal, conversation_id: uuid.UUID) -> Conversation:
-    conv = db.get(Conversation, conversation_id)
-    if conv is None or not can_see(p, conv):
+    conv = db.scalar(_visible(select(Conversation).where(Conversation.id == conversation_id), p))
+    if conv is None:
         raise NotFound("Conversation not found")
     return conv
 
@@ -127,7 +122,8 @@ def start(db: Session, p: Principal, *, kind: str, driver_id: uuid.UUID | None =
           members: list[uuid.UUID] | None = None) -> tuple[Conversation, bool]:
     """Open the conversation to write in: the driver's own, a customer contact's, or a new team conversation."""
     if kind == "driver":
-        if driver_id is None or db.get(Driver, driver_id) is None:
+        if driver_id is None or db.scalar(team_scope.where(select(Driver.id).where(Driver.id == driver_id),
+                                                           team_scope.drivers(p.scope, Driver.id))) is None:
             raise Invalid("Choose a driver", field="driver_id")
         existing = db.scalar(select(Conversation.id).where(Conversation.kind == "driver",
                                                            Conversation.driver_id == driver_id))
@@ -374,7 +370,10 @@ def unread_counts(db: Session, p: Principal, ids: list[uuid.UUID] | None = None)
 
 
 def _visible(stmt, p: Principal):
-    return stmt.where(or_(Conversation.kind != "team", Conversation.members.contains([str(p.user_id)])))
+    stmt = stmt.where(or_(Conversation.kind != "team", Conversation.members.contains([str(p.user_id)])))
+    # A dispatch team's dispatcher talks with the drivers on the team's trucks.
+    drivers = team_scope.drivers(p.scope, Conversation.driver_id)
+    return stmt if drivers is None else stmt.where(or_(Conversation.kind != "driver", drivers))
 
 
 def total_unread(db: Session, p: Principal) -> int:

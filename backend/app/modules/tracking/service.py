@@ -10,9 +10,10 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core import places
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.deps import Principal
-from app.core.errors import Invalid
+from app.core.errors import Invalid, NotFound
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Vehicle
 from app.modules.loads.models import Load
@@ -75,7 +76,8 @@ def _driver_names(db: Session, ids: set) -> dict:
 def live(db: Session, p: Principal) -> dict:
     """Every truck in service with where it last was, how fresh that is, what it is hauling and its open alert."""
     now = datetime.now(UTC)
-    trucks = list(db.scalars(select(Vehicle).where(Vehicle.status != "retired").order_by(Vehicle.unit_number)))
+    trucks = list(db.scalars(team_scope.where(select(Vehicle).where(Vehicle.status != "retired"),
+                                              team_scope.vehicles(p.scope, Vehicle.id)).order_by(Vehicle.unit_number)))
     ids = [t.id for t in trucks]
     latest = incidents.latest_positions(db, ids)
     roads = incidents.on_the_road(db)
@@ -153,6 +155,8 @@ def live(db: Session, p: Principal) -> dict:
 
 def track(db: Session, p: Principal, vehicle_id: uuid.UUID, since: datetime | None, until: datetime | None) -> dict:
     """A truck's trail, its speed over time, and the alert it has open, with that alert's trail of events."""
+    if not team_scope.has_vehicle(p.scope, vehicle_id):
+        raise NotFound("Truck not found")
     now = datetime.now(UTC)
     until = until or now
     since = since or until - timedelta(hours=2)

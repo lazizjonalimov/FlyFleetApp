@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import and_, delete, func, literal, or_, select, update
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.crud import like
 from app.core.deps import Principal
@@ -88,8 +89,12 @@ def day_bounds(timezone: str, first: date, last: date | None = None) -> tuple[da
             datetime.combine((last or first) + timedelta(days=1), time.min, zone))
 
 
-def lock_load(db: Session, load_id: uuid.UUID) -> Load:
-    """Fetch a load for a change. Concurrent writers queue here, so each one sees the other's result."""
+def lock_load(db: Session, load_id: uuid.UUID, p: Principal | None = None) -> Load:
+    """Fetch a load for a change. Concurrent writers queue here, so each one sees the other's result. With the
+    caller, a load outside their dispatch team is not found, as if it didn't exist."""
+    if p is not None and p.scope is not None and not db.scalar(
+            select(Load.id).where(Load.id == load_id, team_scope.loads(p.scope))):
+        raise NotFound("Load not found")
     load = db.scalar(select(Load).where(Load.id == load_id).with_for_update())
     if load is None:
         raise NotFound("Load not found")
@@ -264,6 +269,8 @@ def create_load(db: Session, p: Principal, body: s.LoadCreate) -> Load:
 
     load = Load(organization_id=p.org_id, load_number=next_load_number(db, p.org_id), status=body.status,
                 currency=p.currency, created_by=p.user_id,
+                # Booked by a dispatch team's dispatcher: the load is the team's until it is on a truck.
+                dispatch_team_id=p.scope.team_id if p.scope else None,
                 **body.model_dump(exclude={"status", "stops", "items", "charges"}))
     db.add(load)
     db.flush()
@@ -282,7 +289,7 @@ def create_load(db: Session, p: Principal, body: s.LoadCreate) -> Load:
 
 
 def update_load(db: Session, p: Principal, load_id: uuid.UUID, body: s.LoadUpdate) -> Load:
-    load = lock_load(db, load_id)
+    load = lock_load(db, load_id, p)
     check_version(load, body.version)
     changes = body.model_dump(exclude_unset=True, exclude={"version"})
     for required in ("customer_id", "equipment_type", "customer_rate"):
@@ -317,7 +324,7 @@ def update_load(db: Session, p: Principal, load_id: uuid.UUID, body: s.LoadUpdat
 
 
 def set_stops(db: Session, p: Principal, load_id: uuid.UUID, body: s.StopsReplace) -> Load:
-    load = lock_load(db, load_id)
+    load = lock_load(db, load_id, p)
     check_version(load, body.version)
     if load.status not in ROUTE_EDITABLE:
         raise Conflict("Stops can't be added, removed or reordered once the load has been dispatched. You can "
@@ -332,7 +339,7 @@ def set_stops(db: Session, p: Principal, load_id: uuid.UUID, body: s.StopsReplac
 
 
 def patch_stop(db: Session, p: Principal, load_id: uuid.UUID, stop_id: uuid.UUID, body: s.StopPatch) -> Load:
-    load = lock_load(db, load_id)
+    load = lock_load(db, load_id, p)
     check_version(load, body.version)
     if not editable(load, p).schedule:
         raise Conflict("This load's schedule can no longer be changed")
@@ -354,9 +361,14 @@ def patch_stop(db: Session, p: Principal, load_id: uuid.UUID, stop_id: uuid.UUID
     return load
 
 
-def add_note(db: Session, p: Principal, load_id: uuid.UUID, body: s.NoteIn) -> LoadNote:
-    if db.get(Load, load_id) is None:
+def visible(db: Session, p: Principal, load_id: uuid.UUID) -> None:
+    """A load outside the caller's dispatch team is not found, as if it didn't exist."""
+    if db.scalar(team_scope.where(select(Load.id).where(Load.id == load_id), team_scope.loads(p.scope))) is None:
         raise NotFound("Load not found")
+
+
+def add_note(db: Session, p: Principal, load_id: uuid.UUID, body: s.NoteIn) -> LoadNote:
+    visible(db, p, load_id)
     note = LoadNote(organization_id=p.org_id, load_id=load_id, body=body.body.strip(), author_user_id=p.user_id)
     db.add(note)
     db.flush()
@@ -366,9 +378,8 @@ def add_note(db: Session, p: Principal, load_id: uuid.UUID, body: s.NoteIn) -> L
 
 def add_tracking(db: Session, p: Principal, load_id: uuid.UUID, body: s.TrackingIn, *,
                  source: str = "dispatcher") -> TrackingEvent:
+    visible(db, p, load_id)
     load = db.get(Load, load_id)
-    if load is None:
-        raise NotFound("Load not found")
     if load.status in CLOSED or load.status == "draft":
         raise Conflict("Check calls are recorded on loads that are under way")
     now = datetime.now(UTC)
@@ -549,7 +560,7 @@ def view_conditions(p: Principal, now: datetime) -> dict:
 def board_summary(db: Session, p: Principal, terminal_id: uuid.UUID | None = None) -> s.BoardSummary:
     conditions = view_conditions(p, datetime.now(UTC))
     stmt = select(*[func.count().filter(conditions[name]).label(name) for name in s.BoardSummary.model_fields])
-    stmt = stmt.select_from(Load)
+    stmt = team_scope.where(stmt.select_from(Load), team_scope.loads(p.scope))
     if terminal_id:
         stmt = stmt.where(Load.terminal_id == terminal_id)
     return s.BoardSummary(**db.execute(stmt).one()._asdict())
@@ -593,7 +604,7 @@ def _item(row, p: Principal, now: datetime) -> dict:
 def list_loads(db: Session, p: Principal, params: s.LoadListParams, *,
                default_view: str | None = None) -> tuple[list[s.LoadListItem], PageInfo]:
     now = datetime.now(UTC)
-    stmt = _rows()
+    stmt = team_scope.where(_rows(), team_scope.loads(p.scope))
     view = params.view or default_view
     if view:
         stmt = stmt.where(view_conditions(p, now)[view])
@@ -644,7 +655,7 @@ def _names(db: Session, user_ids) -> dict[uuid.UUID, str]:
 
 def load_detail(db: Session, p: Principal, load_id: uuid.UUID) -> s.LoadDetail:
     now = datetime.now(UTC)
-    row = db.execute(_rows().where(Load.id == load_id)).first()
+    row = db.execute(team_scope.where(_rows().where(Load.id == load_id), team_scope.loads(p.scope))).first()
     if row is None:
         raise NotFound("Load not found")
     load: Load = row[0]

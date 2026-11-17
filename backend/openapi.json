@@ -4234,6 +4234,38 @@
         "title": "Delivery",
         "type": "object"
       },
+      "DispatcherChoice": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "team_id"
+        ],
+        "title": "DispatcherChoice",
+        "type": "object"
+      },
       "DistinctionIn": {
         "properties": {
           "other_person_id": {
@@ -11595,6 +11627,16 @@
             "title": "Permissions",
             "type": "array"
           },
+          "scope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeScope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "user": {
             "$ref": "#/components/schemas/MeUser"
           }
@@ -11607,6 +11649,63 @@
           "permissions"
         ],
         "title": "MeOut",
+        "type": "object"
+      },
+      "MeScope": {
+        "description": "The part of the fleet this person sees, when it isn't all of it.",
+        "properties": {
+          "lead_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Name"
+          },
+          "preview": {
+            "description": "An administrator previewing what the team's dispatchers see",
+            "title": "Preview",
+            "type": "boolean"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "None for a dispatcher on no team who sees no trucks",
+            "title": "Team Id"
+          },
+          "team_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Name"
+          },
+          "trucks": {
+            "title": "Trucks",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "team_id",
+          "team_name",
+          "trucks",
+          "preview"
+        ],
+        "title": "MeScope",
         "type": "object"
       },
       "MeUser": {
@@ -12247,6 +12346,27 @@
           "odometer"
         ],
         "title": "NextService",
+        "type": "object"
+      },
+      "NoTeam": {
+        "properties": {
+          "dispatchers": {
+            "items": {
+              "$ref": "#/components/schemas/TeamDispatcher"
+            },
+            "title": "Dispatchers",
+            "type": "array"
+          },
+          "vehicles": {
+            "title": "Vehicles",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dispatchers",
+          "vehicles"
+        ],
+        "title": "NoTeam",
         "type": "object"
       },
       "NotDuplicate": {
@@ -22128,6 +22248,378 @@
         "title": "TaskPerson",
         "type": "object"
       },
+      "TeamChange": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          },
+          "who": {
+            "title": "Who",
+            "type": "string"
+          }
+        },
+        "required": [
+          "who",
+          "what",
+          "at"
+        ],
+        "title": "TeamChange",
+        "type": "object"
+      },
+      "TeamDefaultIn": {
+        "properties": {
+          "dispatchers_without_team": {
+            "enum": [
+              "all",
+              "none"
+            ],
+            "title": "Dispatchers Without Team",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dispatchers_without_team"
+        ],
+        "title": "TeamDefaultIn",
+        "type": "object"
+      },
+      "TeamDispatcher": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "lead"
+        ],
+        "title": "TeamDispatcher",
+        "type": "object"
+      },
+      "TeamIn": {
+        "properties": {
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "lead_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead User Id"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "unassigned_loads": {
+            "default": "tagged",
+            "enum": [
+              "tagged",
+              "shared"
+            ],
+            "title": "Unassigned Loads",
+            "type": "string"
+          },
+          "user_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "User Ids",
+            "type": "array"
+          },
+          "vehicle_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Vehicle Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "TeamIn",
+        "type": "object"
+      },
+      "TeamMembersIn": {
+        "properties": {
+          "lead_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead User Id"
+          },
+          "user_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "User Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "user_ids"
+        ],
+        "title": "TeamMembersIn",
+        "type": "object"
+      },
+      "TeamOut": {
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Name"
+          },
+          "dispatchers": {
+            "items": {
+              "$ref": "#/components/schemas/TeamDispatcher"
+            },
+            "title": "Dispatchers",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead User Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open_loads": {
+            "title": "Open Loads",
+            "type": "integer"
+          },
+          "unassigned_loads": {
+            "enum": [
+              "tagged",
+              "shared"
+            ],
+            "title": "Unassigned Loads",
+            "type": "string"
+          },
+          "vehicles": {
+            "items": {
+              "$ref": "#/components/schemas/TeamTruck"
+            },
+            "title": "Vehicles",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "unassigned_loads",
+          "lead_user_id",
+          "created_at",
+          "created_by_name",
+          "version",
+          "open_loads",
+          "dispatchers",
+          "vehicles"
+        ],
+        "title": "TeamOut",
+        "type": "object"
+      },
+      "TeamPatch": {
+        "properties": {
+          "clear_lead": {
+            "default": false,
+            "title": "Clear Lead",
+            "type": "boolean"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "lead_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead User Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "unassigned_loads": {
+            "anyOf": [
+              {
+                "enum": [
+                  "tagged",
+                  "shared"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unassigned Loads"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "title": "TeamPatch",
+        "type": "object"
+      },
+      "TeamTruck": {
+        "properties": {
+          "driver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "unit_number",
+          "driver_name"
+        ],
+        "title": "TeamTruck",
+        "type": "object"
+      },
+      "TeamTrucksIn": {
+        "properties": {
+          "vehicle_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Vehicle Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "vehicle_ids"
+        ],
+        "title": "TeamTrucksIn",
+        "type": "object"
+      },
       "Teammate": {
         "properties": {
           "id": {
@@ -22150,6 +22642,72 @@
           "role"
         ],
         "title": "Teammate",
+        "type": "object"
+      },
+      "TeamsOverview": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/TeamChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "colors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Colors",
+            "type": "array"
+          },
+          "dispatchers": {
+            "items": {
+              "$ref": "#/components/schemas/DispatcherChoice"
+            },
+            "title": "Dispatchers",
+            "type": "array"
+          },
+          "dispatchers_without_team": {
+            "enum": [
+              "all",
+              "none"
+            ],
+            "title": "Dispatchers Without Team",
+            "type": "string"
+          },
+          "no_team": {
+            "$ref": "#/components/schemas/NoTeam"
+          },
+          "teams": {
+            "items": {
+              "$ref": "#/components/schemas/TeamOut"
+            },
+            "title": "Teams",
+            "type": "array"
+          },
+          "total_vehicles": {
+            "title": "Total Vehicles",
+            "type": "integer"
+          },
+          "trucks": {
+            "items": {
+              "$ref": "#/components/schemas/TruckChoice"
+            },
+            "title": "Trucks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "teams",
+          "no_team",
+          "total_vehicles",
+          "dispatchers_without_team",
+          "dispatchers",
+          "trucks",
+          "changes",
+          "colors"
+        ],
+        "title": "TeamsOverview",
         "type": "object"
       },
       "TerminalCreate": {
@@ -24552,6 +25110,50 @@
           "miles"
         ],
         "title": "TripOut",
+        "type": "object"
+      },
+      "TruckChoice": {
+        "properties": {
+          "driver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "team_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team Id"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "unit_number",
+          "driver_name",
+          "team_id"
+        ],
+        "title": "TruckChoice",
         "type": "object"
       },
       "TruckFuel": {
@@ -31362,6 +31964,637 @@
         "summary": "Dashboard Summary",
         "tags": [
           "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dispatch-teams": {
+      "get": {
+        "description": "Every dispatch team with its dispatchers and trucks, who is on no team, and the latest changes.",
+        "operationId": "list_teams_api_v1_dispatch_teams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Teams",
+        "tags": [
+          "dispatch teams"
+        ]
+      },
+      "post": {
+        "operationId": "create_team_api_v1_dispatch_teams_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Team",
+        "tags": [
+          "dispatch teams"
+        ]
+      }
+    },
+    "/api/v1/dispatch-teams-default": {
+      "put": {
+        "description": "What a dispatcher on no team sees: every truck, or none until they are put on a team.",
+        "operationId": "set_default_api_v1_dispatch_teams_default_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamDefaultIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Default",
+        "tags": [
+          "dispatch teams"
+        ]
+      }
+    },
+    "/api/v1/dispatch-teams/{team_id}": {
+      "delete": {
+        "description": "Its dispatchers and trucks are left on no team.",
+        "operationId": "delete_team_api_v1_dispatch_teams__team_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Team",
+        "tags": [
+          "dispatch teams"
+        ]
+      },
+      "patch": {
+        "operationId": "update_team_api_v1_dispatch_teams__team_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Team",
+        "tags": [
+          "dispatch teams"
+        ]
+      }
+    },
+    "/api/v1/dispatch-teams/{team_id}/members": {
+      "put": {
+        "description": "The team's dispatchers. A dispatcher on another team moves to this one.",
+        "operationId": "set_members_api_v1_dispatch_teams__team_id__members_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamMembersIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Members",
+        "tags": [
+          "dispatch teams"
+        ]
+      }
+    },
+    "/api/v1/dispatch-teams/{team_id}/vehicles": {
+      "put": {
+        "description": "The team's trucks. A truck in another team moves to this one.",
+        "operationId": "set_vehicles_api_v1_dispatch_teams__team_id__vehicles_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "team_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Team Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamTrucksIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamsOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Vehicles",
+        "tags": [
+          "dispatch teams"
         ]
       }
     },

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy import func, literal, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.crud import ListParams, child_router, ensure_exists, resource_router
 from app.core.crypto import mask
 from app.core.deps import Principal
@@ -398,10 +399,12 @@ router.include_router(resource_router(
           "qualification": func.least(func.coalesce(Driver.cdl_expiry, literal(date(9999, 1, 1))),
                                       func.coalesce(Driver.medical_cert_expiry, literal(date(9999, 1, 1))))},
     default_sort="name", present=present, audit_redact=("cdl_number", "pay_rate", "date_of_birth"),
-    before_save=_before_save, before_delete=_before_delete, list_filter=_list_filter))
+    before_save=_before_save, before_delete=_before_delete, list_filter=_list_filter,
+    scope=lambda p: team_scope.drivers(p.scope, Driver.id)))
 router.include_router(child_router(
     prefix="/drivers/{parent_id}/qualifications", tag="drivers", entity="driver_qualification",
     label="qualification", model=DriverQualification, parent_model=Driver, parent_fk="driver_id",
     parent_label="Driver", create_schema=QualificationCreate, update_schema=QualificationUpdate,
     read_schema=QualificationRead, read_perm="drivers.read", write_perm="drivers.manage",
-    order_by=DriverQualification.type, before_save=_check_dates))
+    order_by=DriverQualification.type, before_save=_check_dates,
+    parent_scope=lambda p: team_scope.drivers(p.scope, Driver.id)))

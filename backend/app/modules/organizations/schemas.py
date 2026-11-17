@@ -82,12 +82,22 @@ class MeAccount(BaseModel):
     max_companies: int
 
 
+class MeScope(BaseModel):
+    """The part of the fleet this person sees, when it isn't all of it."""
+    team_id: uuid.UUID | None = Field(description="None for a dispatcher on no team who sees no trucks")
+    team_name: str | None
+    trucks: int
+    preview: bool = Field(description="An administrator previewing what the team's dispatchers see")
+    lead_name: str | None = None
+
+
 class MeOut(BaseModel):
     user: MeUser
     organization: MeOrganization
     account: MeAccount
     memberships: list[OrgRef]
     permissions: list[str]
+    scope: MeScope | None = None
 
 
 # ---------------------------------------------------------------- companies under one account

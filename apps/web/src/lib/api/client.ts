@@ -1,5 +1,6 @@
 import createClient from "openapi-fetch";
 import { toApiError } from "@/lib/api/errors";
+import { previewTeam } from "@/lib/api/preview";
 import type { paths } from "@/lib/api/schema";
 import { hardNavigate } from "@/lib/hard-navigation";
 
@@ -11,6 +12,11 @@ import { hardNavigate } from "@/lib/hard-navigation";
 export const api = createClient<paths>({ baseUrl: "", credentials: "same-origin" });
 
 api.use({
+  onRequest({ request }) {
+    const team = previewTeam();
+    if (team) request.headers.set("X-Preview-Team", team);
+    return request;
+  },
   onResponse({ response }) {
     // The session ended (expired, password changed, access removed): go to sign-in, remembering where we were.
     if (response.status === 401 && typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {

@@ -154,6 +154,8 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
                             max_companies=account.max_companies),
         memberships=user_organizations(db, p.user_id),
         permissions=sorted(p.permissions),
+        scope=s.MeScope(team_id=p.scope.team_id, team_name=p.scope.team_name, trucks=len(p.scope.vehicle_ids),
+                        preview=p.preview, lead_name=p.scope.lead_name) if p.scope else None,
     )
 
 

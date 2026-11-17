@@ -84,6 +84,7 @@ def resource_router(
     archivable: bool = False, deletable: bool = True, detail: bool = True,
     list_filter: Callable[..., Any] | None = None,
     search_also: Callable[[str], list[Any]] | None = None,
+    scope: Callable[[Principal], Any] | None = None,
 ) -> APIRouter:
     """
     present        shapes a page of rows for a particular caller in one go (masking a field for some roles,
@@ -94,9 +95,16 @@ def resource_router(
                    (db, stmt, params[, principal]) -> stmt
     search_also    more conditions the search text matches, for names held in other tables (pattern) -> [cond]
     archivable     adds /archive and /restore (status 'archived' <-> 'active') for records that must not vanish
+    scope          the records the caller's dispatch team covers (principal) -> condition, or None for all;
+                   a record outside it is not found, as if it didn't exist
     """
     r = APIRouter(prefix=prefix, tags=[tag])
     redact = _redactor(audit_redact)
+
+    def visible(db: Session, p: Principal, item_id: uuid.UUID) -> None:
+        clause = scope(p) if scope else None
+        if clause is not None and not db.scalar(select(model.id).where(model.id == item_id, clause)):
+            raise NotFound(f"{label.capitalize()} not found")
 
     def show_all(db: Session, rows: list, p: Principal) -> list:
         return present(db, rows, p) if present else rows
@@ -109,6 +117,9 @@ def resource_router(
     def list_(params: Annotated[list_params, Query()], p: Principal = Depends(require(read_perm)),
               db: Session = Depends(get_db)):
         stmt = apply_filters(select(model), model, params, search, search_also)
+        clause = scope(p) if scope else None
+        if clause is not None:
+            stmt = stmt.where(clause)
         if list_filter:
             stmt = list_filter(db, stmt, params, p) if _arity(list_filter) > 3 else list_filter(db, stmt, params)
         rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, default_sort), model.id,
@@ -118,6 +129,7 @@ def resource_router(
     if detail:
         @r.get("/{item_id}", response_model=read_schema, summary=f"Get one {label}")
         def get_(item_id: uuid.UUID, p: Principal = Depends(require(read_perm)), db: Session = Depends(get_db)):
+            visible(db, p, item_id)
             return show(db, get_or_404(db, model, item_id, label.capitalize()), p)
 
     @r.post("", response_model=read_schema, status_code=201, summary=f"Create a {label}")
@@ -135,6 +147,7 @@ def resource_router(
     @r.patch("/{item_id}", response_model=read_schema, summary=f"Update a {label}")
     def update_(item_id: uuid.UUID, body: update_schema, p: Principal = Depends(require(write_perm)),
                 db: Session = Depends(get_db)):
+        visible(db, p, item_id)
         obj = get_or_404(db, model, item_id, label.capitalize())
         changes = body.model_dump(exclude_unset=True)
         if before_save:
@@ -148,6 +161,7 @@ def resource_router(
 
     if archivable:
         def _set_status(item_id: uuid.UUID, status: str, action: str, p: Principal, db: Session):
+            visible(db, p, item_id)
             obj = get_or_404(db, model, item_id, label.capitalize())
             if obj.status == status:
                 return show(db, obj, p)
@@ -170,6 +184,7 @@ def resource_router(
     if deletable:
         @r.delete("/{item_id}", status_code=204, summary=f"Delete a {label} that nothing refers to")
         def delete_(item_id: uuid.UUID, p: Principal = Depends(require(write_perm)), db: Session = Depends(get_db)):
+            visible(db, p, item_id)
             obj = get_or_404(db, model, item_id, label.capitalize())
             if before_delete:
                 before_delete(db, p, obj)
@@ -185,7 +200,7 @@ def child_router(
     *, prefix: str, tag: str, entity: str, label: str, model, parent_model, parent_fk: str, parent_label: str,
     create_schema, update_schema, read_schema, read_perm: str, write_perm: str, order_by=None,
     before_save: Hook | None = None, parent_guard: Guard | None = None, after_save: Guard | None = None,
-    after_change: Guard | None = None,
+    after_change: Guard | None = None, parent_scope: Callable[[Principal], Any] | None = None,
 ) -> APIRouter:
     """Records under a parent, e.g. prefix="/customers/{parent_id}/contacts".
 
@@ -196,7 +211,10 @@ def child_router(
     r = APIRouter(prefix=prefix, tags=[tag])
     fk = getattr(model, parent_fk)
 
-    def _parent(db: Session, parent_id: uuid.UUID, *, lock: bool = False):
+    def _parent(db: Session, parent_id: uuid.UUID, p: Principal | None = None, *, lock: bool = False):
+        clause = parent_scope(p) if parent_scope and p is not None else None
+        if clause is not None and not db.scalar(select(parent_model.id).where(parent_model.id == parent_id, clause)):
+            raise NotFound(f"{parent_label} not found")
         if not lock:
             return get_or_404(db, parent_model, parent_id, parent_label)
         # Writers queue on the parent row, so totals worked out from the children are never based on a
@@ -214,7 +232,7 @@ def child_router(
 
     @r.get("", response_model=list[read_schema], summary=f"List a {parent_label.lower()}'s {label}s")
     def list_(parent_id: uuid.UUID, p: Principal = Depends(require(read_perm)), db: Session = Depends(get_db)):
-        _parent(db, parent_id)
+        _parent(db, parent_id, p)
         ordering = order_by if order_by is not None else model.created_at
         columns = ordering if isinstance(ordering, tuple | list) else (ordering,)
         return list(db.scalars(select(model).where(fk == parent_id).order_by(*columns, model.id)))
@@ -222,7 +240,7 @@ def child_router(
     @r.post("", response_model=read_schema, status_code=201, summary=f"Add a {label}")
     def create_(parent_id: uuid.UUID, body: create_schema, p: Principal = Depends(require(write_perm)),
                 db: Session = Depends(get_db)):
-        parent = _parent(db, parent_id, lock=True)
+        parent = _parent(db, parent_id, p, lock=True)
         if parent_guard:
             parent_guard(db, p, parent)
         data = body.model_dump()
@@ -242,7 +260,7 @@ def child_router(
     @r.patch("/{item_id}", response_model=read_schema, summary=f"Update a {label}")
     def update_(parent_id: uuid.UUID, item_id: uuid.UUID, body: update_schema,
                 p: Principal = Depends(require(write_perm)), db: Session = Depends(get_db)):
-        parent = _parent(db, parent_id, lock=True)
+        parent = _parent(db, parent_id, p, lock=True)
         if parent_guard:
             parent_guard(db, p, parent)
         obj = _child(db, parent_id, item_id)
@@ -263,7 +281,7 @@ def child_router(
     @r.delete("/{item_id}", status_code=204, summary=f"Remove a {label}")
     def delete_(parent_id: uuid.UUID, item_id: uuid.UUID, p: Principal = Depends(require(write_perm)),
                 db: Session = Depends(get_db)):
-        parent = _parent(db, parent_id, lock=True)
+        parent = _parent(db, parent_id, p, lock=True)
         if parent_guard:
             parent_guard(db, p, parent)
         obj = _child(db, parent_id, item_id)

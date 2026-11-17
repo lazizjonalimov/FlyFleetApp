@@ -5,9 +5,10 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import String, Uuid, cast, func, literal, select, union_all
+from sqlalchemy import String, Uuid, and_, cast, func, literal, or_, select, union_all
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.crud import ListParams, like
 from app.core.deps import Principal, get_db, require
 from app.core.pagination import Page, envelope, paginate, parse_sort
@@ -91,6 +92,15 @@ def items():
     return union_all(*parts).subquery("items")
 
 
+def scoped(t, scope):
+    """The items a dispatch team's dispatcher sees: its drivers' and trucks', and every trailer's."""
+    drivers, trucks = team_scope.drivers(scope, t.c.entity_id), team_scope.vehicles(scope, t.c.entity_id)
+    if drivers is None:
+        return None
+    return or_(t.c.entity_type == "trailer", and_(t.c.entity_type == "driver", drivers),
+               and_(t.c.entity_type == "vehicle", trucks))
+
+
 def _state(expires_on: date | None, today: date) -> tuple[State, int | None]:
     if expires_on is None:
         return "missing", None
@@ -105,7 +115,7 @@ def expirations(params: Annotated[ExpirationParams, Query()], p: Principal = Dep
     today = p.today()
     horizon = today + timedelta(days=params.within_days)
     t = items()
-    stmt = select(t)
+    stmt = team_scope.where(select(t), scoped(t, p.scope))
     if params.state == "expired":
         stmt = stmt.where(t.c.expires_on < today)
     elif params.state == "expiring":
@@ -135,7 +145,7 @@ def expirations(params: Annotated[ExpirationParams, Query()], p: Principal = Dep
     return envelope(out, info)
 
 
-def summary_counts(db: Session, today: date) -> SafetySummary:
+def summary_counts(db: Session, today: date, scope=None) -> SafetySummary:
     t = items()
     horizon = today + timedelta(days=WARN_DAYS)
     expired = t.c.expires_on < today
@@ -146,13 +156,13 @@ def summary_counts(db: Session, today: date) -> SafetySummary:
         func.count().filter(t.c.expires_on.is_(None)),
         func.count(func.distinct(t.c.entity_id)).filter(blocked, t.c.entity_type == "driver"),
         func.count(func.distinct(t.c.entity_id)).filter(blocked, t.c.entity_type != "driver"),
-    ).select_from(t)).one()
+    ).select_from(t).where(scoped(t, scope) if scope is not None else t.c.entity_id.is_not(None))).one()
     return SafetySummary(expired=row[0], expiring=row[1], missing=row[2], drivers_blocked=row[3], units_blocked=row[4])
 
 
 @router.get("/summary", response_model=SafetySummary)
 def summary(p: Principal = Depends(require("safety.read")), db: Session = Depends(get_db)):
-    return summary_counts(db, p.today())
+    return summary_counts(db, p.today(), p.scope)
 
 
 class ExpiringDocument(BaseModel):

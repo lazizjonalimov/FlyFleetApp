@@ -553,6 +553,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dispatch-teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Teams
+         * @description Every dispatch team with its dispatchers and trucks, who is on no team, and the latest changes.
+         */
+        get: operations["list_teams_api_v1_dispatch_teams_get"];
+        put?: never;
+        /** Create Team */
+        post: operations["create_team_api_v1_dispatch_teams_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch-teams-default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Default
+         * @description What a dispatcher on no team sees: every truck, or none until they are put on a team.
+         */
+        put: operations["set_default_api_v1_dispatch_teams_default_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch-teams/{team_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Team
+         * @description Its dispatchers and trucks are left on no team.
+         */
+        delete: operations["delete_team_api_v1_dispatch_teams__team_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Team */
+        patch: operations["update_team_api_v1_dispatch_teams__team_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/dispatch-teams/{team_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Members
+         * @description The team's dispatchers. A dispatcher on another team moves to this one.
+         */
+        put: operations["set_members_api_v1_dispatch_teams__team_id__members_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch-teams/{team_id}/vehicles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Vehicles
+         * @description The team's trucks. A truck in another team moves to this one.
+         */
+        put: operations["set_vehicles_api_v1_dispatch_teams__team_id__vehicles_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dispatch/assignments": {
         parameters: {
             query?: never;
@@ -5139,6 +5241,18 @@ export interface components {
              */
             status: "sent" | "delivered" | "read" | "not_sent";
         };
+        /** DispatcherChoice */
+        DispatcherChoice: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Team Id */
+            team_id: string | null;
+        };
         /** DistinctionIn */
         DistinctionIn: {
             /**
@@ -7341,7 +7455,30 @@ export interface components {
             organization: components["schemas"]["MeOrganization"];
             /** Permissions */
             permissions: string[];
+            scope?: components["schemas"]["MeScope"] | null;
             user: components["schemas"]["MeUser"];
+        };
+        /**
+         * MeScope
+         * @description The part of the fleet this person sees, when it isn't all of it.
+         */
+        MeScope: {
+            /** Lead Name */
+            lead_name?: string | null;
+            /**
+             * Preview
+             * @description An administrator previewing what the team's dispatchers see
+             */
+            preview: boolean;
+            /**
+             * Team Id
+             * @description None for a dispatcher on no team who sees no trucks
+             */
+            team_id: string | null;
+            /** Team Name */
+            team_name: string | null;
+            /** Trucks */
+            trucks: number;
         };
         /** MeUser */
         MeUser: {
@@ -7566,6 +7703,13 @@ export interface components {
             status: string;
             /** Title */
             title: string;
+        };
+        /** NoTeam */
+        NoTeam: {
+            /** Dispatchers */
+            dispatchers: components["schemas"]["TeamDispatcher"][];
+            /** Vehicles */
+            vehicles: number;
         };
         /** NotDuplicate */
         NotDuplicate: {
@@ -10657,6 +10801,133 @@ export interface components {
             /** Name */
             name: string | null;
         };
+        /** TeamChange */
+        TeamChange: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** What */
+            what: string;
+            /** Who */
+            who: string;
+        };
+        /** TeamDefaultIn */
+        TeamDefaultIn: {
+            /**
+             * Dispatchers Without Team
+             * @enum {string}
+             */
+            dispatchers_without_team: "all" | "none";
+        };
+        /** TeamDispatcher */
+        TeamDispatcher: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead */
+            lead: boolean;
+            /** Name */
+            name: string;
+        };
+        /** TeamIn */
+        TeamIn: {
+            /** Color */
+            color?: string | null;
+            /** Lead User Id */
+            lead_user_id?: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Unassigned Loads
+             * @default tagged
+             * @enum {string}
+             */
+            unassigned_loads: "tagged" | "shared";
+            /** User Ids */
+            user_ids?: string[];
+            /** Vehicle Ids */
+            vehicle_ids?: string[];
+        };
+        /** TeamMembersIn */
+        TeamMembersIn: {
+            /** Lead User Id */
+            lead_user_id?: string | null;
+            /** User Ids */
+            user_ids: string[];
+        };
+        /** TeamOut */
+        TeamOut: {
+            /** Color */
+            color: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Name */
+            created_by_name: string | null;
+            /** Dispatchers */
+            dispatchers: components["schemas"]["TeamDispatcher"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead User Id */
+            lead_user_id: string | null;
+            /** Name */
+            name: string;
+            /** Open Loads */
+            open_loads: number;
+            /**
+             * Unassigned Loads
+             * @enum {string}
+             */
+            unassigned_loads: "tagged" | "shared";
+            /** Vehicles */
+            vehicles: components["schemas"]["TeamTruck"][];
+            /** Version */
+            version: number;
+        };
+        /** TeamPatch */
+        TeamPatch: {
+            /**
+             * Clear Lead
+             * @default false
+             */
+            clear_lead: boolean;
+            /** Color */
+            color?: string | null;
+            /** Lead User Id */
+            lead_user_id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Unassigned Loads */
+            unassigned_loads?: ("tagged" | "shared") | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** TeamTruck */
+        TeamTruck: {
+            /** Driver Name */
+            driver_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Unit Number */
+            unit_number: string;
+        };
+        /** TeamTrucksIn */
+        TeamTrucksIn: {
+            /** Vehicle Ids */
+            vehicle_ids: string[];
+        };
         /** Teammate */
         Teammate: {
             /**
@@ -10668,6 +10939,27 @@ export interface components {
             name: string;
             /** Role */
             role: string;
+        };
+        /** TeamsOverview */
+        TeamsOverview: {
+            /** Changes */
+            changes: components["schemas"]["TeamChange"][];
+            /** Colors */
+            colors: string[];
+            /** Dispatchers */
+            dispatchers: components["schemas"]["DispatcherChoice"][];
+            /**
+             * Dispatchers Without Team
+             * @enum {string}
+             */
+            dispatchers_without_team: "all" | "none";
+            no_team: components["schemas"]["NoTeam"];
+            /** Teams */
+            teams: components["schemas"]["TeamOut"][];
+            /** Total Vehicles */
+            total_vehicles: number;
+            /** Trucks */
+            trucks: components["schemas"]["TruckChoice"][];
         };
         /** TerminalCreate */
         TerminalCreate: {
@@ -11321,6 +11613,20 @@ export interface components {
              * Format: uuid
              */
             vehicle_id: string;
+        };
+        /** TruckChoice */
+        TruckChoice: {
+            /** Driver Name */
+            driver_name: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Team Id */
+            team_id: string | null;
+            /** Unit Number */
+            unit_number: string;
         };
         /** TruckFuel */
         TruckFuel: {
@@ -14859,6 +15165,489 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_teams_api_v1_dispatch_teams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_team_api_v1_dispatch_teams_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_default_api_v1_dispatch_teams_default_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamDefaultIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_team_api_v1_dispatch_teams__team_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_team_api_v1_dispatch_teams__team_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_members_api_v1_dispatch_teams__team_id__members_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamMembersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_vehicles_api_v1_dispatch_teams__team_id__vehicles_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                team_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamTrucksIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeamsOverview"];
                 };
             };
             /** @description Unauthorized */

@@ -168,12 +168,18 @@ def check_trio(db: Session, load: Load, driver: Driver, vehicle: Vehicle, traile
 
 
 def evaluate(db: Session, load: Load, today: date, now: datetime, *, q: str | None = None,
-             terminal_id: uuid.UUID | None = None, limit: int = 200) -> EligibleResources:
-    """Every driver, truck and trailer that could be considered for the load, eligible ones first."""
+             terminal_id: uuid.UUID | None = None, limit: int = 200, scope=None) -> EligibleResources:
+    """Every driver, truck and trailer that could be considered for the load, eligible ones first. A dispatch
+    team's dispatcher is offered the team's trucks and the drivers on them."""
+    from app.core import scope as team_scope
     held = commitments(db, load)
 
     def pick(model, search: tuple, order):
         stmt = select(model).where(model.status.notin_(("terminated", "retired")))
+        if model is Vehicle:
+            stmt = team_scope.where(stmt, team_scope.vehicles(scope, Vehicle.id))
+        elif model is Driver:
+            stmt = team_scope.where(stmt, team_scope.drivers(scope, Driver.id))
         if terminal_id:
             stmt = stmt.where(model.terminal_id == terminal_id)
         if q:

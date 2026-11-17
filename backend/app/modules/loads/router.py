@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.crud import child_router
 from app.core.deps import Principal, get_db, require
 from app.core.idempotency import run_idempotent
@@ -50,7 +51,7 @@ def update_load(load_id: uuid.UUID, body: s.LoadUpdate, p: Principal = Depends(r
 def transition(load_id: uuid.UUID, body: s.TransitionIn, p: Principal = Depends(require("loads.read")),
                db: Session = Depends(get_db)):
     """Move a load through its lifecycle. The action decides which permission is needed."""
-    load = service.lock_load(db, load_id)
+    load = service.lock_load(db, load_id, p)
     service.check_version(load, body.version)
     service.transition(db, p, load, body.action, reason=body.reason, stop_id=body.stop_id,
                        occurred_at=body.occurred_at)
@@ -107,9 +108,10 @@ router.include_router(child_router(
     prefix="/loads/{parent_id}/items", tag="loads", entity="load_item", label="item", model=LoadItem,
     parent_model=Load, parent_fk="load_id", parent_label="Load", create_schema=s.ItemIn, update_schema=s.ItemPatch,
     read_schema=s.ItemOut, read_perm="loads.read", write_perm="loads.update", parent_guard=service.guard_open,
-    after_change=service.after_item_change))
+    after_change=service.after_item_change, parent_scope=lambda p: team_scope.loads(p.scope)))
 router.include_router(child_router(
     prefix="/loads/{parent_id}/charges", tag="loads", entity="load_charge", label="charge", model=LoadCharge,
     parent_model=Load, parent_fk="load_id", parent_label="Load", create_schema=s.ChargeIn,
     update_schema=s.ChargePatch, read_schema=s.ChargeOut, read_perm="loads.rates.read", write_perm="loads.update",
-    before_save=_prepare_charge, parent_guard=service.guard_rates, after_change=service.after_charge_change))
+    before_save=_prepare_charge, parent_guard=service.guard_rates, after_change=service.after_charge_change,
+    parent_scope=lambda p: team_scope.loads(p.scope)))

@@ -4,10 +4,15 @@ import { clsx } from "clsx";
 import { Icon } from "@/components/ui/icon";
 import { signOut } from "@/features/auth/switch-organization";
 import { useConsole } from "@/features/console/console-provider";
+import { plural } from "@/lib/format/text";
 
 /** Search, Ask FlyFleet, Create, help, notifications and the account menu. */
 export function TopBar() {
-  const { toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT } = useConsole();
+  const { me, toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT } = useConsole();
+  // A dispatch team's dispatcher sees only the team's trucks; the chip says so wherever they are.
+  const scope = me.scope;
+  const scopeLabel = scope ? (scope.team_name ? `${scope.team_name} · ${plural(scope.trucks, "truck")}` : "No team · no trucks") : "";
+  const scopeTip = scope ? (scope.team_name ? `You see only ${scope.team_name}’s trucks and the loads, drivers and alerts on them` : "You’re on no dispatch team, and the company has set dispatchers on no team to see no trucks") : "";
   return (
     <header className="tb">
       <button className="btn ghost icon hdtog" onClick={toggleSb} aria-label={sbLabel} title={sbLabel} aria-expanded={sbExp}><Icon d={sbIcon} /></button>
@@ -16,6 +21,12 @@ export function TopBar() {
         <span className="f1 ell">Search loads, drivers, trucks, invoices…</span>
         <span className="kbd">⌘K</span>
       </button>
+      {scope ? (
+        <span className="scope" title={scopeTip}>
+          <Icon className="s14" d={I.truck} />
+          {scopeLabel}
+        </span>
+      ) : null}
       <span className="sp"></span>
       <button className={clsx("btn ghost", aiOn)} onClick={toggleAI}>
         <Icon className="s14" d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15.5l.8 1.7 1.7.8-1.7.8-.8 1.7-.8-1.7-1.7-.8 1.7-.8z" />

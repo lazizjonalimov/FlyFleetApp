@@ -4,7 +4,7 @@ import { API_URL, SESSION_COOKIE, clearSession, errorResponse, sameOrigin } from
 // The browser-facing side of the API: /api/v1/<path> here forwards to /api/v1/<path> on the API, attaching
 // the bearer token from the httpOnly session cookie. It adds no business rules of its own; the API decides
 // everything again for itself.
-const FORWARD_REQUEST = ["content-type", "idempotency-key", "x-request-id", "accept"];
+const FORWARD_REQUEST = ["content-type", "idempotency-key", "x-request-id", "accept", "x-preview-team"];
 const FORWARD_RESPONSE = ["content-type", "content-disposition", "content-security-policy", "x-content-type-options", "x-request-id", "idempotent-replay"];
 
 // These API endpoints answer with an access token. They are reachable only through /api/auth/*, which keeps

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import case, func, literal, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.crud import like
 from app.core.deps import Principal, get_db, get_principal, require
@@ -93,14 +94,16 @@ def _delivered_totals(db: Session, start, end) -> tuple[int, int, Decimal]:
     return row[0], int(row[1]), Decimal(row[2])
 
 
-def _fleet(db: Session) -> Fleet:
-    busy = (select(DispatchAssignment.driver_id, DispatchAssignment.vehicle_id)
-            .join(Load, Load.id == DispatchAssignment.load_id)
-            .where(DispatchAssignment.status == "active", Load.status.in_(loads.ROLLING)).subquery())
-    drivers = db.execute(select(func.count().filter(Driver.status == "active")).select_from(Driver)).scalar_one()
-    trucks = db.execute(select(func.count().filter(Vehicle.status == "active"),
-                               func.count().filter(Vehicle.status.in_(("in_maintenance", "out_of_service"))))
-                        .select_from(Vehicle)).one()
+def _fleet(db: Session, p: Principal) -> Fleet:
+    busy = team_scope.where(select(DispatchAssignment.driver_id, DispatchAssignment.vehicle_id)
+                            .join(Load, Load.id == DispatchAssignment.load_id)
+                            .where(DispatchAssignment.status == "active", Load.status.in_(loads.ROLLING)),
+                            team_scope.vehicles(p.scope, DispatchAssignment.vehicle_id)).subquery()
+    drivers = db.execute(team_scope.where(select(func.count().filter(Driver.status == "active")).select_from(Driver),
+                                          team_scope.drivers(p.scope, Driver.id))).scalar_one()
+    trucks = db.execute(team_scope.where(select(func.count().filter(Vehicle.status == "active"),
+                                                func.count().filter(Vehicle.status.in_(("in_maintenance", "out_of_service"))))
+                                         .select_from(Vehicle), team_scope.vehicles(p.scope, Vehicle.id))).one()
     trailers = db.execute(select(func.count().filter(Trailer.status == "active")).select_from(Trailer)).scalar_one()
     on_load = db.execute(select(func.count(func.distinct(busy.c.driver_id)),
                                 func.count(func.distinct(busy.c.vehicle_id))).select_from(busy)).one()
@@ -115,9 +118,9 @@ def dashboard_summary(terminal_id: uuid.UUID | None = None, p: Principal = Depen
     if p.can("loads.read"):
         out.loads = loads.board_summary(db, p, terminal_id)
     if p.can("drivers.read") and p.can("equipment.read"):
-        out.fleet = _fleet(db)
+        out.fleet = _fleet(db, p)
     if p.can("safety.read"):
-        out.safety = summary_counts(db, p.today())
+        out.safety = summary_counts(db, p.today(), p.scope)
     if p.can("invoices.read"):
         out.receivables = finance.receivables(db, p)
     if p.can("loads.rates.read"):
@@ -145,14 +148,15 @@ def dashboard_exceptions(p: Principal = Depends(require("dashboard.read")), db: 
             "Planned loads with nobody assigned", "loads", view="unassigned")
         add(board.missing_pod, "MISSING_POD", "medium", "Delivered without proof of delivery",
             "Upload the signed paperwork so these can be completed and invoiced", "loads", view="missing_pod")
-        waiting = db.scalar(select(func.count()).select_from(Load).where(Load.status == "pod_review"))
+        waiting = db.scalar(team_scope.where(select(func.count()).select_from(Load).where(Load.status == "pod_review"),
+                                             team_scope.loads(p.scope)))
         if p.can("loads.close"):
             add(waiting, "POD_REVIEW", "medium", "Proof of delivery to review",
                 "Approve or send back, so the load can be invoiced", "loads", status="pod_review")
         add(board.on_hold, "LOADS_ON_HOLD", "low", "Loads on hold", "Held loads keep their driver and equipment",
             "loads", status="on_hold")
     if p.can("safety.read"):
-        safety = summary_counts(db, p.today())
+        safety = summary_counts(db, p.today(), p.scope)
         add(safety.drivers_blocked, "DRIVERS_BLOCKED", "high", "Drivers who can't be dispatched",
             "An expired licence, medical card or required qualification", "safety",
             state="expired", entity_type="driver")
@@ -202,9 +206,13 @@ def search(q: str = Query(min_length=2, max_length=100), limit: int = Query(defa
     pattern = like(q.strip())
     out: list[SearchResult] = []
 
+    # A dispatch team's dispatcher finds only the team's loads, drivers and trucks.
+    scoped = {"load": team_scope.loads(p.scope), "driver": team_scope.drivers(p.scope, Driver.id),
+              "vehicle": team_scope.vehicles(p.scope, Vehicle.id)}
+
     def run(permission: str, kind: str, stmt, title, subtitle) -> None:
         if p.can(permission):
-            for row in db.scalars(stmt.limit(limit)):
+            for row in db.scalars(team_scope.where(stmt, scoped.get(kind)).limit(limit)):
                 out.append(SearchResult(type=kind, id=row.id, title=title(row), subtitle=subtitle(row)))
 
     run("loads.read", "load",
@@ -325,6 +333,7 @@ def revenue_report(group_by: Literal["customer", "month", "terminal"] = "custome
                                func.coalesce(func.sum(Load.miles), 0).label("miles"), amount.label("revenue"))
             .where(Load.status.in_(DELIVERED), Load.delivered_at >= lo, Load.delivered_at < hi)
             .group_by(key).order_by(key if group_by == "month" else amount.desc()))
+    stmt = team_scope.where(stmt, team_scope.loads(p.scope))
     rows = [{"label": r.label, "loads": r.loads, "miles": int(r.miles), "revenue": money(r.revenue),
              "revenue_per_mile": _per_mile(Decimal(r.revenue), int(r.miles))} for r in db.execute(stmt)]
     total_miles, total = sum(r["miles"] for r in rows), sum((r["revenue"] for r in rows), ZERO)
@@ -365,6 +374,8 @@ def _hauled(db: Session, p: Principal, by: Literal["driver", "vehicle"], date_fr
             .join(entity, on).outerjoin(last, last.c.load_id == Load.id)
             .where(Load.status.in_(DELIVERED), Load.delivered_at >= lo, Load.delivered_at < hi)
             .group_by(entity_id, label).order_by(func.count().desc(), label))
+    # A dispatch team's dispatcher sees the team's trucks and the work done on them.
+    stmt = team_scope.where(stmt, team_scope.vehicles(p.scope, DispatchAssignment.vehicle_id))
     rows = []
     for r in db.execute(stmt):
         row = {"label": r.label, "loads": r.loads, "miles": int(r.miles),

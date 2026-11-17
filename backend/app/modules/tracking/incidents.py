@@ -15,6 +15,7 @@ from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from app.core import places
+from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.deps import Principal
 from app.core.errors import Conflict, Invalid
@@ -76,9 +77,25 @@ def _event(db: Session, row: Incident, kind: str, at: datetime, text_: str, tone
                          tone=tone, actor_user_id=actor))
 
 
-def _people(db: Session, role: str) -> list[tuple[uuid.UUID, str]]:
-    return list(db.execute(select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
-                           .where(Membership.role == role, Membership.active.is_(True)).order_by(User.full_name)).all())
+def _people(db: Session, role: str, row: Incident | None = None) -> list[tuple[uuid.UUID, str]]:
+    stmt = (select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
+            .where(Membership.role == role, Membership.active.is_(True)).order_by(User.full_name))
+    if role == "dispatcher" and row is not None:
+        # The dispatchers who can see it: the team that holds the truck (or the load), else those on no team.
+        from app.modules.teams.models import DispatchTeamMember, DispatchTeamVehicle
+        team = db.scalar(select(DispatchTeamVehicle.team_id).where(DispatchTeamVehicle.vehicle_id == row.vehicle_id)) \
+            if row.vehicle_id else None
+        if team is None and row.load_id:
+            team = db.scalar(select(Load.dispatch_team_id).where(Load.id == row.load_id))
+        on_team = select(DispatchTeamMember.user_id)
+        if team is not None:
+            found = list(db.execute(stmt.where(User.id.in_(on_team.where(DispatchTeamMember.team_id == team)))).all())
+            if found:
+                return found
+        everything = db.scalar(select(Organization.dispatchers_without_team).where(
+            Organization.id == row.organization_id)) == "all"
+        return list(db.execute(stmt.where(User.id.notin_(on_team)))) if everything else []
+    return list(db.execute(stmt).all())
 
 
 def _who(db: Session, row: Incident, who: str) -> tuple[uuid.UUID | None, str | None]:
@@ -94,7 +111,7 @@ def _who(db: Session, row: Incident, who: str) -> tuple[uuid.UUID | None, str | 
     role = {"dispatcher_on_duty": "dispatcher", "safety_manager": "safety_manager",
             "fleet_manager": "fleet_manager"}.get(who)
     if role:
-        found = _people(db, role) or _people(db, "admin") or _people(db, "owner")
+        found = _people(db, role, row) or _people(db, "admin") or _people(db, "owner")
         if found:
             return found[0]
     return None, None
@@ -587,4 +604,6 @@ def visible(stmt, p: Principal):
         kinds |= {"documents"}
     if p.can("maintenance.read") or p.can("equipment.read"):
         kinds |= {"out_of_service"}
-    return stmt.where(Incident.kind.in_(sorted(kinds)) if kinds else or_(False))
+    stmt = stmt.where(Incident.kind.in_(sorted(kinds)) if kinds else or_(False))
+    # A dispatch team's dispatcher sees the alerts about the team's trucks, loads and drivers.
+    return team_scope.where(stmt, team_scope.incidents(p.scope))

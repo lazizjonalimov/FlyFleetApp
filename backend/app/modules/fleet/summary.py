@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.deps import Principal, get_db, require
 from app.modules.dispatch.models import DispatchAssignment
 from app.modules.drivers.models import Driver, DriverQualification
@@ -139,7 +140,7 @@ def _place_of(db: Session, units, terminals: dict[uuid.UUID, str], col) -> dict[
 
 @router.get("/vehicles/summary", response_model=TruckSummary, summary="The trucks table's figures and filter values")
 def truck_summary(p: Principal = Depends(require("equipment.read")), db: Session = Depends(get_db)):
-    trucks = list(db.scalars(select(Vehicle)))
+    trucks = list(db.scalars(team_scope.where(select(Vehicle), team_scope.vehicles(p.scope, Vehicle.id))))
     busy = _busy_ids(db, DispatchAssignment.vehicle_id)
     owners = _owners_of(db, EquipmentOwnership.vehicle_id) if p.can("owners.read") else {}
     active = [v for v in trucks if v.status == "active"]
@@ -221,7 +222,7 @@ def trailer_summary(p: Principal = Depends(require("equipment.read")), db: Sessi
 
 @router.get("/drivers/summary", response_model=DriverSummary, summary="The drivers table's figures and filter values")
 def driver_summary(p: Principal = Depends(require("drivers.read")), db: Session = Depends(get_db)):
-    drivers = list(db.scalars(select(Driver)))
+    drivers = list(db.scalars(team_scope.where(select(Driver), team_scope.drivers(p.scope, Driver.id))))
     today = p.today()
     soon = today + timedelta(days=30)
     quals = list(db.scalars(select(DriverQualification)))

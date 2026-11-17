@@ -64,6 +64,8 @@ class Load(Base, IdMixin, TenantScoped, TimestampMixin):
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # The dispatch team an unassigned load is tagged for: set when a team's dispatcher books it.
+    dispatch_team_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("organization_id", "load_number"),

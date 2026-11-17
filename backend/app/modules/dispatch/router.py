@@ -61,8 +61,9 @@ def eligible_resources(load_id: uuid.UUID, q: str | None = Query(default=None, m
                        terminal_id: uuid.UUID | None = None, p: Principal = Depends(require("dispatch.read")),
                        db: Session = Depends(get_db)):
     """Drivers, trucks and trailers for a load, each with the reasons it can or can't take it."""
+    loads.visible(db, p, load_id)
     load = get_or_404(db, Load, load_id, "Load")
-    return eligibility.evaluate(db, load, p.today(), datetime.now(UTC), q=q, terminal_id=terminal_id)
+    return eligibility.evaluate(db, load, p.today(), datetime.now(UTC), q=q, terminal_id=terminal_id, scope=p.scope)
 
 
 @router.post("/assignments", response_model=ls.LoadDetail, status_code=201)
@@ -70,7 +71,7 @@ def assign(body: AssignIn, p: Principal = Depends(require("dispatch.assign")), d
            idempotency_key: Annotated[str | None, Header()] = None):
     """Assign a planned load. Eligibility is checked again here, inside the transaction that books it."""
     def work():
-        load = loads.lock_load(db, body.load_id)
+        load = loads.lock_load(db, body.load_id, p)
         loads.check_version(load, body.version)
         if load.status not in loads.TRANSITIONS["assign"]:
             raise loads.illegal(load, "assign")
@@ -80,11 +81,11 @@ def assign(body: AssignIn, p: Principal = Depends(require("dispatch.assign")), d
     return run_idempotent(db, p, idempotency_key, "POST /dispatch/assignments", body.model_dump(mode="json"), work)
 
 
-def _active(db: Session, assignment_id: uuid.UUID) -> tuple[DispatchAssignment, Load]:
+def _active(db: Session, p: Principal, assignment_id: uuid.UUID) -> tuple[DispatchAssignment, Load]:
     assignment = db.get(DispatchAssignment, assignment_id)
     if assignment is None:
         raise NotFound("Assignment not found")
-    load = loads.lock_load(db, assignment.load_id)
+    load = loads.lock_load(db, assignment.load_id, p)
     db.refresh(assignment)
     if assignment.status != "active":
         raise Conflict("This assignment has already been replaced or released. Refresh to see the current one.",
@@ -96,7 +97,7 @@ def _active(db: Session, assignment_id: uuid.UUID) -> tuple[DispatchAssignment, 
 def reassign(assignment_id: uuid.UUID, body: ReassignIn, p: Principal = Depends(require("dispatch.assign")),
              db: Session = Depends(get_db)):
     """Swap the driver, truck or trailer. The old assignment is kept as history."""
-    assignment, load = _active(db, assignment_id)
+    assignment, load = _active(db, p, assignment_id)
     loads.check_version(load, body.version)
     if load.status not in loads.REASSIGNABLE:
         raise loads.illegal(load, "reassign")
@@ -112,7 +113,7 @@ def reassign(assignment_id: uuid.UUID, body: ReassignIn, p: Principal = Depends(
 def release(assignment_id: uuid.UUID, body: ReleaseIn, p: Principal = Depends(require("dispatch.assign")),
             db: Session = Depends(get_db)):
     """Take the driver and equipment off a load that has not been dispatched. It goes back to planned."""
-    _, load = _active(db, assignment_id)
+    _, load = _active(db, p, assignment_id)
     loads.check_version(load, body.version)
     service.unassign(db, p, load, reason=body.reason)
     db.commit()

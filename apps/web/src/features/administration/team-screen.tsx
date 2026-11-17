@@ -21,10 +21,11 @@ export function TeamTabs({ current }: { current: "members" | "roles" | "teams" }
   const org = me.organization.id;
   const members = useQuery({ queryKey: [org, "members"], queryFn: () => unwrap(api.GET("/api/v1/members")), staleTime: 30_000 });
   const roles = useQuery({ queryKey: [org, "roles"], queryFn: () => unwrap(api.GET("/api/v1/roles")), staleTime: 300_000 });
+  const teams = useQuery({ queryKey: [org, "dispatch-teams"], queryFn: () => unwrap(api.GET("/api/v1/dispatch-teams")), staleTime: 30_000 });
   const tabs: [key: "members" | "roles" | "teams", label: string, n: string][] = [
     ["members", "Members", members.data ? String(members.data.filter((member) => member.active).length) : ""],
     ["roles", "Roles & permissions", roles.data ? String(roles.data.roles.length) : ""],
-    ["teams", "Dispatch teams", "0"],
+    ["teams", "Dispatch teams", teams.data ? String(teams.data.teams.length) : ""],
   ];
   return (
     <div className="tabs">

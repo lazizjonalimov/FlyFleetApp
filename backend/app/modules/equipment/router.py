@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core import scope as team_scope
 from app.core.crud import ListParams, ensure_exists, resource_router
 from app.core.deps import Principal
 from app.core.errors import Conflict, Invalid
@@ -379,7 +380,8 @@ router.include_router(resource_router(
           "make": func.coalesce(Vehicle.make, ""), "year": func.coalesce(Vehicle.year, 0),
           "odometer": func.coalesce(Vehicle.odometer, 0), "owner": _owner_name("vehicle")}, default_sort="unit_number",
     present=_presenter("vehicle", VehicleRead, VehicleCreate), before_save=_vehicle_save,
-    before_delete=_vehicle_delete, list_filter=_unit_filter("vehicle")))
+    before_delete=_vehicle_delete, list_filter=_unit_filter("vehicle"),
+    scope=lambda p: team_scope.vehicles(p.scope, Vehicle.id)))
 router.include_router(resource_router(
     prefix="/trailers", tag="equipment", entity="trailer", label="trailer", model=Trailer,
     create_schema=TrailerCreate, update_schema=TrailerUpdate, read_schema=TrailerRead,
