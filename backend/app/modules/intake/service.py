@@ -22,7 +22,9 @@ from app.modules.intake import vin as vins
 from app.modules.intake.fields import KINDS
 from app.modules.intake.models import DocumentRead
 from app.modules.intake.normalize import normalize
+from app.modules.loads import service as loads
 from app.modules.loads.models import Load
+from app.modules.maintenance.models import Inspection
 from app.modules.people import service as people
 
 SURE = 0.8
@@ -146,6 +148,9 @@ def checks(db: Session, p: Principal, r: DocumentRead) -> tuple[list[CheckOut], 
         unit = next_unit_number(db, Vehicle)
         if unit:
             suggest["unit_number"] = unit
+        trailer_unit = next_unit_number(db, Trailer)
+        if trailer_unit:
+            suggest["trailer_unit_number"] = trailer_unit
         if vin:
             d = vins.decode(vin, p.today().year)
             if d.year:
@@ -277,7 +282,7 @@ def present(db: Session, p: Principal, r: DocumentRead) -> ReadOut:
                    applied_entity_id=r.applied_entity_id, corrections=r.corrections, created_at=r.created_at)
 
 
-ENTITY_MODELS = {"driver": Driver, "vehicle": Vehicle, "trailer": Trailer, "load": Load}
+ENTITY_MODELS = {"driver": Driver, "vehicle": Vehicle, "trailer": Trailer, "load": Load, "inspection": Inspection}
 
 
 def apply(db: Session, p: Principal, r: DocumentRead, entity_type: str, entity_id: uuid.UUID,
@@ -307,6 +312,10 @@ def apply(db: Session, p: Principal, r: DocumentRead, entity_type: str, entity_i
     if not linked:
         db.add(DocumentLink(organization_id=p.org_id, document_id=r.document_id, entity_type=entity_type,
                             entity_id=entity_id))
+        doc = db.get(Document, r.document_id)
+        if doc is not None and doc.type == "pod" and entity_type == "load" and doc.review_status == "pending":
+            db.flush()
+            loads.on_pod_uploaded(db, p, entity_id)  # the same as a POD uploaded on the load
     audit(db, p, "document.read_applied", entity_type, entity_id,
           {"document_id": str(r.document_id), "kind": r.kind, "corrected": sorted(corrections)})
     return r

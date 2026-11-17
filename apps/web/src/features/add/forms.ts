@@ -1,21 +1,24 @@
 import { I } from "@/features/console/icons";
 import type { ConsoleState } from "@/features/console/state";
-import { OWNERSHIP, PAY_TYPES, TRAILER_TYPES } from "@/features/fleet/labels";
 
 export type Option = [value: string, label: string];
 export type Field = {
   k: string;
   l: string;
   span: number;
-  type?: "text" | "date" | "number" | "money" | "select" | "textarea" | "email" | "check" | "loads" | "password";
-  /** Fixed choices, or the name of a list the modal loads from the API. */
-  options?: Option[] | "customers" | "drivers" | "vehicles" | "trailers" | "units" | "terminals" | "invoices" | "roles";
+  type?: "text" | "date" | "number" | "money" | "select" | "textarea" | "email" | "check" | "loads" | "password" | "combo" | "seg";
+  /** Fixed choices, or the name of a list the modal loads from the API (or the product's reference lists). */
+  options?: Option[] | "customers" | "drivers" | "vehicles" | "trailers" | "units" | "terminals" | "invoices" | "roles" | "states" | "truckMakes" | "trailerMakes" | "trailerTypes" | "owners";
   required?: boolean;
   mono?: boolean;
   hint?: string;
   /** Shown only when editing, or only when adding. */
   only?: "edit" | "add";
   placeholder?: string;
+  /** The section heading the field sits under, as the design groups the form. */
+  group?: string;
+  /** A list that also takes a typed value: the entry's title and detail, and the box's label and placeholder. */
+  other?: { title: string; detail: string; label: string; ph: string };
 };
 export type Values = Record<string, string | boolean | string[]>;
 export type Kind = {
@@ -30,7 +33,7 @@ export type Kind = {
 
 const STATES_HINT = "Two letters, like IL";
 const STATUS: Option[] = [["active", "Active"], ["in_maintenance", "In the shop"], ["out_of_service", "Out of service"], ["retired", "Retired"]];
-const papers: Field[] = [
+export const papers: Field[] = [
   { k: "registration_expiry", l: "Registration expires", span: 2, type: "date" },
   { k: "insurance_expiry", l: "Insurance expires", span: 2, type: "date" },
   { k: "inspection_expiry", l: "Annual inspection expires", span: 2, type: "date" },
@@ -39,76 +42,85 @@ const papers: Field[] = [
 export const KINDS: Record<string, Kind> = {
   driver: {
     title: (editing) => (editing ? "Edit driver" : "Add a driver"),
-    sub: "Their licence, medical card and pay settings decide whether they can be dispatched",
+    sub: "Enter manually",
     icon: I.user,
     permission: "drivers.manage",
-    defaults: { driver_type: "company", pay_type: "per_mile", pay_rate: "0", status: "active" },
+    defaults: { driver_type: "company", pay_type: "per_mile", pay_rate: "0", status: "active", cdl_class: "A" },
     fields: [
-      { k: "first_name", l: "First name", span: 3, required: true },
-      { k: "last_name", l: "Last name", span: 3, required: true },
-      { k: "driver_type", l: "Works as", span: 2, type: "select", options: [["company", "Company driver"], ["owner_operator", "Owner-operator"], ["contractor", "Contractor"]], required: true },
-      { k: "status", l: "Status", span: 2, type: "select", options: [["active", "Active"], ["inactive", "Inactive"], ["terminated", "Terminated"]], only: "edit" },
-      { k: "employee_number", l: "Employee ID", span: 2, mono: true },
-      { k: "phone", l: "Mobile", span: 2 },
-      { k: "email", l: "Email", span: 2, type: "email" },
-      { k: "hire_date", l: "Hired", span: 2, type: "date" },
-      { k: "terminal_id", l: "Terminal", span: 2, type: "select", options: "terminals" },
-      { k: "cdl_number", l: "CDL number", span: 2, mono: true },
-      { k: "cdl_state", l: "CDL state", span: 1, mono: true, hint: STATES_HINT },
-      { k: "cdl_class", l: "Class", span: 1, type: "select", options: [["", "—"], ["A", "A"], ["B", "B"], ["C", "C"]] },
-      { k: "cdl_expiry", l: "CDL expires", span: 2, type: "date" },
-      { k: "medical_cert_expiry", l: "Medical card expires", span: 2, type: "date" },
-      { k: "pay_type", l: "Pay type", span: 2, type: "select", options: Object.entries(PAY_TYPES) as Option[], required: true },
-      { k: "pay_rate", l: "Pay rate", span: 2, type: "money", required: true, hint: "Per mile, percent of the load, or per load" },
+      { k: "first_name", l: "First name", span: 3, required: true, group: "Driver" },
+      { k: "last_name", l: "Last name", span: 3, required: true, group: "Driver" },
+      { k: "phone", l: "Mobile phone", span: 3, mono: true, placeholder: "(555) 555-0100", group: "Driver" },
+      { k: "email", l: "Email", span: 3, type: "email", placeholder: "name@example.com", group: "Driver" },
+      { k: "cdl_number", l: "CDL number", span: 2, mono: true, group: "License" },
+      { k: "cdl_state", l: "Issuing state", span: 2, type: "combo", options: "states", group: "License" },
+      { k: "cdl_class", l: "Class", span: 2, type: "seg", options: [["A", "A"], ["B", "B"], ["C", "C"]], group: "License" },
+      { k: "endorsements", l: "Endorsements", span: 2, placeholder: "e.g. N, H", group: "License" },
+      { k: "cdl_expiry", l: "CDL expires", span: 2, type: "date", group: "License" },
+      { k: "medical_cert_expiry", l: "Medical card expires", span: 2, type: "date", group: "License" },
+      { k: "hire_date", l: "Hire date", span: 2, type: "date", group: "Employment" },
+      { k: "driver_type", l: "Works as", span: 2, type: "select", options: [["company", "Company driver"], ["owner_operator", "Owner-operator"], ["contractor", "Contractor"]], required: true, group: "Employment" },
+      { k: "employee_number", l: "Employee ID", span: 2, mono: true, group: "Employment" },
+      { k: "status", l: "Status", span: 2, type: "select", options: [["active", "Active"], ["inactive", "Inactive"], ["terminated", "Terminated"]], only: "edit", group: "Employment" },
+      { k: "terminal_id", l: "Terminal", span: 2, type: "select", options: "terminals", group: "Employment" },
+      { k: "pay_type", l: "Pay basis", span: 4, type: "seg", options: [["per_mile", "Per mile"], ["percent", "% of load"], ["flat", "Flat per load"]], required: true, group: "Employment" },
+      { k: "pay_rate", l: "Pay rate", span: 2, type: "money", required: true, hint: "Per mile, percent of the load, or per load", group: "Employment" },
     ],
   },
   truck: {
     title: (editing) => (editing ? "Edit truck" : "Add a truck"),
-    sub: "Registration, insurance and inspection dates decide whether it can be dispatched",
+    sub: "Enter manually",
     icon: I.truck,
     permission: "equipment.manage",
-    defaults: { ownership: "owned", status: "active" },
+    defaults: { ownership: "owned", status: "active", owner: "company" },
     fields: [
-      { k: "unit_number", l: "Unit number", span: 2, required: true, mono: true },
-      { k: "ownership", l: "Ownership", span: 2, type: "select", options: Object.entries(OWNERSHIP) as Option[], required: true },
-      { k: "status", l: "Status", span: 2, type: "select", options: STATUS, only: "edit" },
-      { k: "year", l: "Year", span: 1, type: "number" },
-      { k: "make", l: "Make", span: 2 },
-      { k: "model", l: "Model", span: 3 },
-      { k: "vin", l: "VIN", span: 3, mono: true },
-      { k: "plate", l: "Plate", span: 2, mono: true },
-      { k: "plate_state", l: "State", span: 1, mono: true },
-      { k: "odometer", l: "Odometer (mi)", span: 2, type: "number" },
-      { k: "terminal_id", l: "Terminal", span: 2, type: "select", options: "terminals" },
-      { k: "body", l: "Body", span: 2, placeholder: "Tractor" },
-      { k: "engine", l: "Engine", span: 3, placeholder: "Make, model and horsepower" },
-      { k: "transmission", l: "Transmission", span: 3, placeholder: "Automated manual, 12 speed" },
-      { k: "telematics_device", l: "ELD", span: 3, hint: "The ELD or telematics unit and its serial" },
-      { k: "gvwr", l: "GVWR (lb)", span: 2, type: "number" },
-      { k: "fuel_capacity_gal", l: "Fuel tanks (gal)", span: 1, type: "number" },
-      { k: "registered_owner", l: "Registered owner", span: 6, hint: "As printed on the registration" },
-      ...papers,
+      { k: "unit_number", l: "Unit number", span: 2, required: true, mono: true, group: "Unit" },
+      { k: "vin", l: "VIN", span: 4, mono: true, placeholder: "17 characters", group: "Unit" },
+      { k: "year", l: "Year", span: 2, type: "number", placeholder: "2024", group: "Unit" },
+      { k: "make", l: "Make", span: 2, type: "combo", options: "truckMakes", other: { title: "Other make", detail: "Type it in yourself", label: "Specify make", ph: "The make on the title" }, group: "Unit" },
+      { k: "model", l: "Model", span: 2, placeholder: "e.g. Cascadia 126", group: "Unit" },
+      { k: "owner", l: "Owner", span: 3, type: "combo", options: "owners", only: "add", group: "Ownership" },
+      { k: "owned_since", l: "Owned since", span: 3, type: "date", only: "add", hint: "Who drives it is set in Dispatch, separately", group: "Ownership" },
+      { k: "plate", l: "Plate", span: 2, mono: true, group: "Registration" },
+      { k: "plate_state", l: "Plate state", span: 2, type: "combo", options: "states", group: "Registration" },
+      { k: "registration_expiry", l: "Registration expires", span: 2, type: "date", group: "Registration" },
+      { k: "insurance_expiry", l: "Insurance expires", span: 2, type: "date", group: "Registration" },
+      { k: "registered_owner", l: "Registered owner", span: 4, hint: "As printed on the registration", group: "Registration" },
+      { k: "odometer", l: "Odometer", span: 2, type: "number", placeholder: "Miles", group: "Service" },
+      { k: "inspection_expiry", l: "Annual inspection due", span: 2, type: "date", group: "Service" },
+      { k: "telematics_device", l: "Telematics device", span: 2, placeholder: "ELD or GPS ID", group: "Service" },
+      { k: "terminal_id", l: "Terminal", span: 3, type: "select", options: "terminals", group: "Service" },
+      { k: "status", l: "Status", span: 3, type: "select", options: STATUS, only: "edit", group: "Service" },
+      { k: "engine", l: "Engine", span: 3, placeholder: "Make, model and horsepower", group: "Specifications" },
+      { k: "transmission", l: "Transmission", span: 3, placeholder: "Automated manual, 12 speed", group: "Specifications" },
+      { k: "body", l: "Body", span: 2, placeholder: "Tractor", group: "Specifications" },
+      { k: "gvwr", l: "GVWR (lb)", span: 2, type: "number", group: "Specifications" },
+      { k: "fuel_capacity_gal", l: "Fuel tanks (gal)", span: 2, type: "number", group: "Specifications" },
     ],
   },
   trailer: {
     title: (editing) => (editing ? "Edit trailer" : "Add a trailer"),
-    sub: "Registration, insurance and inspection dates decide whether it can be dispatched",
+    sub: "Enter manually",
     icon: I.trailer,
     permission: "equipment.manage",
-    defaults: { ownership: "owned", status: "active", type: "dry_van" },
+    defaults: { ownership: "owned", status: "active", type: "dry_van", owner: "company", length_ft: "53" },
     fields: [
-      { k: "unit_number", l: "Unit number", span: 2, required: true, mono: true },
-      { k: "type", l: "Type", span: 2, type: "select", options: Object.entries(TRAILER_TYPES) as Option[], required: true },
-      { k: "ownership", l: "Ownership", span: 2, type: "select", options: Object.entries(OWNERSHIP) as Option[], required: true },
-      { k: "status", l: "Status", span: 2, type: "select", options: STATUS, only: "edit" },
-      { k: "length_ft", l: "Length (ft)", span: 1, type: "number" },
-      { k: "year", l: "Year", span: 1, type: "number" },
-      { k: "make", l: "Make", span: 2 },
-      { k: "vin", l: "VIN", span: 3, mono: true },
-      { k: "plate", l: "Plate", span: 2, mono: true },
-      { k: "plate_state", l: "State", span: 1, mono: true },
-      { k: "terminal_id", l: "Terminal", span: 2, type: "select", options: "terminals" },
-      ...papers,
+      { k: "unit_number", l: "Unit number", span: 2, required: true, mono: true, group: "Unit" },
+      { k: "type", l: "Type", span: 2, type: "combo", options: "trailerTypes", required: true, other: { title: "Other type", detail: "Type it in yourself", label: "Specify type", ph: "e.g. End dump" }, group: "Unit" },
+      { k: "length_ft", l: "Length (ft)", span: 2, type: "number", group: "Unit" },
+      { k: "vin", l: "VIN", span: 6, mono: true, placeholder: "17 characters", group: "Unit" },
+      { k: "owner", l: "Owner", span: 3, type: "combo", options: "owners", only: "add", group: "Ownership" },
+      { k: "owned_since", l: "Owned since", span: 3, type: "date", only: "add", hint: "Who pulls it is set in Dispatch, separately", group: "Ownership" },
+      { k: "year", l: "Year", span: 2, type: "number", placeholder: "2024", group: "Registration" },
+      { k: "make", l: "Make", span: 2, type: "combo", options: "trailerMakes", other: { title: "Other make", detail: "Type it in yourself", label: "Specify make", ph: "The make on the title" }, group: "Registration" },
+      { k: "model", l: "Model", span: 2, group: "Registration" },
+      { k: "plate", l: "Plate", span: 2, mono: true, group: "Registration" },
+      { k: "plate_state", l: "Plate state", span: 2, type: "combo", options: "states", group: "Registration" },
+      { k: "registration_expiry", l: "Registration expires", span: 2, type: "date", group: "Registration" },
+      { k: "inspection_expiry", l: "Annual inspection due", span: 3, type: "date", group: "Service" },
+      { k: "tracker", l: "Tracker", span: 3, placeholder: "GPS or asset tag", group: "Service" },
+      { k: "insurance_expiry", l: "Insurance expires", span: 3, type: "date", group: "Service" },
+      { k: "terminal_id", l: "Terminal", span: 3, type: "select", options: "terminals", group: "Service" },
+      { k: "status", l: "Status", span: 3, type: "select", options: STATUS, only: "edit", group: "Service" },
     ],
   },
   customer: {

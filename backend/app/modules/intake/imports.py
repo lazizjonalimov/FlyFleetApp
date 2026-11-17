@@ -305,8 +305,6 @@ def check(db: Session, p: Principal, imp: Import) -> tuple[list[RowIssue], set[i
                     hint = "; an I may be a 1" if "I" in raw else "; an O may be a 0" if "O" in raw else ""
                     failed = "fails the check digit" if "check digit" in (d.problem or "") else "is not valid"
                     problems.append(f"VIN {failed}{hint}")
-            if imp.kind == "trailers" and v.get("type") and not equipment_type(v["type"]):
-                problems.append(f"Type “{v['type']}” isn't one FlyFleet knows; choose Other on the trailer")
             keys = [("unit", v.get("unit_number", "").upper()), ("vin", vins.clean(v.get("vin")))]
         for kind_key, value in keys:
             if not value:
@@ -396,7 +394,10 @@ def _record(imp: Import, v: dict[str, str]) -> dict:
         if key == "make":
             value = make_name(value) or value
         if key == "type":
-            value = equipment_type(value) or "other"
+            known = equipment_type(value)
+            if known is None:
+                data["type_other"] = value[:40]  # kept as the company calls it
+            value = known or "other"
         if key == "pay_type":
             low = value.lower()
             value = "percent" if "%" in low or "percent" in low else "flat" if "flat" in low or "load" in low else "per_mile"

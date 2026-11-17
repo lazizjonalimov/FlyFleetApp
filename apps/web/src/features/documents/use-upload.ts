@@ -6,11 +6,11 @@ import { useConsole } from "@/features/console/console-provider";
 import { ACCEPT, checkFile, uploadDocument, type DocumentType, type EntityType } from "@/lib/upload";
 
 /** Asks for a file with the browser's own picker. Resolves to nothing when the person cancels. */
-function pickFile(): Promise<File | null> {
+export function pickFile(accept: string = ACCEPT): Promise<File | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
-    input.accept = ACCEPT;
+    input.accept = accept;
     input.onchange = () => resolve(input.files?.[0] ?? null);
     input.oncancel = () => resolve(null);
     input.click();

@@ -60,6 +60,8 @@ class Trailer(Base, IdMixin, TenantScoped, TimestampMixin):
     __tablename__ = "trailers"
     unit_number: Mapped[str] = mapped_column(String(40))
     type: Mapped[str] = mapped_column(String(20), default="dry_van", server_default="dry_van")
+    # When the type is "other": what it is, as the company calls it (an end dump, a lowboy).
+    type_other: Mapped[str | None] = mapped_column(String(40))
     vin: Mapped[str | None] = mapped_column(String(25))
     plate: Mapped[str | None] = mapped_column(String(20))
     plate_state: Mapped[str | None] = mapped_column(String(2))

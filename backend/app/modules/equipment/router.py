@@ -144,6 +144,7 @@ class VehicleRead(VehicleCreate, UnitExtras):
 
 class TrailerCreate(UnitBase):
     type: EquipmentType = "dry_van"
+    type_other: str | None = Field(default=None, max_length=40)
     model: str | None = Field(default=None, max_length=60)
     tracker: str | None = Field(default=None, max_length=80)
     length_ft: int | None = Field(default=None, ge=1, le=100)
@@ -151,6 +152,7 @@ class TrailerCreate(UnitBase):
 
 class TrailerUpdate(UnitPatch):
     type: EquipmentType | None = None
+    type_other: str | None = Field(default=None, max_length=40)
     model: str | None = Field(default=None, max_length=60)
     tracker: str | None = Field(default=None, max_length=80)
     length_ft: int | None = Field(default=None, ge=1, le=100)

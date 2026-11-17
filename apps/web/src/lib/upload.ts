@@ -29,12 +29,12 @@ export function checkFile(file: File): string | null {
  * Upload in the three steps the API asks for: say what is coming, send the file where it says, confirm.
  * The same steps work unchanged when files go straight to cloud storage.
  */
-export async function uploadDocument({ file, type, entityType, entityId, expiresOn }: { file: File; type: DocumentType; entityType: EntityType; entityId: string; expiresOn?: string | null }): Promise<Schema<"DocumentOut">> {
+export async function uploadDocument({ file, type, entityType, entityId, expiresOn }: { file: File; type: DocumentType; entityType?: EntityType; entityId?: string; expiresOn?: string | null }): Promise<Schema<"DocumentOut">> {
   const contentType = contentTypeOf(file);
   if (!contentType) throw new Error("Upload a PDF, JPEG, PNG or WebP file");
   const intent = await unwrap(
     api.POST("/api/v1/documents/upload-intents", {
-      body: { filename: file.name, content_type: contentType, size_bytes: file.size, type, entity_type: entityType, entity_id: entityId, expires_on: expiresOn || null },
+      body: { filename: file.name, content_type: contentType, size_bytes: file.size, type, entity_type: entityType ?? null, entity_id: entityId ?? null, expires_on: expiresOn || null },
     }),
   );
   const target = intent.upload.url.startsWith("/") ? `/api/v1${intent.upload.url}` : intent.upload.url;

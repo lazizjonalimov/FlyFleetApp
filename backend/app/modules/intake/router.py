@@ -3,7 +3,7 @@ person corrected; and import drivers, trucks or trailers from a CSV or Excel fil
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -20,9 +20,10 @@ router = APIRouter(tags=["intake"])
 ReadKind = Literal["cdl", "registration", "rate_confirmation", "pod", "inspection_report", "fuel_receipt"]
 ImportKind = Literal["drivers", "trucks", "trailers"]
 # What the record made from each kind of document needs.
-NEEDS = {"cdl": "drivers.manage", "registration": "equipment.manage", "rate_confirmation": "loads.create",
-         "pod": "loads.update", "inspection_report": "maintenance.manage", "fuel_receipt": "expenses.manage"}
-IMPORT_NEEDS = {"drivers": "drivers.manage", "trucks": "equipment.manage", "trailers": "equipment.manage"}
+NEEDS = {"cdl": ("drivers.manage",), "registration": ("equipment.manage",), "rate_confirmation": ("loads.create",),
+         "pod": ("loads.update",), "inspection_report": ("safety.manage", "maintenance.manage"),
+         "fuel_receipt": ("expenses.manage",)}
+IMPORT_NEEDS = {"drivers": ("drivers.manage",), "trucks": ("equipment.manage",), "trailers": ("equipment.manage",)}
 
 
 class ReadIn(BaseModel):
@@ -31,7 +32,7 @@ class ReadIn(BaseModel):
 
 
 class ApplyIn(BaseModel):
-    entity_type: Literal["driver", "vehicle", "trailer", "load"]
+    entity_type: Literal["driver", "vehicle", "trailer", "load", "inspection"]
     entity_id: uuid.UUID
     # The values saved on the record, by field key: compared with what was read to keep the corrections.
     saved: dict[str, str | None] = Field(default_factory=dict)
@@ -51,9 +52,9 @@ class CommitIn(BaseModel):
     reminders: bool = True
 
 
-def _can(p: Principal, permission: str) -> None:
-    if not p.can(permission):
-        raise Forbidden("Your role does not allow adding these records", details={"required": [permission]})
+def _can(p: Principal, permissions: tuple[str, ...]) -> None:
+    if not any(p.can(x) for x in permissions):
+        raise Forbidden("Your role does not allow adding these records", details={"required": list(permissions)})
 
 
 @router.get("/intake/reader", response_model=ReaderOut, summary="What can be read: text PDFs always, photos when turned on")
@@ -101,6 +102,27 @@ def start_import(kind: ImportKind = Form(...), file: UploadFile = File(...),
     imp = imports.create(db, p, kind, file.filename or "import.csv", data)
     db.commit()
     return imports.view(db, p, imp)
+
+
+@router.get("/imports/template", responses={200: {"content": {"text/csv": {}, "application/octet-stream": {}}}},
+            summary="A blank file with the columns an import reads, as CSV or Excel")
+def template(kind: ImportKind, format: Literal["csv", "xlsx"] = "csv", p: Principal = Depends(require("documents.upload"))):
+    _can(p, IMPORT_NEEDS[kind])
+    headers = [c.label for c in imports.FIELDS[kind] if c.key != "full_name"]
+    if format == "csv":
+        return Response(content=("\ufeff" + ",".join(headers) + "\r\n").encode(), media_type="text/csv",
+                        headers={"Content-Disposition": f'attachment; filename="flyfleet-{kind}.csv"'})
+    import io
+
+    import openpyxl
+    book = openpyxl.Workbook()
+    book.active.title = kind.capitalize()
+    book.active.append(headers)
+    out = io.BytesIO()
+    book.save(out)
+    return Response(content=out.getvalue(),
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="flyfleet-{kind}.xlsx"'})
 
 
 @router.get("/imports/{import_id}", response_model=imports.ImportOut, summary="An import: columns, rows to look at")

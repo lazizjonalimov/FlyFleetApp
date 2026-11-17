@@ -172,3 +172,10 @@ def test_a_driver_spreadsheet_splits_names_and_flags_two_digit_years(org):
 def test_a_file_that_isnt_a_spreadsheet_is_refused(org):
     start_import(org, "trucks", "notes.csv", b"\x00\x01binary", expect=422)
     start_import(org, "trucks", "empty.csv", b"Unit,VIN\n", expect=422)
+
+
+def test_a_pdf_page_is_shown_as_an_image(org):
+    doc = upload_unattached(org, registration(valid_vin()), "registration", "reg.pdf", "application/pdf")
+    page = org.get(f"/documents/{doc['id']}/pages/1")
+    assert page.headers["content-type"] == "image/png" and page.content[:4] == b"\x89PNG"
+    org.get(f"/documents/{doc['id']}/pages/2", expect=404)

@@ -35,7 +35,7 @@ from app.modules.expenses.models import Expense
 from app.modules.finance.models import Invoice
 from app.modules.loads import service as loads
 from app.modules.loads.models import Load
-from app.modules.maintenance.models import WorkOrder
+from app.modules.maintenance.models import Inspection, WorkOrder
 from app.modules.organizations.models import User
 from app.modules.owners.models import Owner
 from app.modules.safety.rules import WARN_DAYS
@@ -45,7 +45,8 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 DocumentType = Literal["bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance",
                        "registration", "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card",
                        "ach_authorization", "other"]
-EntityType = Literal["load", "driver", "vehicle", "trailer", "customer", "invoice", "work_order", "expense", "owner"]
+EntityType = Literal["load", "driver", "vehicle", "trailer", "customer", "invoice", "work_order", "expense", "owner",
+                     "inspection"]
 
 # What a document can be attached to: the record, the permission needed to see that record, its display name.
 ENTITIES = {
@@ -58,6 +59,8 @@ ENTITIES = {
     "work_order": (WorkOrder, "maintenance.read", lambda x: f"Work order {x.number}"),
     "expense": (Expense, "expenses.read", lambda x: f"{x.category.capitalize()} expense, {x.incurred_on.isoformat()}"),
     "owner": (Owner, "owners.read", lambda x: x.legal_name or x.dba or "Owner"),
+    "inspection": (Inspection, "maintenance.read",
+                   lambda x: f"Inspection {x.report_number}" if x.report_number else f"Inspection, {x.inspected_on.isoformat()}"),
 }
 # Scans of personal identity documents: only roles that may see the numbers on them may see the scans.
 SENSITIVE = ("license", "medical")
@@ -355,6 +358,31 @@ def download(document_id: uuid.UUID, disposition: Literal["attachment", "inline"
         "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(doc.filename)}",
         "X-Content-Type-Options": "nosniff", "Cache-Control": "private, no-store",
         "Content-Security-Policy": "default-src 'none'; sandbox"})
+
+
+@router.get("/{document_id}/pages/{page}", responses={200: {"content": {"image/png": {}}}},
+            summary="One page of a PDF as an image, for viewing it next to what was read from it")
+def page_image(document_id: uuid.UUID, page: int, p: Principal = Depends(require("documents.read")),
+               db: Session = Depends(get_db)):
+    import io
+
+    import pypdfium2
+    doc = _get(db, p, document_id)
+    if doc.content_type != "application/pdf":
+        raise Invalid("Only a PDF has pages to show", field="page")
+    try:
+        pdf = pypdfium2.PdfDocument(get_storage().get(doc.storage_key))
+    except FileNotFoundError as e:
+        raise NotFound("The file is missing from storage") from e
+    except pypdfium2.PdfiumError as e:
+        raise Invalid("This PDF can't be shown", field="page") from e
+    if not 1 <= page <= len(pdf):
+        raise NotFound("No such page")
+    image = pdf[page - 1].render(scale=1.6).to_pil()
+    out = io.BytesIO()
+    image.save(out, format="PNG", optimize=True)
+    return Response(content=out.getvalue(), media_type="image/png",
+                    headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"})
 
 
 # ---------------------------------------------------------------- change

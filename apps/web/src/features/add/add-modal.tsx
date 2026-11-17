@@ -13,7 +13,16 @@ import { api, idempotencyKey, unwrap } from "@/lib/api/client";
 import { ApiError, errorMessage } from "@/lib/api/errors";
 import { formatDate, todayIn } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
+import { combo, type ComboOption } from "@/components/forms/combo";
+import { Combobox } from "@/components/forms/combobox";
+import { TRAILER_TYPES } from "@/features/fleet/labels";
+import { TRAILER_MAKES, TRUCK_MAKES } from "@/lib/reference/makes";
+import { US_STATES } from "@/lib/reference/states";
+import { FLOWS } from "./flows";
 import { KINDS, type Field, type Option, type Values } from "./forms";
+import { ChooseStep } from "./frame";
+import { ImportFlow } from "./import-flow";
+import { ScanFlow } from "./scan";
 
 const MONEY = /^-?\d{1,10}(\.\d{1,4})?$/;
 const blank = (value: unknown): string | null => (typeof value === "string" ? value.trim() || null : null);
@@ -43,6 +52,17 @@ function useEditing(kind: string, id: string | null) {
   });
 }
 
+/** A unit added for an outside owner: ownership from the date given, under that owner's agreement. */
+async function giveToOwner(owner: string, since: string, unit: { vehicle_id: string } | { trailer_id: string }): Promise<string> {
+  if (!owner || owner === "company") return "";
+  const detail = await unwrap(api.GET("/api/v1/owners/{owner_id}", { params: { path: { owner_id: owner } } }));
+  const agreement = detail.agreements.find((a) => !a.effective_to);
+  if (!agreement) return ` · add an agreement on ${detail.name}’s record, then transfer it to them`;
+  const today = new Date().toISOString().slice(0, 10);
+  await unwrap(api.POST("/api/v1/equipment/ownership-transfers", { body: { ...unit, effective_from: since || today, reason: "Added with the unit", rows: [{ owner_id: owner, share_pct: "100", agreement_id: agreement.id }] } as never }));
+  return ` · owned by ${detail.name}`;
+}
+
 /** Saves the form to the API. Returns what to say, and where to go if there is a page for the new record. */
 async function save(kind: string, values: Values, editId: string | null, key: string): Promise<{ message: string; go?: ConsoleState }> {
   const v = values;
@@ -58,14 +78,19 @@ async function save(kind: string, values: Values, editId: string | null, key: st
       return { message: `${saved.full_name} ${editId ? "saved" : "added"}`, go: { screen: "driver", driverId: saved.id } };
     }
     case "truck": {
-      const body = { unit_number: text(v.unit_number).trim(), ownership: text(v.ownership) as "owned", status: (text(v.status) || "active") as "active", year: whole(v.year), make: blank(v.make), model: blank(v.model), vin: blank(v.vin), plate: blank(v.plate), plate_state: blank(text(v.plate_state).toUpperCase()), odometer: whole(v.odometer), terminal_id: blank(v.terminal_id), body: blank(v.body), engine: blank(v.engine), transmission: blank(v.transmission), telematics_device: blank(v.telematics_device), gvwr: whole(v.gvwr), fuel_capacity_gal: whole(v.fuel_capacity_gal), registered_owner: blank(v.registered_owner), registration_expiry: blank(v.registration_expiry), insurance_expiry: blank(v.insurance_expiry), inspection_expiry: blank(v.inspection_expiry) };
+      const owner = text(v.owner);
+      const body = { unit_number: text(v.unit_number).trim(), ownership: (owner && owner !== "company" ? "leased" : text(v.ownership) || "owned") as "owned", status: (text(v.status) || "active") as "active", year: whole(v.year), make: blank(v.make), model: blank(v.model), vin: blank(v.vin), plate: blank(v.plate), plate_state: blank(text(v.plate_state).toUpperCase()), odometer: whole(v.odometer), terminal_id: blank(v.terminal_id), body: blank(v.body), engine: blank(v.engine), transmission: blank(v.transmission), telematics_device: blank(v.telematics_device), gvwr: whole(v.gvwr), fuel_capacity_gal: whole(v.fuel_capacity_gal), registered_owner: blank(v.registered_owner), registration_expiry: blank(v.registration_expiry), insurance_expiry: blank(v.insurance_expiry), inspection_expiry: blank(v.inspection_expiry) };
       const saved = editId ? await unwrap(api.PATCH("/api/v1/vehicles/{item_id}", { params: { path: { item_id: editId } }, body })) : await unwrap(api.POST("/api/v1/vehicles", { body }));
-      return { message: `Truck ${saved.unit_number} ${editId ? "saved" : "added"}`, go: { screen: "truck", unitId: saved.id, unitKind: "truck" } };
+      const ownerNote = editId ? "" : await giveToOwner(owner, text(v.owned_since), { vehicle_id: saved.id });
+      return { message: `Truck ${saved.unit_number} ${editId ? "saved" : "added"}${ownerNote}`, go: { screen: "truck", unitId: saved.id, unitKind: "truck" } };
     }
     case "trailer": {
-      const body = { unit_number: text(v.unit_number).trim(), type: text(v.type) as "dry_van", ownership: text(v.ownership) as "owned", status: (text(v.status) || "active") as "active", length_ft: whole(v.length_ft), year: whole(v.year), make: blank(v.make), vin: blank(v.vin), plate: blank(v.plate), plate_state: blank(text(v.plate_state).toUpperCase()), terminal_id: blank(v.terminal_id), registration_expiry: blank(v.registration_expiry), insurance_expiry: blank(v.insurance_expiry), inspection_expiry: blank(v.inspection_expiry) };
+      const owner = text(v.owner);
+      const known = ["dry_van", "reefer", "flatbed", "step_deck", "box_truck", "tanker"].includes(text(v.type));
+      const body = { unit_number: text(v.unit_number).trim(), type: (known ? text(v.type) : "other") as "dry_van", type_other: known ? null : blank(v.type), ownership: (owner && owner !== "company" ? "leased" : text(v.ownership) || "owned") as "owned", status: (text(v.status) || "active") as "active", length_ft: whole(v.length_ft), year: whole(v.year), make: blank(v.make), model: blank(v.model), vin: blank(v.vin), plate: blank(v.plate), plate_state: blank(text(v.plate_state).toUpperCase()), terminal_id: blank(v.terminal_id), tracker: blank(v.tracker), registration_expiry: blank(v.registration_expiry), insurance_expiry: blank(v.insurance_expiry), inspection_expiry: blank(v.inspection_expiry) };
       const saved = editId ? await unwrap(api.PATCH("/api/v1/trailers/{item_id}", { params: { path: { item_id: editId } }, body })) : await unwrap(api.POST("/api/v1/trailers", { body }));
-      return { message: `Trailer ${saved.unit_number} ${editId ? "saved" : "added"}`, go: { screen: "truck", unitId: saved.id, unitKind: "trailer" } };
+      const ownerNote = editId ? "" : await giveToOwner(owner, text(v.owned_since), { trailer_id: saved.id });
+      return { message: `Trailer ${saved.unit_number} ${editId ? "saved" : "added"}${ownerNote}`, go: { screen: "truck", unitId: saved.id, unitKind: "trailer" } };
     }
     case "customer": {
       const body = { name: text(v.name).trim(), code: blank(v.code), legal_name: blank(v.legal_name), phone: blank(v.phone), billing_email: blank(v.billing_email), payment_terms_days: Number(text(v.payment_terms_days) || "30"), billing_address: blank(v.billing_address), billing_city: blank(v.billing_city), billing_state: blank(text(v.billing_state).toUpperCase()), billing_postal_code: blank(v.billing_postal_code), credit_limit: blank(v.credit_limit) };
@@ -128,6 +153,9 @@ export function AddModal() {
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [key, setKey] = useState(idempotencyKey);
+  const [dd, setDd] = useState<string | null>(null);
+  const [ddq, setDdq] = useState("");
+  const [others, setOthers] = useState<Record<string, boolean>>({});
   const today = todayIn(org.timezone);
   const all: Values = { ...(spec?.defaults ?? {}), ...Object.fromEntries((spec?.fields ?? []).filter((field) => field.type === "date" && field.required && !preset.editId).map((field) => [field.k, field.k === "period_start" ? "" : today])), ...(editing.data ?? {}), ...preset, ...values };
   const wants = (list: string) => !!spec?.fields.some((field) => field.options === list);
@@ -139,9 +167,25 @@ export function AddModal() {
     terminals: useQuery({ queryKey: [org.id, "terminals", "options"], queryFn: () => unwrap(api.GET("/api/v1/terminals", { params: { query: { status: "active", sort: "name", limit: 100 } } })), enabled: hasModal && wants("terminals"), staleTime: 60_000 }),
     roles: useQuery({ queryKey: [org.id, "roles"], queryFn: () => unwrap(api.GET("/api/v1/roles")), enabled: hasModal && wants("roles"), staleTime: 300_000 }),
   };
+  const truckSummary = useQuery({ queryKey: [org.id, "vehicles", "summary"], queryFn: () => unwrap(api.GET("/api/v1/vehicles/summary")), enabled: hasModal && !editId && kind === "truck", staleTime: 30_000 });
+  const trailerSummary = useQuery({ queryKey: [org.id, "trailers", "summary"], queryFn: () => unwrap(api.GET("/api/v1/trailers/summary")), enabled: hasModal && !editId && kind === "trailer", staleTime: 30_000 });
+  const owners = useQuery({ queryKey: [org.id, "owners", "filter"], queryFn: () => unwrap(api.GET("/api/v1/owners", { params: { query: { sort: "name", limit: 100 } } })), enabled: hasModal && wants("owners") && !editId, staleTime: 60_000 });
+  const comboOptions = (field: Field): ComboOption[] => {
+    switch (field.options) {
+      case "states": return US_STATES.map(([code, name]) => ({ v: code, l: name, ab: code }));
+      case "truckMakes": return TRUCK_MAKES.map((m) => ({ v: m, l: m }));
+      case "trailerMakes": return TRAILER_MAKES.map((m) => ({ v: m, l: m }));
+      case "trailerTypes": return Object.entries(TRAILER_TYPES).filter(([v]) => v !== "other").map(([v, l]) => ({ v, l }));
+      case "owners": return [{ v: "company", l: org.name, ab: "Company" }, ...(owners.data?.items ?? []).filter((o) => o.status !== "ended").map((o) => ({ v: o.id, l: o.name, ab: o.status === "onboarding" ? "Onboarding" : "" }))];
+      default: return Array.isArray(field.options) ? field.options.map(([v, l]) => ({ v, l })) : [];
+    }
+  };
   const customer = text(all.customer_id);
   const ready = useQuery({ queryKey: [org.id, "loads", "ready", customer], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { view: "ready_to_invoice", customer_id: customer, limit: 100 } } })), enabled: hasModal && kind === "invoice" && !!customer });
   const open = useQuery({ queryKey: [org.id, "invoices", "open", customer], queryFn: () => unwrap(api.GET("/api/v1/invoices", { params: { query: { status: "issued", customer_id: customer, limit: 100 } } })), enabled: hasModal && kind === "payment" && !!customer });
+  const flow = FLOWS[kind];
+  const step = typeof state.mstep === "string" ? state.mstep : "manual";
+  const reader = useQuery({ queryKey: [org.id, "intake", "reader"], queryFn: () => unwrap(api.GET("/api/v1/intake/reader")), enabled: hasModal && !!flow && step === "choose", staleTime: 300_000 });
   if (!hasModal) return null;
 
   const close = () => {
@@ -151,6 +195,22 @@ export function AddModal() {
     setKey(idempotencyKey());
     closeModal();
   };
+  // From a document or a spreadsheet: the choice, then the scan or the import, each with its own steps.
+  if (flow && !editId && step !== "manual") {
+    const toChoose = () => set({ mstep: "choose" });
+    if (step === "scan") return <ScanFlow kind={kind} flow={flow} onBack={toChoose} onClose={close} />;
+    if (step === "import" && flow.importKind) return <ImportFlow kind={flow.importKind} flow={flow} onBack={toChoose} onClose={close} />;
+    return (
+      <ChooseStep
+        flow={flow}
+        photos={!!reader.data?.photos}
+        onScan={() => set({ mstep: "scan" })}
+        onManual={() => (flow.manualScreen ? (close(), set(goTo(flow.manualScreen))) : set({ mstep: "manual" }))}
+        onImport={flow.importKind ? () => set({ mstep: "import" }) : null}
+        onClose={close}
+      />
+    );
+  }
   if (!spec) {
     return (
       <>
@@ -183,10 +243,13 @@ export function AddModal() {
   const fields = spec.fields.filter((field) => !field.only || field.only === (editId ? "edit" : "add")).filter((field) => !(field.options === "terminals" && !options.terminals.data?.items.length));
   const put = (k: string, value: string | boolean | string[]) => setValues((previous) => ({ ...previous, [k]: value }));
 
+  const suggestion = editId ? null : kind === "truck" ? truckSummary.data?.next_unit_number ?? null : kind === "trailer" ? trailerSummary.data?.next_unit_number ?? null : null;
+  const filled: Values = suggestion && !text(all.unit_number) ? { ...all, unit_number: suggestion } : all;
+
   async function submit() {
     const found: Record<string, string> = {};
     for (const field of fields) {
-      const value = all[field.k];
+      const value = filled[field.k];
       const empty = value === undefined || value === "" || (Array.isArray(value) && !value.length);
       if (field.required && empty) found[field.k] = `Enter ${field.l.toLowerCase()}`;
       if (!empty && field.type === "money" && !MONEY.test(text(value))) found[field.k] = "Enter a number like 2500 or 2500.00";
@@ -199,7 +262,7 @@ export function AddModal() {
     setPending(true);
     setProblem(null);
     try {
-      const done = await save(kind, all, editId, key);
+      const done = await save(kind, filled, editId, key);
       await client.invalidateQueries({ queryKey: [org.id] });
       close();
       notify(done.message);
@@ -213,15 +276,124 @@ export function AddModal() {
   }
 
   const loading = editId && editing.isPending;
+  const groups: { l: string; fields: Field[] }[] = [];
+  for (const f of fields) {
+    const g = f.group ?? "";
+    const last = groups.at(-1);
+    if (last && last.l === g) last.fields.push(f);
+    else groups.push({ l: g, fields: [f] });
+  }
+  const comboState = { open: dd, q: ddq, setOpen: setDd, setQ: setDdq };
+  const renderField = (field: Field) => {
+    const id = `md-${field.k}`;
+    const value = field.k === "unit_number" && !text(all[field.k]) && suggestion ? suggestion : all[field.k];
+    const problem = errors[field.k];
+    const label = `${field.l}${field.required ? " *" : ""}`;
+    const hint = field.k === "unit_number" && suggestion ? "The next free number" : field.hint;
+    if (field.type === "check") {
+      return (
+        <label key={field.k} className="r g8 fs13" style={{ gridColumn: `span ${field.span}` }}>
+          <input type="checkbox" checked={value === true} onChange={(event) => put(field.k, event.target.checked)} />
+          {field.l}
+        </label>
+      );
+    }
+    if (field.type === "loads") {
+      const picked = Array.isArray(value) ? value : [];
+      const loads = ready.data?.items ?? [];
+      return (
+        <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
+          <span className="lbl">{field.l}</span>
+          <div className="card oh" style={{ boxShadow: "none", maxHeight: "220px", overflow: "auto" }}>
+            {!customer ? <div className="cb fs13 mu">Choose the customer first.</div> : ready.isPending ? <div className="cb fs13 mu">Loading…</div> : !loads.length ? <div className="cb fs13 mu">This customer has no completed loads waiting to be invoiced.</div> : null}
+            {loads.map((load) => (
+              <label key={load.id} className="r g10 fs13" style={{ padding: "8px 12px", borderBottom: "1px solid var(--bd2)" }}>
+                <input type="checkbox" checked={picked.includes(load.id)} onChange={(event) => put(field.k, event.target.checked ? [...picked, load.id] : picked.filter((id2) => id2 !== load.id))} />
+                <span className="mono w5">{load.load_number}</span>
+                <span className="f1 ell t2">{`${load.origin_city ?? ""} → ${load.destination_city ?? ""}`}</span>
+                <span className="mono">{formatMoney(load.revenue, load.currency)}</span>
+              </label>
+            ))}
+          </div>
+          {problem ? <span className="errt">{problem}</span> : null}
+        </div>
+      );
+    }
+    if (field.type === "combo") {
+      const opts = comboOptions(field);
+      const current = text(value);
+      const otherOn = !!field.other && (others[field.k] || (!!current && !opts.some((o) => o.v === current)));
+      const f = combo(comboState, {
+        k: field.k, l: field.l, value: current, options: opts, onPick: (picked) => { put(field.k, picked); setOthers((o) => ({ ...o, [field.k]: false })); },
+        placeholder: `Choose ${field.l.toLowerCase().startsWith("plate state") || field.l.toLowerCase().startsWith("issuing") ? "a state" : `a ${field.l.toLowerCase()}`}`,
+        head: field.options === "states" ? "50 states and DC" : field.options === "truckMakes" ? "Most common in North America" : field.options === "owners" ? "Who owns it" : field.l,
+        search: field.options === "states" || opts.length > 10, qph: field.options === "states" ? "Search states" : undefined,
+        ...(field.other ? { other: { ...field.other, value: otherOn ? current : "", set: (typed: string) => put(field.k, typed) }, otherOn, onOther: () => { setOthers((o) => ({ ...o, [field.k]: true })); put(field.k, ""); } } : {}),
+      });
+      return (
+        <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
+          <span className="lbl"><span>{label}</span></span>
+          <Combobox f={f} />
+          {f.showOther ? (
+            <>
+              <label className="othl" htmlFor={`${id}-other`}>{field.other!.label}</label>
+              <input id={`${id}-other`} className="inp othr" value={current} placeholder={field.other!.ph} onChange={(event) => put(field.k, event.target.value)} />
+            </>
+          ) : null}
+          {problem ? <span className="errt">{problem}</span> : hint ? <span className="hint">{hint}</span> : null}
+        </div>
+      );
+    }
+    if (field.type === "seg") {
+      return (
+        <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
+          <span className="lbl"><span>{label}</span></span>
+          <div className="seg" role="group" aria-label={field.l} style={{ alignSelf: "flex-start" }}>
+            {choicesOf(field).map(([optionValue, optionLabel]) => (
+              <button key={optionValue} className={text(value) === optionValue ? "on" : ""} aria-pressed={text(value) === optionValue} onClick={() => put(field.k, optionValue)}><span>{optionLabel}</span></button>
+            ))}
+          </div>
+          {problem ? <span className="errt">{problem}</span> : hint ? <span className="hint">{hint}</span> : null}
+        </div>
+      );
+    }
+    return (
+      <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
+        <label htmlFor={id}>{label}</label>
+        {field.type === "select" ? (
+          <select id={id} className={clsx("inp", problem && "err")} value={text(value)} onChange={(event) => put(field.k, event.target.value)}>
+            {!field.required || !text(value) ? <option value="">{field.required ? "Choose…" : "—"}</option> : null}
+            {choicesOf(field).map(([optionValue, optionLabel]) => (
+              <option key={optionValue} value={optionValue}>{optionLabel}</option>
+            ))}
+          </select>
+        ) : field.type === "textarea" ? (
+          <textarea id={id} className={clsx("inp", problem && "err")} rows={3} value={text(value)} onChange={(event) => put(field.k, event.target.value)} />
+        ) : (
+          <input
+            id={id}
+            className={clsx("inp", (field.mono || field.type === "money" || field.type === "number") && "mono", problem && "err")}
+            type={field.type === "date" ? "date" : field.type === "email" ? "email" : field.type === "password" ? "password" : "text"}
+            inputMode={field.type === "money" ? "decimal" : field.type === "number" ? "numeric" : undefined}
+            placeholder={field.placeholder}
+            value={text(value)}
+            onChange={(event) => put(field.k, event.target.value)}
+          />
+        )}
+        {problem ? <span className="errt">{problem}</span> : hint ? <span className="hint">{hint}</span> : null}
+      </div>
+    );
+  };
+  const grouped = groups.some((g) => g.l);
   return (
     <>
       <div className="scrim" style={{ zIndex: "50" }} onClick={() => !pending && close()}></div>
-      <div className={clsx("modal", fields.length > 8 && "mid")} role="dialog" aria-modal="true" aria-label={spec.title(!!editId)}>
+      <div className={clsx("modal", (fields.length > 8 || grouped) && "mid")} role="dialog" aria-modal="true" aria-label={spec.title(!!editId)}>
         <div className="mh">
           <span className="mhic"><Icon className="s18" d={spec.icon} /></span>
           <div className="f1">
             <h2 className="fs16 w6 tx"><span>{spec.title(!!editId)}</span></h2>
-            <p className="fs13 mu" style={{ marginTop: "2px" }}><span>{spec.sub}</span></p>
+            <p className="fs13 mu" style={{ marginTop: "2px" }}><span>{editId && spec.sub === "Enter manually" ? "Changes are checked by the server when you save" : spec.sub}</span></p>
           </div>
           <button className="btn ghost icon sm" onClick={close} aria-label="Close" disabled={pending}><Icon d="M18 6L6 18M6 6l12 12" /></button>
         </div>
@@ -229,77 +401,22 @@ export function AddModal() {
           <Problem message={problem} />
           {loading ? (
             <Skeleton />
+          ) : grouped ? (
+            groups.map((g) => (
+              <div key={g.l}>
+                <div className="over" style={{ marginBottom: "10px" }}><span>{g.l}</span></div>
+                <div className="mgrid">{g.fields.map(renderField)}</div>
+              </div>
+            ))
           ) : (
-            <div className="sgrid" style={{ padding: "0" }}>
-              {fields.map((field) => {
-                const id = `md-${field.k}`;
-                const value = all[field.k];
-                const problem = errors[field.k];
-                const label = `${field.l}${field.required ? " *" : ""}`;
-                if (field.type === "check") {
-                  return (
-                    <label key={field.k} className="r g8 fs13" style={{ gridColumn: `span ${field.span}` }}>
-                      <input type="checkbox" checked={value === true} onChange={(event) => put(field.k, event.target.checked)} />
-                      {field.l}
-                    </label>
-                  );
-                }
-                if (field.type === "loads") {
-                  const picked = Array.isArray(value) ? value : [];
-                  const loads = ready.data?.items ?? [];
-                  return (
-                    <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
-                      <span className="lbl">{field.l}</span>
-                      <div className="card oh" style={{ boxShadow: "none", maxHeight: "220px", overflow: "auto" }}>
-                        {!customer ? <div className="cb fs13 mu">Choose the customer first.</div> : ready.isPending ? <div className="cb fs13 mu">Loading…</div> : !loads.length ? <div className="cb fs13 mu">This customer has no completed loads waiting to be invoiced.</div> : null}
-                        {loads.map((load) => (
-                          <label key={load.id} className="r g10 fs13" style={{ padding: "8px 12px", borderBottom: "1px solid var(--bd2)" }}>
-                            <input type="checkbox" checked={picked.includes(load.id)} onChange={(event) => put(field.k, event.target.checked ? [...picked, load.id] : picked.filter((id2) => id2 !== load.id))} />
-                            <span className="mono w5">{load.load_number}</span>
-                            <span className="f1 ell t2">{`${load.origin_city ?? ""} → ${load.destination_city ?? ""}`}</span>
-                            <span className="mono">{formatMoney(load.revenue, load.currency)}</span>
-                          </label>
-                        ))}
-                      </div>
-                      {problem ? <span className="errt">{problem}</span> : null}
-                    </div>
-                  );
-                }
-                return (
-                  <div key={field.k} className="fld" style={{ gridColumn: `span ${field.span}` }}>
-                    <label htmlFor={id}>{label}</label>
-                    {field.type === "select" ? (
-                      <select id={id} className={clsx("inp", problem && "err")} value={text(value)} onChange={(event) => put(field.k, event.target.value)}>
-                        {!field.required || !text(value) ? <option value="">{field.required ? "Choose…" : "—"}</option> : null}
-                        {choicesOf(field).map(([optionValue, optionLabel]) => (
-                          <option key={optionValue} value={optionValue}>{optionLabel}</option>
-                        ))}
-                      </select>
-                    ) : field.type === "textarea" ? (
-                      <textarea id={id} className={clsx("inp", problem && "err")} rows={3} value={text(value)} onChange={(event) => put(field.k, event.target.value)} />
-                    ) : (
-                      <input
-                        id={id}
-                        className={clsx("inp", (field.mono || field.type === "money" || field.type === "number") && "mono", problem && "err")}
-                        type={field.type === "date" ? "date" : field.type === "email" ? "email" : field.type === "password" ? "password" : "text"}
-                        inputMode={field.type === "money" ? "decimal" : field.type === "number" ? "numeric" : undefined}
-                        placeholder={field.placeholder}
-                        value={text(value)}
-                        onChange={(event) => put(field.k, event.target.value)}
-                      />
-                    )}
-                    {problem ? <span className="errt">{problem}</span> : field.hint ? <span className="hint">{field.hint}</span> : null}
-                  </div>
-                );
-              })}
-            </div>
+            <div className="sgrid" style={{ padding: "0" }}>{fields.map(renderField)}</div>
           )}
         </div>
         <div className="mfoot">
-          <span className="fs12 mu">Checked again by the server when you save</span>
+          {flow && !editId ? <button className="btn ghost" onClick={() => set({ mstep: "choose" })} disabled={pending}>Back</button> : <span className="fs12 mu">Checked again by the server when you save</span>}
           <span className="sp"></span>
           <button className="btn" onClick={close} disabled={pending}>Cancel</button>
-          <button className="btn pri" onClick={() => void submit()} disabled={pending || !!loading}>{pending ? "Saving…" : editId ? "Save changes" : spec.title(false).replace(/^Add an? /, "Add ").replace(/^Log an /, "Log ")}</button>
+          <button className="btn pri" onClick={() => void submit()} disabled={pending || !!loading}>{pending ? "Saving…" : editId ? "Save changes" : flow ? flow.cta : spec.title(false).replace(/^Add an? /, "Add ").replace(/^Log an /, "Log ")}</button>
         </div>
       </div>
     </>

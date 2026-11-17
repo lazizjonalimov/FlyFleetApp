@@ -18,14 +18,15 @@ test("adding a driver from Create, then opening and editing the record", async (
   const account = await signUp(page);
   await page.getByRole("button", { name: "Create" }).click();
   await page.getByRole("menuitem", { name: /Add a driver/ }).click();
+  await page.getByRole("dialog", { name: "Add a driver" }).getByRole("button", { name: /Enter manually/ }).click();
   const dialog = page.getByRole("dialog", { name: "Add a driver" });
-  await dialog.getByRole("button", { name: "Add driver" }).click();
+  await dialog.getByRole("button", { name: "Create driver" }).click();
   await expect(dialog.getByText("Enter first name")).toBeVisible();
   await dialog.getByLabel("First name *").fill("Casey");
   await dialog.getByLabel("Last name *").fill("Lund");
   await dialog.getByLabel("CDL expires").fill(day(400));
   await dialog.getByLabel("Medical card expires").fill(day(10));
-  await dialog.getByRole("button", { name: "Add driver" }).click();
+  await dialog.getByRole("button", { name: "Create driver" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/${account.slug}/drivers/[0-9a-f-]{36}$`));
   await expect(page.getByRole("heading", { name: "Casey Lund", level: 1 })).toBeVisible();
@@ -56,9 +57,11 @@ test("trucks and trailers: added, listed, and blocked when a paper has lapsed", 
   await open(page, account, "equipment/trailers");
   await page.getByRole("button", { name: "Add trailer" }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add a trailer" });
+  await dialog.getByRole("button", { name: /Enter manually/ }).click();
   await dialog.getByLabel("Unit number *").fill("5501");
-  await dialog.getByLabel("Type *").selectOption("reefer");
-  await dialog.getByRole("button", { name: "Add trailer" }).click();
+  await dialog.getByRole("button", { name: /^Type:/ }).click();
+  await dialog.getByRole("option", { name: "Reefer" }).click();
+  await dialog.getByRole("button", { name: "Create trailer" }).click();
   await expect(page.getByRole("heading", { name: "5501", level: 1 })).toBeVisible();
   await expect(page.locator(".ph")).toContainText("Reefer");
 });

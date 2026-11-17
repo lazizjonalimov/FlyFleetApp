@@ -185,6 +185,8 @@ Backend (`backend/.env`, see `backend/.env.example`):
 | `FLYFLEET_MAX_COMPANIES_PER_ACCOUNT` | Active companies a new account may hold. Default 10 |
 | `FLYFLEET_STORAGE_DIR` | Where uploaded documents are stored |
 | `FLYFLEET_MAX_UPLOAD_BYTES` | Largest accepted upload. Default 15 MB |
+| `FLYFLEET_DOCUMENT_READER` | `off` (default): when adding a record from a document, PDFs with a text layer are read by the built-in reader. `anthropic`: photos and scans are read by Claude through the Anthropic API, using `ANTHROPIC_API_KEY` |
+| `FLYFLEET_DOCUMENT_READER_MODEL` | The Claude model the photo reader uses. Default `claude-opus-5-5` |
 | `FLYFLEET_CORS_ORIGINS` | Only needed for browser clients that call the API directly |
 
 Web (`apps/web/.env.local`, see `apps/web/.env.example`):

@@ -1194,7 +1194,8 @@
               "driver",
               "vehicle",
               "trailer",
-              "load"
+              "load",
+              "inspection"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -7903,7 +7904,8 @@
               "invoice",
               "work_order",
               "expense",
-              "owner"
+              "owner",
+              "inspection"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -7933,7 +7935,8 @@
               "invoice",
               "work_order",
               "expense",
-              "owner"
+              "owner",
+              "inspection"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -18190,6 +18193,18 @@
             "title": "Type",
             "type": "string"
           },
+          "type_other": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Other"
+          },
           "unit_number": {
             "maxLength": 40,
             "minLength": 1,
@@ -18503,6 +18518,18 @@
             "title": "Type",
             "type": "string"
           },
+          "type_other": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Other"
+          },
           "unit_number": {
             "maxLength": 40,
             "minLength": 1,
@@ -18576,6 +18603,17 @@
             },
             "title": "Makes",
             "type": "array"
+          },
+          "next_unit_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Unit Number"
           },
           "owner_list": {
             "items": {
@@ -18852,6 +18890,18 @@
               }
             ],
             "title": "Type"
+          },
+          "type_other": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type Other"
           },
           "unit_number": {
             "anyOf": [
@@ -19146,6 +19196,17 @@
             },
             "title": "Makes",
             "type": "array"
+          },
+          "next_unit_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Unit Number"
           },
           "on_loads": {
             "title": "On Loads",
@@ -20000,7 +20061,8 @@
                   "invoice",
                   "work_order",
                   "expense",
-                  "owner"
+                  "owner",
+                  "inspection"
                 ],
                 "type": "string"
               },
@@ -25539,7 +25601,8 @@
                     "invoice",
                     "work_order",
                     "expense",
-                    "owner"
+                    "owner",
+                    "inspection"
                   ],
                   "type": "string"
                 },
@@ -26534,6 +26597,102 @@
           }
         ],
         "summary": "Remove Link",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/pages/{page}": {
+      "get": {
+        "operationId": "page_image_api_v1_documents__document_id__pages__page__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "title": "Page",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/png": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "One page of a PDF as an image, for viewing it next to what was read from it",
         "tags": [
           "documents"
         ]
@@ -29411,6 +29570,112 @@
           }
         ],
         "summary": "Start an import from a CSV or Excel file: columns are matched to fields",
+        "tags": [
+          "intake"
+        ]
+      }
+    },
+    "/api/v1/imports/template": {
+      "get": {
+        "operationId": "template_api_v1_imports_template_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "enum": [
+                "drivers",
+                "trucks",
+                "trailers"
+              ],
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "csv",
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/octet-stream": {},
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "A blank file with the columns an import reads, as CSV or Excel",
         "tags": [
           "intake"
         ]

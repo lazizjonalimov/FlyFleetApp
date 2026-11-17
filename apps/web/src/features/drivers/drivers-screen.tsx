@@ -150,7 +150,7 @@ export function DriversScreen() {
       { label: "", width: "28px", cell: () => cell.more() },
     ],
     actions: [
-      ...(add ? [{ l: "Import", cls: "", ic: I.upload, go: soon("Importing drivers") }, { l: "Invite to app", cls: "", ic: I.mobile, go: soon("Inviting drivers to the app") }] : []),
+      ...(add ? [{ l: "Import", cls: "", ic: I.upload, go: () => set({ ...addOf("driver"), mstep: "import" }) }, { l: "Invite to app", cls: "", ic: I.mobile, go: soon("Inviting drivers to the app") }] : []),
       ...(add ? [{ l: "Add driver", cls: "pri", ic: I.plus, go: add }] : []),
     ],
     empty: {

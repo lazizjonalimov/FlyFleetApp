@@ -96,7 +96,9 @@ export type ShellInput = {
 export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, overlay: "none", panel: "none", modal: "none", lsel: [], lsort: null, dd: null, ltab: 0, lq: "", lpage: [], lf: {} });
 
 /** Opening the add flow for a kind of record. */
-export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mstep: "manual", overlay: "none", dd: null, ddq: "", fv: {}, ferr: {} });
+/** Kinds that can be added from a document or a spreadsheet as well as by hand: they open on the choice. */
+const FROM_DOCUMENT = new Set(["driver", "truck", "trailer", "load", "invoice", "inspection"]);
+export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mstep: FROM_DOCUMENT.has(kind) ? "choose" : "manual", overlay: "none", dd: null, ddq: "", fv: {}, ferr: {} });
 
 /** Everything the shell draws: navigation for the signed-in role, who and where, and what is open on top. */
 export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, counts }: ShellInput) {
@@ -159,7 +161,7 @@ export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, 
     acctExp: overlay === "account" ? ("true" as const) : ("false" as const),
     toggleCreate: () => set({ overlay: overlay === "create" ? "none" : "create" }),
     toggleAcct: () => set({ overlay: overlay === "account" ? "none" : "account" }),
-    CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "load" ? goTo("newload") : key === "owner" ? { ...goTo("ownerform"), ownerForm: "new", ownerId: null } : addOf(key)) })),
+    CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "owner" ? { ...goTo("ownerform"), ownerForm: "new", ownerId: null } : addOf(key)) })),
     ACCT: ACCOUNT.map(([t, icon, kbd]) => ({ t, ic: I[icon], kbd })),
     hasModal: modal !== "none" && can(...(ADD_PERMISSION[kind] ?? [])),
     closeModal: () => set({ modal: "none" }),

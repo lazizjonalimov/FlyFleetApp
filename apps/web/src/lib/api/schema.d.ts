@@ -641,6 +641,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/{document_id}/pages/{page}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One page of a PDF as an image, for viewing it next to what was read from it */
+        get: operations["page_image_api_v1_documents__document_id__pages__page__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/{document_id}/review": {
         parameters: {
             query?: never;
@@ -967,6 +984,23 @@ export interface paths {
         put?: never;
         /** Start an import from a CSV or Excel file: columns are matched to fields */
         post: operations["start_import_api_v1_imports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A blank file with the columns an import reads, as CSV or Excel */
+        get: operations["template_api_v1_imports_template_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3386,7 +3420,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "driver" | "vehicle" | "trailer" | "load";
+            entity_type: "driver" | "vehicle" | "trailer" | "load" | "inspection";
             /** Saved */
             saved?: {
                 [key: string]: string | null;
@@ -5400,7 +5434,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection";
         };
         /** LinkOut */
         LinkOut: {
@@ -5413,7 +5447,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection";
             /**
              * Id
              * Format: uuid
@@ -8548,6 +8582,8 @@ export interface components {
              * @enum {string}
              */
             type: "dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other";
+            /** Type Other */
+            type_other?: string | null;
             /** Unit Number */
             unit_number: string;
             /** Vin */
@@ -8623,6 +8659,8 @@ export interface components {
              * @enum {string}
              */
             type: "dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other";
+            /** Type Other */
+            type_other?: string | null;
             /** Unit Number */
             unit_number: string;
             /** Vin */
@@ -8644,6 +8682,8 @@ export interface components {
             loaded: number;
             /** Makes */
             makes: components["schemas"]["Count"][];
+            /** Next Unit Number */
+            next_unit_number?: string | null;
             /** Owner List */
             owner_list: components["schemas"]["Count"][];
             /** Owner Units */
@@ -8697,6 +8737,8 @@ export interface components {
             tracker?: string | null;
             /** Type */
             type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
+            /** Type Other */
+            type_other?: string | null;
             /** Unit Number */
             unit_number?: string | null;
             /** Vin */
@@ -8785,6 +8827,8 @@ export interface components {
             last_week_pct: number | null;
             /** Makes */
             makes: components["schemas"]["Count"][];
+            /** Next Unit Number */
+            next_unit_number?: string | null;
             /** On Loads */
             on_loads: number;
             /** Out Of Service */
@@ -9058,7 +9102,7 @@ export interface components {
             /** Entity Id */
             entity_id?: string | null;
             /** Entity Type */
-            entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner") | null;
+            entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection") | null;
             /** Expires On */
             expires_on?: string | null;
             /** Filename */
@@ -11832,7 +11876,7 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner") | null;
+                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection") | null;
                 entity_id?: string | null;
                 type?: ("bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "other") | null;
                 review_status?: ("not_required" | "pending" | "approved" | "rejected") | null;
@@ -12467,6 +12511,75 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    page_image_api_v1_documents__document_id__pages__page__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+                page: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "image/png": unknown;
+                };
             };
             /** @description Unauthorized */
             401: {
@@ -14273,6 +14386,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    template_api_v1_imports_template_get: {
+        parameters: {
+            query: {
+                kind: "drivers" | "trucks" | "trailers";
+                format?: "csv" | "xlsx";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "application/octet-stream": unknown;
+                    "text/csv": unknown;
                 };
             };
             /** @description Unauthorized */

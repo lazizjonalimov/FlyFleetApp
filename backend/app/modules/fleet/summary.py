@@ -17,6 +17,7 @@ from app.modules.dispatch.models import DispatchAssignment
 from app.modules.drivers.models import Driver, DriverQualification
 from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.fleet.models import UnitAssignment
+from app.modules.intake.service import next_unit_number
 from app.modules.loads.models import Load
 from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import Terminal
@@ -55,6 +56,8 @@ class TruckSummary(BaseModel):
     makes: list[Count]
     years: list[Count]
     owner_list: list[Count]
+    # The next free unit number in the company's own numbering, for the add form.
+    next_unit_number: str | None = None
 
 
 class TrailerSummary(BaseModel):
@@ -76,6 +79,7 @@ class TrailerSummary(BaseModel):
     service_due_detail: list[Count]
     makes: list[Count]
     years: list[Count]
+    next_unit_number: str | None = None
 
 
 class DriverSummary(BaseModel):
@@ -173,7 +177,8 @@ def truck_summary(p: Principal = Depends(require("equipment.read")), db: Session
         available_at=_counts(where.values()), teams=sorted(pair(s) for s in seats),
         makes=_counts(v.make for v in trucks), years=_counts((v.year for v in trucks), numeric_desc=True),
         owner_list=[Count(value=str(o), label=n, count=c) for (o, n), c in
-                    Counter(x for v in trucks for x in owners.get(v.id, [])).most_common()])
+                    Counter(x for v in trucks for x in owners.get(v.id, [])).most_common()],
+        next_unit_number=next_unit_number(db, Vehicle))
 
 
 @router.get("/trailers/summary", response_model=TrailerSummary, summary="The trailers table's figures and filter values")
@@ -210,7 +215,8 @@ def trailer_summary(p: Principal = Depends(require("equipment.read")), db: Sessi
         utilization_pct=_pct(len([t for t in in_service if t.id in busy]), len(in_service)),
         yard_at=_counts(where.values()), reefers=len(reefers), reefers_loaded=len([t for t in reefers if t.id in busy]),
         service_due=sum(due.values()), service_due_detail=[Count(value=k, label=k, count=n) for k, n in due.most_common()],
-        makes=_counts(t.make for t in trailers), years=_counts((t.year for t in trailers), numeric_desc=True))
+        makes=_counts(t.make for t in trailers), years=_counts((t.year for t in trailers), numeric_desc=True),
+        next_unit_number=next_unit_number(db, Trailer))
 
 
 @router.get("/drivers/summary", response_model=DriverSummary, summary="The drivers table's figures and filter values")
