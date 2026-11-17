@@ -16,6 +16,7 @@ from app.core.deps import Principal
 from app.core.errors import Conflict, Invalid
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Trailer, Vehicle
+from app.modules.intake import load_imports
 from app.modules.intake import vin as vins
 from app.modules.intake.models import Import
 from app.modules.intake.normalize import date_format, equipment_type, make_name, normalize
@@ -99,15 +100,46 @@ FIELDS["mileage"] = [
     Col("odometer_end", "Odometer end", "int", ("odometer end", "end odometer", "odo end", "odometer stop")),
     Col("note", "Note", "text", ("note", "notes", "comment", "trip")),
 ]
+FIELDS["loads"] = [
+    Col("customer", "Customer", "text", ("customer", "customer name", "bill to", "broker", "account", "client")),
+    Col("reference", "Reference", "text", ("reference", "ref", "ref #", "po", "po #", "po number", "order", "order #",
+                                           "pro", "pro #", "load #", "load number", "customer ref", "reference #")),
+    Col("pickup_name", "Pickup name", "text", ("pickup name", "pickup location", "shipper", "shipper name",
+                                               "origin name", "pickup facility")),
+    Col("pickup_city", "Pickup city", "text", ("pickup city", "origin city", "origin", "from city", "from",
+                                               "shipper city", "pu city")),
+    Col("pickup_state", "Pickup state", "state", ("pickup state", "origin state", "from state", "pu state",
+                                                  "origin st", "o st", "shipper state")),
+    Col("pickup_date", "Pickup date", "date", ("pickup date", "pickup", "pu date", "ship date", "pickup day")),
+    Col("pickup_time", "Pickup time", "time", ("pickup time", "pu time", "pickup appt", "pickup appointment",
+                                               "ship time", "pickup window")),
+    Col("delivery_name", "Delivery name", "text", ("delivery name", "consignee", "consignee name", "receiver",
+                                                   "destination name", "delivery location", "delivery facility")),
+    Col("delivery_city", "Delivery city", "text", ("delivery city", "destination city", "destination", "to city", "to",
+                                                   "consignee city", "del city", "dest city", "receiver city")),
+    Col("delivery_state", "Delivery state", "state", ("delivery state", "destination state", "to state", "del state",
+                                                      "dest state", "d st", "consignee state")),
+    Col("delivery_date", "Delivery date", "date", ("delivery date", "delivery", "del date", "deliver by",
+                                                   "delivery day", "due date")),
+    Col("delivery_time", "Delivery time", "time", ("delivery time", "del time", "delivery appt",
+                                                   "delivery appointment", "delivery window")),
+    Col("rate", "Rate", "money", ("rate", "linehaul", "line haul", "total rate", "amount", "revenue", "total")),
+    Col("miles", "Miles", "int", ("miles", "loaded miles", "distance", "total miles")),
+    Col("weight_lbs", "Weight (lbs)", "int", ("weight", "weight lbs", "lbs", "pounds")),
+    Col("commodity", "Commodity", "text", ("commodity", "description", "product", "freight")),
+    Col("equipment", "Equipment", "text", ("equipment", "equipment type", "trailer type", "type", "trailer")),
+]
 # The fields a file must cover to be worth importing, in the order the screen names them.
 NEEDED = {"drivers": ("name", "phone", "cdl_number", "cdl_state", "cdl_class", "cdl_expiry"),
           "trucks": ("unit_number", "vin", "plate", "plate_state"),
           "trailers": ("unit_number", "type", "vin", "plate"),
-          "mileage": ("unit_number", "trip_date", "jurisdiction", "miles")}
+          "mileage": ("unit_number", "trip_date", "jurisdiction", "miles"),
+          "loads": ("customer", "pickup_city", "pickup_date", "delivery_city", "delivery_date")}
 NEEDED_LABEL = {"name": "name", "phone": "phone", "cdl_number": "CDL number", "cdl_state": "state",
                 "cdl_class": "class", "cdl_expiry": "expiry", "unit_number": "unit number", "vin": "VIN",
                 "plate": "plate", "plate_state": "plate state", "type": "type", "trip_date": "date",
-                "jurisdiction": "state", "miles": "miles"}
+                "jurisdiction": "state", "miles": "miles", "customer": "customer", "pickup_city": "pickup city",
+                "pickup_date": "pickup date", "delivery_city": "delivery city", "delivery_date": "delivery date"}
 
 
 def _key(text: str) -> str:
@@ -286,6 +318,8 @@ def _existing(db: Session, kind: str):
 
 def check(db: Session, p: Principal, imp: Import) -> tuple[list[RowIssue], set[int], dict[int, object]]:
     """Every row's problems. Returns the issues, the rows that can't be imported, and existing records by row."""
+    if imp.kind == "loads":
+        return load_imports.check(db, p, imp, _values)
     issues: list[RowIssue] = []
     blocked: set[int] = set()
     existing: dict[int, object] = {}
@@ -414,7 +448,7 @@ def view(db: Session, p: Principal, imp: Import) -> ImportOut:
 
 def create(db: Session, p: Principal, kind: str, filename: str, data: bytes) -> Import:
     if kind not in FIELDS:
-        raise Invalid("Choose drivers, trucks, trailers or mileage", field="kind")
+        raise Invalid("Choose drivers, trucks, trailers, mileage or loads", field="kind")
     headers, rows, sheet = parse(filename, data)
     imp = Import(organization_id=p.org_id, kind=kind, filename=filename[:255], sheet=sheet, headers=headers,
                  rows=rows, mapping=suggest(kind, headers), created_by=p.user_id)
@@ -528,6 +562,13 @@ def commit(db: Session, p: Principal, imp: Import, reminders: bool, hold: bool =
         if imp.status != "mapping":
             raise Conflict("This import is finished", code="IMPORT_DONE")
         return _commit_mileage(db, p, imp, hold)
+    if imp.kind == "loads":
+        result = load_imports.commit(db, p, imp, _values)
+        imp.status, imp.committed_at, imp.result = "committed", datetime.now(UTC), result
+        audit(db, p, "import.committed", "import", imp.id, {"kind": "loads", "created": result["created"],
+                                                            "customers_added": result["customers_added"],
+                                                            "skipped": result["skipped"], "failed": len(result["failed"])})
+        return result
     from app.modules.drivers.router import DriverCreate, DriverUpdate
     from app.modules.drivers.router import _before_save as driver_save
     from app.modules.equipment.router import (
@@ -595,5 +636,7 @@ def commit(db: Session, p: Principal, imp: Import, reminders: bool, hold: bool =
 
 
 def counts(db: Session, kind: str) -> int:
+    if kind == "loads":
+        return load_imports.count(db)
     model = {"drivers": Driver, "trucks": Vehicle, "trailers": Trailer, "mileage": Vehicle}[kind]
     return db.scalar(select(func.count()).select_from(model)) or 0

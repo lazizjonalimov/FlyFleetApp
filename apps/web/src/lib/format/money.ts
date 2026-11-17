@@ -50,3 +50,11 @@ export function formatMoney(value: string | number | null | undefined, currency 
   }
   return formatter.format(cents / 100);
 }
+
+/** "$1,150" for a whole amount, "$1,150.50" otherwise: how lists show a rate at a glance. */
+export function formatWholeMoney(value: string | number | null | undefined, currency = "USD"): string {
+  const cents = toCents(value);
+  if (cents === null) return "—";
+  const text = formatMoney(value, currency);
+  return cents % 100 === 0 ? text.replace(/\.00$/, "") : text;
+}

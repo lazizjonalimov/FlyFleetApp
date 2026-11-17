@@ -14,6 +14,8 @@ import { formatNumber } from "@/lib/format/text";
 const SORT_UP = "M12 19V5M6 11l6-6 6 6";
 const SORT_DOWN = "M12 5v14M6 13l6 6 6-6";
 export const PAGE_SIZE = 25;
+/** The page sizes a list offers. */
+export const PAGE_SIZES = [25, 50, 100];
 /** Export stops here: a file larger than this belongs in a report. */
 const EXPORT_LIMIT = 10_000;
 const noop = () => {};
@@ -158,6 +160,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   const q = useDebounced(text.trim(), 250);
   const sort = typeof state.lsort === "string" && state.lsort ? state.lsort : spec.defaultSort;
   const trail = Array.isArray(state.lpage) ? (state.lpage as string[]) : [];
+  const size = typeof state.lsize === "number" && PAGE_SIZES.includes(state.lsize) ? state.lsize : PAGE_SIZE;
   const cursor = trail.at(-1);
   const selected = Array.isArray(state.lsel) ? (state.lsel as string[]) : [];
   const picked = (state.lf && typeof state.lf === "object" ? state.lf : {}) as Record<string, string>;
@@ -181,8 +184,8 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   }
   const filters: ListQuery = { ...tab?.params, ...filterParams, ...(q ? { q } : {}) };
   const query = useQuery({
-    queryKey: [me.organization.id, spec.key, "list", filters, sort, cursor ?? null],
-    queryFn: () => spec.fetch({ ...filters, sort, cursor, limit: PAGE_SIZE, count: true }),
+    queryKey: [me.organization.id, spec.key, "list", filters, sort, cursor ?? null, size],
+    queryFn: () => spec.fetch({ ...filters, sort, cursor, limit: size, count: true }),
     placeholderData: keepPreviousData,
     enabled,
   });
@@ -253,14 +256,14 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
 
   // Paging: the API pages by cursor, so a page further on is reached by walking the pages before it.
   const matching = query.data?.page.total_count ?? null;
-  const pageCount = matching === null ? trail.length + 1 + (query.data?.page.has_more ? 1 : 0) : Math.max(1, Math.ceil(matching / PAGE_SIZE));
+  const pageCount = matching === null ? trail.length + 1 + (query.data?.page.has_more ? 1 : 0) : Math.max(1, Math.ceil(matching / size));
   const goPage = async (n: number) => {
     if (n === trail.length + 1) return;
     if (n <= trail.length) return set({ lpage: trail.slice(0, n - 1), lsel: [] });
     try {
       const cursors = [...trail];
       while (cursors.length < n - 1) {
-        const page = await spec.fetch({ ...filters, sort, cursor: cursors.at(-1), limit: PAGE_SIZE });
+        const page = await spec.fetch({ ...filters, sort, cursor: cursors.at(-1), limit: size });
         if (!page.page.has_more || !page.page.next_cursor) break;
         cursors.push(page.page.next_cursor);
       }
@@ -270,11 +273,19 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
     }
   };
   const current = trail.length + 1;
-  const windowStart = Math.max(1, Math.min(current - 2, pageCount - 4));
-  const pages = Array.from({ length: Math.min(5, pageCount) }, (_, i) => windowStart + i).map((n) => ({ n, on: n === current, go: () => void goPage(n) }));
+  // The first page, the ones around this one and the last, with a gap for the pages skipped: 1 2 3 … 52.
+  const shown = pageCount <= 5
+    ? Array.from({ length: pageCount }, (_, i) => i + 1)
+    : [...new Set([1, ...(current <= 3 ? [2, 3] : current >= pageCount - 2 ? [pageCount - 2, pageCount - 1] : [current - 1, current, current + 1]), pageCount])].sort((a, b) => a - b);
+  const pages: { n: number; on: boolean; go: () => void; gap?: boolean }[] = [];
+  shown.forEach((n, i) => {
+    if (i && n - shown[i - 1] > 1) pages.push({ n: -n, on: false, go: noop, gap: true });
+    pages.push({ n, on: n === current, go: () => void goPage(n) });
+  });
 
-  const first = trail.length * PAGE_SIZE + 1;
-  const foot = !items.length ? "" : spec.foot ? spec.foot(items.length, matching) : matching === null ? `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)}` : `Showing ${formatNumber(first)}–${formatNumber(first + items.length - 1)} of ${formatNumber(matching)}`;
+  const first = trail.length * size + 1;
+  const range = items.length ? `${formatNumber(first)}–${formatNumber(first + items.length - 1)}` : "";
+  const foot = !items.length ? "" : spec.foot ? spec.foot(items.length, matching) : matching === null ? `Showing ${range}` : `Showing ${range} of ${formatNumber(matching)}`;
 
   const closeMenus = () => {
     setMenu(null);
@@ -375,6 +386,12 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
     exportAll: spec.exportFile ?? (() => void exportAll()),
     exporting,
     pages,
+    range: spec.foot ? undefined : range,
+    of: matching === null ? undefined : formatNumber(matching),
+    size,
+    sizes: PAGE_SIZES.map((n) => ({ n, on: n === size, go: () => { closeMenus(); set({ lsize: n, ...restart }); } })),
+    sizeOpen: menu === "size",
+    toggleSize: () => (menu === "size" ? closeMenus() : setMenu("size")),
   };
 
   const filtered = q !== "" || tabIndex !== 0 || Object.keys(filterParams).length > 0;

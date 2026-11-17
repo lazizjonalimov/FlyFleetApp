@@ -178,9 +178,14 @@ export function ListScreen({ list }: { list: ListResult }) {
             </EmptyState>
           ) : null}
           <div className="tfoot">
-            <span className="num"><span>{L.foot}</span></span>
+            {L.range ? (
+              <span className="num">Showing <b className="tx w5">{L.range}</b>{L.of ? ` of ${L.of}` : ""}{L.foot.includes("scroll sideways") ? " · scroll sideways for more columns" : ""}</span>
+            ) : (
+              <span className="num"><span>{L.foot}</span></span>
+            )}
             <span className="sp"></span>
-            <Pager L={L} pager={pager} />
+            {L.sizes ? <PageSize L={L} /> : null}
+            <Pager L={L} pager={pager} style={L.sizes ? { marginLeft: "8px" } : undefined} />
           </div>
         </div>
       </div>
@@ -275,14 +280,46 @@ export function ExportButton({ L, cls = "btn sm" }: { L: L; cls?: string }) {
   );
 }
 
+/** How many rows a page holds. */
+export function PageSize({ L }: { L: L }) {
+  return (
+    <>
+      <span>Rows per page</span>
+      <div className="dd">
+        <button className="btn xs" onClick={L.toggleSize} aria-haspopup="true" aria-expanded={!!L.sizeOpen} aria-label={`Rows per page: ${L.size}`}>
+          {L.size}
+          <Icon className="s12" d="M6 9l6 6 6-6" />
+        </button>
+        {L.sizeOpen ? (
+          <>
+            <div className="ddcatch" onClick={L.closeMenus}></div>
+            <div className="ddl" style={{ left: "auto", right: "0", bottom: "calc(100% + 4px)", top: "auto", width: "96px" }} role="menu" aria-label="Rows per page">
+              {L.sizes?.map((each) => (
+                <button key={each.n} className="ddi" role="menuitemradio" aria-checked={each.on} onClick={each.go}>
+                  <span className="f1">{each.n}</span>
+                  {each.on ? <Icon className="s14" d="M5 12l5 5 9-10" /> : null}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
 /** Previous, numbered pages and next. */
 export function Pager({ L, pager, style }: { L: L; pager: ListResult["pager"]; style?: React.CSSProperties }) {
   return (
     <div className="pg" style={style}>
       <button aria-label="Previous page" disabled={!pager.previous} onClick={pager.previous ?? undefined}><Icon className="s14" d="M15 6l-6 6 6 6" /></button>
-      {(L.pages?.length ? L.pages : [{ n: pager.page, on: true, go: () => undefined }]).map((pg) => (
-        <button key={pg.n} className={pg.on ? "on" : ""} aria-current={pg.on ? "page" : undefined} aria-label={`Page ${pg.n}`} onClick={pg.go}>{pg.n}</button>
-      ))}
+      {(L.pages?.length ? L.pages : [{ n: pager.page, on: true, go: () => undefined }]).map((pg) =>
+        "gap" in pg && pg.gap ? (
+          <button key={pg.n} disabled aria-hidden="true">…</button>
+        ) : (
+          <button key={pg.n} className={pg.on ? "on" : ""} aria-current={pg.on ? "page" : undefined} aria-label={`Page ${pg.n}`} onClick={pg.go}>{pg.n}</button>
+        ),
+      )}
       <button aria-label="Next page" disabled={!pager.next} onClick={pager.next ?? undefined}><Icon className="s14" d="M9 6l6 6-6 6" /></button>
     </div>
   );

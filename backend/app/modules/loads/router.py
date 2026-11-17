@@ -2,16 +2,19 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core import scope as team_scope
+from app.core.audit import audit
 from app.core.crud import child_router
 from app.core.deps import Principal, get_db, require
+from app.core.errors import Invalid
 from app.core.idempotency import run_idempotent
 from app.core.pagination import Page, envelope
+from app.modules.loads import bol, service
 from app.modules.loads import schemas as s
-from app.modules.loads import service
 from app.modules.loads.models import Load, LoadCharge, LoadItem
 
 router = APIRouter(tags=["loads"])
@@ -22,6 +25,21 @@ def list_loads(params: Annotated[s.LoadListParams, Query()], p: Principal = Depe
                db: Session = Depends(get_db)):
     items, info = service.list_loads(db, p, params)
     return envelope(items, info)
+
+
+@router.get("/loads/bols.pdf", response_class=Response, summary="Bills of lading to print, one page per load",
+            responses={200: {"content": {"application/pdf": {}}}})
+def print_bols(ids: Annotated[list[uuid.UUID], Query(max_length=50)], p: Principal = Depends(require("loads.read")),
+               db: Session = Depends(get_db)):
+    if not ids:
+        raise Invalid("Choose the loads to print", field="ids")
+    content, printed = bol.bols_pdf(db, p, ids)
+    audit(db, p, "load.bols_printed", "load", printed[0].id if len(printed) == 1 else None,
+          {"loads": [load.load_number for load in printed]})
+    db.commit()
+    name = f"bol-{printed[0].load_number}.pdf" if len(printed) == 1 else f"bols-{len(printed)}-loads.pdf"
+    return Response(content=content, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="{name}"'})
 
 
 @router.post("/loads", response_model=s.LoadDetail, status_code=201)

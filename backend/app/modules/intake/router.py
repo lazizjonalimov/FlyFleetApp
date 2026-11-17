@@ -18,13 +18,13 @@ from app.modules.intake.models import Import
 router = APIRouter(tags=["intake"])
 
 ReadKind = Literal["cdl", "registration", "rate_confirmation", "pod", "inspection_report", "fuel_receipt"]
-ImportKind = Literal["drivers", "trucks", "trailers", "mileage"]
+ImportKind = Literal["drivers", "trucks", "trailers", "mileage", "loads"]
 # What the record made from each kind of document needs.
 NEEDS = {"cdl": ("drivers.manage",), "registration": ("equipment.manage",), "rate_confirmation": ("loads.create",),
          "pod": ("loads.update",), "inspection_report": ("safety.manage", "maintenance.manage"),
          "fuel_receipt": ("expenses.manage",)}
 IMPORT_NEEDS = {"drivers": ("drivers.manage",), "trucks": ("equipment.manage",), "trailers": ("equipment.manage",),
-                "mileage": ("expenses.manage",)}
+                "mileage": ("expenses.manage",), "loads": ("loads.create",)}
 
 
 class ReadIn(BaseModel):

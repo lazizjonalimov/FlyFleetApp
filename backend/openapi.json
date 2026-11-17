@@ -1942,7 +1942,8 @@
               "drivers",
               "trucks",
               "trailers",
-              "mileage"
+              "mileage",
+              "loads"
             ],
             "title": "Kind",
             "type": "string"
@@ -11271,6 +11272,18 @@
             "title": "Equipment Type",
             "type": "string"
           },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
+          },
           "events": {
             "items": {
               "$ref": "#/components/schemas/StatusEventOut"
@@ -11288,6 +11301,18 @@
               }
             ],
             "title": "Held From Status"
+          },
+          "hold_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why an on-hold load is held, as whoever held it said",
+            "title": "Hold Reason"
           },
           "id": {
             "format": "uuid",
@@ -11321,6 +11346,11 @@
             },
             "title": "Items",
             "type": "array"
+          },
+          "late_by_minutes": {
+            "default": 0,
+            "title": "Late By Minutes",
+            "type": "integer"
           },
           "load_number": {
             "title": "Load Number",
@@ -11365,6 +11395,9 @@
               }
             ],
             "title": "Origin State"
+          },
+          "papers": {
+            "$ref": "#/components/schemas/LoadPapers"
           },
           "pickup_at": {
             "anyOf": [
@@ -11495,6 +11528,7 @@
           "currency",
           "assignment",
           "risks",
+          "papers",
           "created_at",
           "updated_at",
           "bol_number",
@@ -11600,10 +11634,39 @@
             "title": "Equipment Type",
             "type": "string"
           },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
+          },
+          "hold_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why an on-hold load is held, as whoever held it said",
+            "title": "Hold Reason"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "late_by_minutes": {
+            "default": 0,
+            "title": "Late By Minutes",
+            "type": "integer"
           },
           "load_number": {
             "title": "Load Number",
@@ -11641,6 +11704,9 @@
               }
             ],
             "title": "Origin State"
+          },
+          "papers": {
+            "$ref": "#/components/schemas/LoadPapers"
           },
           "pickup_at": {
             "anyOf": [
@@ -11757,10 +11823,33 @@
           "currency",
           "assignment",
           "risks",
+          "papers",
           "created_at",
           "updated_at"
         ],
         "title": "LoadListItem",
+        "type": "object"
+      },
+      "LoadPapers": {
+        "description": "The three papers every load needs, and whether each is in: the rate confirmation, the bill of lading and the\nproof of delivery. A POD sent back for a new one doesn't count.",
+        "properties": {
+          "bol": {
+            "default": false,
+            "title": "Bol",
+            "type": "boolean"
+          },
+          "pod": {
+            "default": false,
+            "title": "Pod",
+            "type": "boolean"
+          },
+          "rate_confirmation": {
+            "default": false,
+            "title": "Rate Confirmation",
+            "type": "boolean"
+          }
+        },
+        "title": "LoadPapers",
         "type": "object"
       },
       "LoadSplitOut": {
@@ -41794,7 +41883,8 @@
                 "drivers",
                 "trucks",
                 "trailers",
-                "mileage"
+                "mileage",
+                "loads"
               ],
               "title": "Kind",
               "type": "string"
@@ -45075,6 +45165,94 @@
           }
         ],
         "summary": "Create Load",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/bols.pdf": {
+      "get": {
+        "operationId": "print_bols_api_v1_loads_bols_pdf_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ids",
+            "required": true,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 50,
+              "title": "Ids",
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Bills of lading to print, one page per load",
         "tags": [
           "loads"
         ]

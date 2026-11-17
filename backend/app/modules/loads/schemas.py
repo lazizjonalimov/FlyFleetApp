@@ -207,6 +207,14 @@ class Risk(BaseModel):
     message: str
 
 
+class LoadPapers(BaseModel):
+    """The three papers every load needs, and whether each is in: the rate confirmation, the bill of lading and the
+    proof of delivery. A POD sent back for a new one doesn't count."""
+    rate_confirmation: bool = False
+    bol: bool = False
+    pod: bool = False
+
+
 class LoadListItem(BaseModel):
     id: uuid.UUID
     load_number: str
@@ -231,6 +239,11 @@ class LoadListItem(BaseModel):
     currency: str
     assignment: AssignmentBrief | None
     risks: list[Risk]
+    papers: LoadPapers
+    # At the last delivery, for a load on the road whose truck has reported in the last two hours.
+    eta: datetime | None = None
+    late_by_minutes: int = 0
+    hold_reason: str | None = Field(default=None, description="Why an on-hold load is held, as whoever held it said")
     created_at: datetime
     updated_at: datetime
 

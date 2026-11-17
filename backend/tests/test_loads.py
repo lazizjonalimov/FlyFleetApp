@@ -303,3 +303,51 @@ def test_rates_are_hidden_from_roles_that_may_not_see_them(org):
     safety.error("GET", f"/loads/{load['id']}/charges", 403, "FORBIDDEN")
     safety.error("GET", "/loads", 422, "VALIDATION_ERROR", params={"sort": "revenue"})
     assert org.items("/loads", sort="-revenue")[0]["revenue"] == "2550.00"
+
+
+def test_the_list_shows_each_loads_papers_eta_and_hold_reason(org):
+    from datetime import UTC, datetime, timedelta
+    s = seed(org)
+    now = datetime.now(UTC)
+    route = [{"type": "pickup", "name": "Shipper DC", "city": "Dallas", "state": "TX",
+              "appt_start": (now - timedelta(hours=2)).isoformat()},
+             {"type": "delivery", "name": "Receiver", "city": "Austin", "state": "TX",
+              "appt_start": (now + timedelta(hours=1)).isoformat()}]
+    moving = new_load(org, s["customer"]["id"], stops=route)
+    upload(org, "load", moving["id"], "rate_confirmation")
+    upload(org, "load", moving["id"], "bol")
+    load = act(org, assign(org, moving, s), "dispatch")
+    load = act(org, load, "arrive")
+    load = act(org, load, "depart")
+    # The truck reports from Waco, about 100 road miles short of Austin: under two hours at planning speed.
+    org.post("/positions", {"samples": [{"vehicle_id": s["truck"]["id"], "recorded_at": now.isoformat(),
+                                         "lat": 31.5493, "lon": -97.1467, "speed_mph": 61, "heading": 180}]}, 200)
+    held = new_load(org, s["customer"]["id"])
+    held = act(org, held, "hold", reason="Customer hold")
+    rows = {row["id"]: row for row in org.items("/loads")}
+    on_road = rows[moving["id"]]
+    assert on_road["papers"] == {"rate_confirmation": True, "bol": True, "pod": False}
+    eta = datetime.fromisoformat(on_road["eta"])
+    assert now + timedelta(minutes=60) < eta < now + timedelta(hours=3)
+    assert on_road["late_by_minutes"] == int((eta - (now + timedelta(hours=1))).total_seconds() // 60)
+    assert rows[held["id"]]["hold_reason"] == "Customer hold" and rows[held["id"]]["eta"] is None
+    assert rows[held["id"]]["papers"] == {"rate_confirmation": False, "bol": False, "pod": False}
+
+
+def test_bills_of_lading_print_one_page_per_load(org):
+    s = seed(org)
+    first = deliver(org, new_load(org, s["customer"]["id"], reference="PO-77", instructions="Call ahead"), s)
+    second = new_load(org, s["customer"]["id"])
+    r = org.get("/loads/bols.pdf", params={"ids": [first["id"], second["id"]]})
+    assert r.headers["content-type"] == "application/pdf" and r.content.startswith(b"%PDF")
+    assert r.content.count(b"/Type /Page ") == 2
+    body = r.content.decode("latin-1")
+    for text in (first["load_number"], second["load_number"], "Straight bill of lading", "PO-77", "Dana Driver",
+                 "Shipper DC", "Receiver", "Globex", "Call ahead"):
+        assert text in body, text
+    assert 'filename="bols-2-loads.pdf"' in r.headers["content-disposition"]
+    printed = next(e for e in org.items("/audit-logs") if e["action"] == "load.bols_printed")
+    assert printed["data"]["loads"] == [first["load_number"], second["load_number"]]
+    org.error("GET", "/loads/bols.pdf", 422, "VALIDATION_ERROR", params={"ids": []})
+    org.error("GET", "/loads/bols.pdf", 404, "NOT_FOUND", params={"ids": ["00000000-0000-0000-0000-000000000000"]})
+    org.add_user("driver").error("GET", "/loads/bols.pdf", 403, "FORBIDDEN", params={"ids": [first["id"]]})

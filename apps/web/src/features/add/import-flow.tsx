@@ -21,7 +21,7 @@ const SHEETS = ".csv,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officed
 const OK = "M5 12l5 5 9-10";
 const WARN = "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01";
 const NO = "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2";
-const LIST_SCREEN: Record<ImportKind, string> = { drivers: "drivers", trucks: "trucks", trailers: "trailers", mileage: "fuel" };
+const LIST_SCREEN: Record<ImportKind, string> = { drivers: "drivers", trucks: "trucks", trailers: "trailers", mileage: "fuel", loads: "loads" };
 type Decision = "update" | "skip" | "odometer" | "miles";
 const DECISION: Record<string, string> = { update: "Update", skip: "Skip", odometer: "Use odometer", miles: "Use miles" };
 
@@ -226,7 +226,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
                   <div className="seg sm" role="group" aria-label={`Row ${r.row}`}>
                     {r.actions.map((a) => (
                       <button key={a} className={r.decision === a ? "on" : ""} aria-pressed={r.decision === a} onClick={() => void update(mapping(), { ...decisions(), [String(r.row)]: a as Decision })}>
-                        <span>{DECISION[a] ?? a}</span>
+                        <span>{kind === "loads" && a === "update" ? "Add customer" : DECISION[a] ?? a}</span>
                       </button>
                     ))}
                   </div>
@@ -241,6 +241,8 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
               <input type="checkbox" className="cbx" checked={hold} onChange={(e) => setHold(e.currentTarget.checked)} />
               <span>Hold imported miles for review before the return is approved</span>
             </label>
+          ) : kind === "loads" ? (
+            <p className="fs12 mu">Loads come in as drafts. Look them over, then mark them ready from the list to offer them for dispatch.</p>
           ) : kind !== "drivers" ? (
             <label className="r g8 fs13">
               <input type="checkbox" className="cbx" checked={reminders} onChange={(e) => setReminders(e.currentTarget.checked)} />
@@ -288,9 +290,10 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
       </ModalFrame>
     );
   }
+  const added = (r as { customers_added?: number }).customers_added ?? 0;
   const rows = [
-    { t: "Added", n: r.created ?? 0, k: "ok" },
-    { t: "Updated", n: r.updated ?? 0, k: "info" },
+    { t: kind === "loads" ? "Added as drafts" : "Added", n: r.created ?? 0, k: "ok" },
+    ...(kind === "loads" ? [{ t: "New customers", n: added, k: "info" }] : [{ t: "Updated", n: r.updated ?? 0, k: "info" }]),
     { t: "Skipped", n: r.skipped ?? 0, k: "mu" },
     ...(r.failed?.length ? [{ t: "Refused by FlyFleet’s checks", n: r.failed.length, k: "bad" }] : []),
   ];
@@ -301,7 +304,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
         <div className="c g10" style={{ alignItems: "center", textAlign: "center", padding: "16px 0 8px" }}>
           <span className="donei"><Icon className="s24 b" d={OK} /></span>
           <h3 style={{ fontSize: "18px", lineHeight: "24px", fontWeight: "600" }}>{`${plural(r.created ?? 0, noun.replace(/s$/, ""))} imported`}</h3>
-          <p className="fs13 mu" style={{ maxWidth: "460px" }}>Each was checked by the same rules as the form. The import is in the audit log.</p>
+          <p className="fs13 mu" style={{ maxWidth: "460px" }}>{kind === "loads" ? "Each was booked by the same rules as the new-load form, as a draft: mark them ready from the Loads list to offer them for dispatch. The import is in the audit log." : "Each was checked by the same rules as the form. The import is in the audit log."}</p>
         </div>
         <div className="card oh" style={{ boxShadow: "none", marginTop: "12px" }}>
           {rows.map((x) => (

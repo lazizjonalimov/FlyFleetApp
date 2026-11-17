@@ -2212,6 +2212,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loads/bols.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bills of lading to print, one page per load */
+        get: operations["print_bols_api_v1_loads_bols_pdf_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loads/{load_id}": {
         parameters: {
             query?: never;
@@ -4817,7 +4834,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "drivers" | "trucks" | "trailers" | "mileage";
+            kind: "drivers" | "trucks" | "trailers" | "mileage" | "loads";
         };
         /** Candidate */
         Candidate: {
@@ -7666,10 +7683,17 @@ export interface components {
             editable: components["schemas"]["Editable"];
             /** Equipment Type */
             equipment_type: string;
+            /** Eta */
+            eta?: string | null;
             /** Events */
             events: components["schemas"]["StatusEventOut"][];
             /** Held From Status */
             held_from_status: string | null;
+            /**
+             * Hold Reason
+             * @description Why an on-hold load is held, as whoever held it said
+             */
+            hold_reason?: string | null;
             /**
              * Id
              * Format: uuid
@@ -7680,6 +7704,11 @@ export interface components {
             invoice: components["schemas"]["InvoiceRef"] | null;
             /** Items */
             items: components["schemas"]["ItemOut"][];
+            /**
+             * Late By Minutes
+             * @default 0
+             */
+            late_by_minutes: number;
             /** Load Number */
             load_number: string;
             /** Miles */
@@ -7690,6 +7719,7 @@ export interface components {
             origin_city: string | null;
             /** Origin State */
             origin_state: string | null;
+            papers: components["schemas"]["LoadPapers"];
             /** Pickup At */
             pickup_at: string | null;
             /** Reference */
@@ -7745,11 +7775,23 @@ export interface components {
             destination_state: string | null;
             /** Equipment Type */
             equipment_type: string;
+            /** Eta */
+            eta?: string | null;
+            /**
+             * Hold Reason
+             * @description Why an on-hold load is held, as whoever held it said
+             */
+            hold_reason?: string | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
+            /**
+             * Late By Minutes
+             * @default 0
+             */
+            late_by_minutes: number;
             /** Load Number */
             load_number: string;
             /** Miles */
@@ -7758,6 +7800,7 @@ export interface components {
             origin_city: string | null;
             /** Origin State */
             origin_state: string | null;
+            papers: components["schemas"]["LoadPapers"];
             /** Pickup At */
             pickup_at: string | null;
             /** Reference */
@@ -7782,6 +7825,28 @@ export interface components {
             version: number;
             /** Weight Lbs */
             weight_lbs: number | null;
+        };
+        /**
+         * LoadPapers
+         * @description The three papers every load needs, and whether each is in: the rate confirmation, the bill of lading and the
+         *     proof of delivery. A POD sent back for a new one doesn't count.
+         */
+        LoadPapers: {
+            /**
+             * Bol
+             * @default false
+             */
+            bol: boolean;
+            /**
+             * Pod
+             * @default false
+             */
+            pod: boolean;
+            /**
+             * Rate Confirmation
+             * @default false
+             */
+            rate_confirmation: boolean;
         };
         /** LoadSplitOut */
         LoadSplitOut: {
@@ -21575,7 +21640,7 @@ export interface operations {
     template_api_v1_imports_template_get: {
         parameters: {
             query: {
-                kind: "drivers" | "trucks" | "trailers" | "mileage";
+                kind: "drivers" | "trucks" | "trailers" | "mileage" | "loads";
                 format?: "csv" | "xlsx";
             };
             header?: never;
@@ -23550,6 +23615,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    print_bols_api_v1_loads_bols_pdf_get: {
+        parameters: {
+            query: {
+                ids: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
                 };
             };
             /** @description Unauthorized */

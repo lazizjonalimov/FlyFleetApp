@@ -181,8 +181,16 @@ export type ListView = {
   /** Saves every matching row as a CSV file. */
   exportAll?: Fn;
   exporting?: boolean;
-  /** Numbered pages, as far as the count allows. */
-  pages?: { n: number; on: boolean; go: Fn }[];
+  /** Numbered pages, as far as the count allows; `gap` stands for the pages skipped between two. */
+  pages?: { n: number; on: boolean; go: Fn; gap?: boolean }[];
+  /** The rows shown, "1–25", and of how many, when the count is known. */
+  range?: string;
+  of?: string;
+  /** How many rows a page holds, and the choices. */
+  size?: number;
+  sizes?: { n: number; on: boolean; go: Fn }[];
+  sizeOpen?: boolean;
+  toggleSize?: Fn;
 };
 
 export type FilterMenu = {

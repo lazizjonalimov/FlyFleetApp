@@ -3,7 +3,7 @@ import { I } from "@/features/console/icons";
 import type { DocumentType } from "@/lib/upload";
 
 export type IntakeKind = "cdl" | "registration" | "rate_confirmation" | "pod" | "inspection_report" | "fuel_receipt";
-export type ImportKind = "drivers" | "trucks" | "trailers" | "mileage";
+export type ImportKind = "drivers" | "trucks" | "trailers" | "mileage" | "loads";
 
 export type Flow = {
   title: string;
@@ -94,6 +94,7 @@ export const FLOWS: Record<string, Flow> = {
     cta: "Create draft load",
     plural: "loads",
     manualScreen: "newload",
+    importKind: "loads",
     manualDetail: "Use the guided form for the customer, stops, rate and documents.",
     scan: {
       intake: "rate_confirmation",

@@ -643,7 +643,50 @@ def list_loads(db: Session, p: Principal, params: s.LoadListParams, *,
         sortable["revenue"] = Load.customer_rate + Load.charges_total
     rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, "-created_at"), Load.id,
                           cursor=params.cursor, limit=params.limit, count=params.count)
-    return [s.LoadListItem(**_item(row, p, now)) for row in rows], info
+    extras = _list_extras(db, [row[0] for row in rows], now)
+    return [s.LoadListItem(**_item(row, p, now), **extras[row[0].id]) for row in rows], info
+
+
+PAPERS = ("rate_confirmation", "bol", "pod")
+
+
+def _list_extras(db: Session, loads: list[Load], now: datetime) -> dict[uuid.UUID, dict]:
+    """For a page of loads: which of the three papers each has, when its truck reaches the last delivery, and why
+    it is held."""
+    from app.modules.documents.models import Document, DocumentLink
+    from app.modules.tracking import incidents
+    out = {load.id: {"papers": s.LoadPapers(), "eta": None, "late_by_minutes": 0, "hold_reason": None} for load in loads}
+    if not loads:
+        return out
+    ids = list(out)
+    for load_id, kind in db.execute(
+            select(DocumentLink.entity_id, Document.type).join(Document, Document.id == DocumentLink.document_id)
+            .where(DocumentLink.entity_type == "load", DocumentLink.entity_id.in_(ids), Document.type.in_(PAPERS),
+                   Document.upload_status == "uploaded", Document.review_status != "rejected")).all():
+        setattr(out[load_id]["papers"], kind, True)
+    rolling = [load for load in loads if load.status in ROLLING]
+    if rolling:
+        roads = {road.load.id: road for road in incidents.on_the_road(db).values()}
+        positions = incidents.latest_positions(db, [roads[load.id].vehicle_id for load in rolling if load.id in roads])
+        for load in rolling:
+            road = roads.get(load.id)
+            if road is None:
+                continue
+            at, last = incidents.delivery_eta(road, positions.get(road.vehicle_id), now)
+            if at is None:
+                continue
+            appt = (last.appt_end or last.appt_start) if last is not None else None
+            out[load.id]["eta"] = at
+            out[load.id]["late_by_minutes"] = int((at - appt).total_seconds() // 60) if appt and at > appt else 0
+    held = [load.id for load in loads if load.status == "on_hold"]
+    if held:
+        for load_id, note in db.execute(
+                select(LoadStatusEvent.load_id, LoadStatusEvent.note)
+                .where(LoadStatusEvent.load_id.in_(held), LoadStatusEvent.action == "hold")
+                .order_by(LoadStatusEvent.load_id, LoadStatusEvent.created_at.desc())
+                .distinct(LoadStatusEvent.load_id)).all():
+            out[load_id]["hold_reason"] = note
+    return out
 
 
 def _names(db: Session, user_ids) -> dict[uuid.UUID, str]:
@@ -679,7 +722,7 @@ def load_detail(db: Session, p: Principal, load_id: uuid.UUID) -> s.LoadDetail:
     invoice = db.get(Invoice, load.invoice_id) if load.invoice_id and p.can("invoices.read") else None
 
     return s.LoadDetail(
-        **_item(row, p, now),
+        **_item(row, p, now), **_list_extras(db, [load], now)[load.id],
         bol_number=load.bol_number, commodity=load.commodity, instructions=load.instructions,
         customer_rate=load.customer_rate if rates else None, charges_total=load.charges_total if rates else None,
         held_from_status=load.held_from_status,

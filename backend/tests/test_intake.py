@@ -230,3 +230,49 @@ def test_a_receipt_that_prints_its_amounts_in_a_column_is_read_from_the_same_lin
     read = org.post("/intake/reads", {"document_id": doc["id"], "kind": "fuel_receipt"}, 201).json()
     got = {f["key"]: f["value"] for f in read["fields"]}
     assert (got["gallons"], got["price_per_gallon"], got["total"], got["paid_with"]) == ("88.214", "3.849", "339.53", "cash")
+
+
+def test_a_load_spreadsheet_books_drafts_and_adds_new_customers(org):
+    globex = org.post("/customers", {"name": "Globex"}, 201).json()
+    org.post("/loads", {"customer_id": globex["id"], "reference": "PO-1", "commodity": "Paper", "stops": [
+        {"type": "pickup", "city": "Dallas", "state": "TX", "appt_start": "2031-03-10T14:00:00Z"},
+        {"type": "delivery", "city": "Austin", "state": "TX", "appt_start": "2031-03-11T14:00:00Z"}]}, 201)
+    csv = (b"Customer,PO #,Shipper,Origin City,Origin State,Pickup Date,Pickup Time,Consignee,Dest City,Dest State,"
+           b"Delivery Date,Delivery Time,Rate,Miles,Weight,Equipment\n"
+           b"Globex,PO-2,Globex DC,Dallas,TX,03/12/2031,08:00-10:00,Receiver,Houston,TX,03/13/2031,2:30 PM,"
+           b"\"$1,850.00\",240,42000,Reefer\n"
+           b"Initech,PO-9,,Memphis,TN,03/12/2031,,,Atlanta,GA,03/14/2031,,1200,,,\n"
+           b"Globex,PO-1,,Dallas,TX,03/12/2031,,,Austin,TX,03/13/2031,,900,,,\n"
+           b"Globex,PO-3,,Dallas,TX,03/14/2031,25:00,,Austin,TX,03/13/2031,,900,,,\n")
+    imp = start_import(org, "loads", "loads.csv", csv)
+    cols = {c["header"]: c["field"] for c in imp["columns"]}
+    assert (cols["Customer"], cols["PO #"], cols["Origin City"], cols["Pickup Time"], cols["Dest State"]) == (
+        "customer", "reference", "pickup_city", "pickup_time", "delivery_state")
+    assert imp["covered"] and (imp["ready"], imp["look"], imp["cant"]) == (1, 1, 2)
+    issues = {i["row"]: i for i in imp["issues"]}
+    assert issues[3]["message"] == "“Initech” isn't a customer yet: added as one, or the row skipped"
+    assert issues[3]["decision"] == "update"
+    assert issues[4]["message"] == "Already in FlyFleet as L-1001"
+    assert issues[5]["message"] == "Pickup time “25:00” isn't a time"
+    done = org.post(f"/imports/{imp['id']}/commit", {"reminders": False}, 200).json()
+    result = done["result"]
+    assert (result["created"], result["customers_added"], result["skipped"]) == (2, 1, 2) and result["failed"] == []
+    loads = {load["reference"]: load for load in org.items("/loads") if load["reference"] in ("PO-2", "PO-9")}
+    first = org.get(f"/loads/{loads['PO-2']['id']}").json()
+    assert first["status"] == "draft" and first["equipment_type"] == "reefer" and first["revenue"] == "1850.00"
+    assert (first["miles"], first["weight_lbs"]) == (240, 42000)
+    pickup, delivery = first["stops"]
+    assert (pickup["name"], pickup["city"], pickup["state"]) == ("Globex DC", "Dallas", "TX")
+    assert pickup["appt_start"].startswith("2031-03-12T08:00") and pickup["appt_end"].startswith("2031-03-12T10:00")
+    assert delivery["appt_start"].startswith("2031-03-13T14:30") and delivery["appt_end"] is None
+    # No time in the file: the appointment is the whole day.
+    other = org.get(f"/loads/{loads['PO-9']['id']}").json()
+    assert other["customer"]["name"] == "Initech" and other["equipment_type"] == "dry_van"
+    assert other["stops"][0]["appt_start"].startswith("2031-03-12T00:00") and other["stops"][0]["appt_end"].startswith("2031-03-12T23:59")
+    # Someone who can book loads but not add customers can't bring new ones in.
+    dispatcher = org.add_user("dispatcher")
+    again = start_import(dispatcher, "loads", "loads.csv", b"Customer,Origin City,Pickup Date,Dest City,Delivery Date\n"
+                         b"Hooli,Dallas,03/12/2031,Austin,03/13/2031\n")
+    assert again["cant"] == 1 and again["issues"][0]["message"] == "Customer “Hooli” isn't in FlyFleet; your role can't add customers"
+    org.add_user("safety_manager").error("POST", "/imports", 403, "FORBIDDEN", files={"file": ("l.csv", b"a\n1\n")},
+                                         data={"kind": "loads"})

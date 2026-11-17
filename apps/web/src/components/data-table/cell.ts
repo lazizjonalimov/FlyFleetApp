@@ -42,6 +42,8 @@ export const cell = {
   actions: (list: [label: string, go: () => void, cls?: string][]): Cell => ({ isActs: 1, acts: list.map(([l, go, cls]) => ({ l, go: stop(go), cls: cls ?? "" })), al: "" }),
   check: (on: boolean, go: () => void): Cell => ({ isChk: 1, on: on ? "on" : "", go: stop(go) }),
   more: (): Cell => ({ isMore: 1, al: "rt" }),
+  /** A load's three papers as a meter, "2/3": red for the gaps once the proof of delivery is overdue. */
+  docs: (n: number, podMissing: boolean): Cell => ({ isDocs: 1, v: `${n}/3`, k: n === 3 ? "ok" : podMissing ? "bad" : "mu", bars: [0, 1, 2].map((i) => (i < n ? "ok" : podMissing ? "bad" : "off")) }),
 };
 
 /** A column heading; `right` for numbers and money. */

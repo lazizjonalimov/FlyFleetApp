@@ -26,6 +26,17 @@ export function formatDateTime(iso: string | null | undefined, timeZone: string)
   }).format(date);
 }
 
+/** "Nov 13 · 14:00" on the company's clock, as lists show a pickup or delivery; the year only when it isn't this one. */
+export function formatStamp(iso: string | null | undefined, timeZone: string): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const sameYear = date.getUTCFullYear() === new Date().getUTCFullYear();
+  const day = formatter(`sd:${timeZone}:${sameYear}`, { timeZone, month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) }).format(date);
+  const time = formatter(`st:${timeZone}`, { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date);
+  return `${day} · ${time}`;
+}
+
 /** "Mar 10, 2026" for an instant, in the company's time zone. */
 export function formatDay(iso: string | null | undefined, timeZone: string): string {
   if (!iso) return "—";
