@@ -1,6 +1,6 @@
 import { loadLabel, loadTone, TRAILER_TYPES } from "@/features/fleet/labels";
 import type { Schema } from "@/lib/api/types";
-import { formatDateTime } from "@/lib/format/dates";
+import { formatStamp } from "@/lib/format/dates";
 import { formatMoney, toCents } from "@/lib/format/money";
 import { formatNumber, humanize, place } from "@/lib/format/text";
 import type { LoadDetail, LoadListItem, Stop } from "./load-data";
@@ -11,28 +11,45 @@ type Summary = Pick<LoadListItem, "status" | "risks" | "assignment" | "pickup_at
 export const equipmentLabel = (type: string): string => TRAILER_TYPES[type] ?? humanize(type);
 export const CHARGES: Record<string, string> = { detention: "Detention", layover: "Layover", lumper: "Lumper", fuel_surcharge: "Fuel surcharge", tarp: "Tarp", extra_stop: "Extra stop", tonu: "Truck ordered, not used", other: "Other" };
 
-const RISKS: Record<string, [label: string, tone: string]> = { LATE_PICKUP: ["Late pickup", "bad"], LATE_DELIVERY: ["Late delivery", "bad"], UNASSIGNED_SOON: ["No driver yet", "warn"], MISSING_POD: ["Needs POD", "bad"] };
+const RISKS: Record<string, [label: string, tone: string]> = { LATE_PICKUP: ["Late pickup", "bad"], LATE_DELIVERY: ["Late delivery", "bad"], UNASSIGNED_SOON: ["No driver yet", "warn"], MISSING_POD: ["POD missing", "bad"] };
 
 /** The first thing putting a load at risk, as the API reports it. */
-export function riskOf(load: Summary): { label: string; tone: string; message: string } | null {
+export function riskOf(load: Summary): { label: string; tone: string; message: string; code: string } | null {
   const risk = load.risks[0];
   if (!risk) return null;
   const [label, tone] = RISKS[risk.code] ?? [humanize(risk.code.toLowerCase()), "warn"];
-  return { label, tone, message: risk.message };
+  return { label, tone, message: risk.message, code: risk.code };
 }
 
-export type LoadAlert = { tone: string; title: string; text: string; button: string; act: "assign" | "release" | "ready" | "pod" | "" };
+export type LoadAlert = { tone: string; title: string; text: string; button: string; act: "assign" | "release" | "ready" | "pod" | "notify" | "request_pod" | "" };
 
-/** The one thing about a load that someone should act on now, if there is one. */
-export function alertOf(load: LoadDetail): LoadAlert | null {
+const clockOf = (iso: string, zone: string) => formatStamp(iso, zone).split(" · ")[1] ?? "";
+const listTimes = (times: string[]) => (times.length > 1 ? `${times.slice(0, -1).join(", ")} and ${times.at(-1)}` : times[0] ?? "");
+
+/**
+ * The one thing about a load that someone should act on now, if there is one. A truck that won't make the delivery
+ * says by how much against which appointment; a missing proof of delivery says when the driver was asked.
+ */
+export function alertOf(load: LoadDetail, zone = "UTC", can: { notify: boolean; requestPod: boolean } = { notify: false, requestPod: false }): LoadAlert | null {
   const allowed = new Set(load.allowed_actions);
   const risk = riskOf(load);
+  const delivery = [...load.stops].reverse().find((stop) => stop.type === "delivery");
+  const appt = delivery ? delivery.appt_end ?? delivery.appt_start : null;
+  const where = delivery ? delivery.name || place(delivery.city, delivery.state) : "the delivery";
   if (load.status === "on_hold") return { tone: "warn", title: "On hold", text: "The load keeps its driver and equipment while it is held.", button: allowed.has("release") ? "Release hold" : "", act: allowed.has("release") ? "release" : "" };
   if (load.status === "draft") return { tone: "warn", title: "Draft", text: "A draft isn’t offered for dispatch until it is marked ready.", button: allowed.has("mark_ready") ? "Mark ready" : "", act: allowed.has("mark_ready") ? "ready" : "" };
   if (risk && !load.assignment && allowed.has("assign")) return { tone: risk.tone, title: "No driver assigned", text: risk.message, button: "Assign", act: "assign" };
-  if (load.status === "delivered") return { tone: "bad", title: "Proof of delivery missing", text: "Invoicing stays blocked until the signed paperwork is uploaded and reviewed.", button: "", act: "" };
+  if (load.status === "delivered") {
+    const asked = (load.pod_requested_at ?? []).map((at) => clockOf(at, zone));
+    return { tone: "bad", title: "Proof of delivery missing", text: `Invoicing stays blocked until the POD is uploaded and reviewed.${asked.length ? ` The driver was asked in the app at ${listTimes(asked)}.` : ""}`, button: can.requestPod ? "Request POD" : "", act: can.requestPod ? "request_pod" : "" };
+  }
   if (load.status === "pod_review") return { tone: "info", title: "Proof of delivery to review", text: "Approve it to complete the load, or send it back.", button: allowed.has("approve_pod") ? "Approve POD" : "", act: allowed.has("approve_pod") ? "pod" : "" };
-  if (risk) return { tone: risk.tone, title: risk.label, text: risk.message, button: "", act: "" };
+  const notify = can.notify ? { button: "Notify customer", act: "notify" as const } : { button: "", act: "" as const };
+  if (load.eta && load.late_by_minutes > 0 && appt && risk?.code !== "LATE_DELIVERY") {
+    return { tone: load.late_by_minutes >= 60 ? "bad" : "warn", title: `Will miss the delivery appointment by about ${span(load.late_by_minutes)}`, text: `ETA ${clockOf(load.eta, zone)} vs. ${clockOf(appt, zone)} at ${where}, from the truck’s last position.`, ...notify };
+  }
+  if (risk?.code === "LATE_DELIVERY" && appt) return { tone: "bad", title: "Late for the delivery appointment", text: `The appointment at ${where} was ${formatStamp(appt, zone)}${load.eta ? `; ETA ${clockOf(load.eta, zone)}` : "; no recent position to estimate an arrival"}.`, ...notify };
+  if (risk) return { tone: risk.tone, title: risk.label, text: risk.message, ...(risk.code === "LATE_PICKUP" ? notify : { button: "", act: "" as const }) };
   return null;
 }
 
@@ -47,7 +64,7 @@ export function lifecycle(load: LoadDetail, zone: string): { l: string; t: strin
   const current = Math.max(0, FLOW.indexOf(standing));
   return FLOW.map((state, index) => ({
     l: loadLabel(state),
-    t: index < current ? (reached.has(state) ? formatDateTime(reached.get(state), zone) : "") : index === current ? (load.status === "on_hold" ? "on hold" : load.status === "cancelled" ? "cancelled" : "now") : "",
+    t: index < current ? (reached.has(state) ? formatStamp(reached.get(state), zone) : "") : index === current ? (load.status === "on_hold" ? "on hold" : load.status === "cancelled" ? "cancelled" : load.eta ? `ETA ${formatStamp(load.eta, zone).split(" · ")[1]}` : "now") : "",
     st: index < current ? "done" : index === current ? "cur" : "",
     done: index < current ? 1 : 0,
   }));
@@ -56,25 +73,28 @@ export function lifecycle(load: LoadDetail, zone: string): { l: string; t: strin
 const minutes = (from: string, to: string | number) => Math.max(0, Math.round(((typeof to === "number" ? to : Date.parse(to)) - Date.parse(from)) / 60_000));
 const span = (total: number) => (total >= 60 ? `${Math.floor(total / 60)}h ${total % 60}m` : `${total}m`);
 
-/** A stop's appointment: a time, or a window. */
+/** A stop's appointment: "Nov 13 · 06:30", or a window "Nov 13 · 08:00 – 10:00". */
 export function appointment(stop: Stop, zone: string): string {
   if (!stop.appt_start) return "No appointment";
-  const start = formatDateTime(stop.appt_start, zone);
+  const start = formatStamp(stop.appt_start, zone);
   if (!stop.appt_end || stop.appt_end === stop.appt_start) return start;
-  const end = formatDateTime(stop.appt_end, zone);
+  const end = formatStamp(stop.appt_end, zone);
   // the same day: show the date once
-  const [day, time] = [end.slice(0, end.lastIndexOf(", ")), end.slice(end.lastIndexOf(", ") + 2)];
-  return start.startsWith(day) ? `${start} – ${time}` : `${start} – ${end}`;
+  const [day, time] = end.split(" · ");
+  return start.startsWith(`${day} · `) ? `${start} – ${time}` : `${start} – ${end}`;
 }
 
-export type StopState = { stop: Stop; index: number; where: string; kind: "Pickup" | "Delivery"; done: boolean; here: boolean; label: string; tone: string; dwell: string };
+export type StopState = { stop: Stop; index: number; where: string; kind: "Pickup" | "Delivery"; done: boolean; here: boolean; label: string; tone: string; dwell: string; eta: string };
 
-/** Each stop with how far the truck has got with it. */
-export function stopStates(load: LoadDetail, now: number = Date.now()): StopState[] {
+/** Each stop with how far the truck has got with it; the last delivery, while ahead, with the truck's ETA. */
+export function stopStates(load: LoadDetail, now: number = Date.now(), zone = "UTC"): StopState[] {
+  const lastDelivery = [...load.stops].reverse().find((stop) => stop.type === "delivery");
   return load.stops.map((stop, index) => {
     const done = !!stop.departed_at;
     const here = !!stop.arrived_at && !done;
     const pickup = stop.type === "pickup";
+    const ahead = !done && !here && stop.id === lastDelivery?.id && load.eta;
+    const eta = ahead ? `ETA ${formatStamp(load.eta, zone).split(" · ")[1]}${load.late_by_minutes > 0 ? ` · +${span(load.late_by_minutes)}` : " · on time"}` : "";
     return {
       stop,
       index,
@@ -82,8 +102,9 @@ export function stopStates(load: LoadDetail, now: number = Date.now()): StopStat
       kind: pickup ? "Pickup" : "Delivery",
       done,
       here,
-      label: done ? (pickup ? "Departed" : "Delivered") : here ? (pickup ? "Loading" : "Unloading") : "Scheduled",
-      tone: done ? "ok" : here ? (pickup ? "atpickup" : "atdelivery") : "mu",
+      eta,
+      label: done ? (pickup ? "Departed" : "Delivered") : here ? (pickup ? "Loading" : "Unloading") : eta || "Scheduled",
+      tone: done ? "ok" : here ? (pickup ? "atpickup" : "atdelivery") : eta ? (load.late_by_minutes >= 60 ? "bad" : load.late_by_minutes > 0 ? "late" : "ok") : "mu",
       dwell: stop.arrived_at ? (stop.departed_at ? span(minutes(stop.arrived_at, stop.departed_at)) : `${span(minutes(stop.arrived_at, now))} · clock running`) : "—",
     };
   });
@@ -140,7 +161,7 @@ export function activity(load: LoadDetail, zone: string): { who: string; what: s
   const entries = [
     ...load.events.map((event) => {
       const [text, tone] = EVENTS[event.action] ?? [`${humanize(event.action).toLowerCase()} → ${loadLabel(event.to_status).toLowerCase()}`, "mu"];
-      return { at: event.created_at, who: event.actor_name ?? "System", what: text + (event.note ? `: “${event.note}”` : ""), k: tone, src: "" };
+      return { at: event.created_at, who: event.actor_name ?? "FlyFleet", what: text + (event.note ? `: “${event.note}”` : ""), k: tone, src: event.source };
     }),
     ...load.tracking.map((point) => ({
       at: point.occurred_at,
@@ -149,9 +170,9 @@ export function activity(load: LoadDetail, zone: string): { who: string; what: s
       k: point.kind === "exception" ? "bad" : "info",
       src: humanize(point.source).toLowerCase(),
     })),
-    ...load.notes.map((note) => ({ at: note.created_at, who: note.author_name ?? "System", what: `added a note: “${note.body}”`, k: "mu", src: "" })),
+    ...load.notes.map((note) => ({ at: note.created_at, who: note.author_name ?? "System", what: `added a note: “${note.body}”`, k: "mu", src: "web" })),
   ];
-  return entries.sort((a, b) => b.at.localeCompare(a.at)).map(({ at, ...entry }) => ({ ...entry, when: formatDateTime(at, zone) }));
+  return entries.sort((a, b) => b.at.localeCompare(a.at)).map(({ at, ...entry }) => ({ ...entry, when: formatStamp(at, zone) }));
 }
 
 /** The line under a load's title: customer, reference, miles, equipment. */

@@ -263,6 +263,22 @@ class StatusEventOut(BaseModel):
     actor_name: str | None
     note: str | None
     created_at: datetime
+    source: Literal["web", "driver app", "system"] = Field(
+        default="web", description="Where it was done: the console, the driver app, or FlyFleet itself")
+
+
+class LoadPosition(BaseModel):
+    """Where the load's truck last reported from, how fresh that is, and how far it has to go."""
+    freshness: Literal["live", "delayed", "stale", "none"]
+    recorded_at: datetime | None
+    source: str | None
+    accuracy_m: int | None
+    speed_mph: float | None
+    lat: float | None
+    lon: float | None
+    place: str | None
+    # To the last delivery: the straight line from the last position, stretched to road miles.
+    remaining_miles: int | None
 
 
 class TrackingOut(BaseModel):
@@ -308,6 +324,10 @@ class LoadDetail(LoadListItem):
     assignments: list[AssignmentOut]
     allowed_actions: list[str]
     editable: Editable
+    position: LoadPosition | None = Field(default=None, description="The assigned truck's latest position, while "
+                                                                    "it is the one hauling the load")
+    pod_requested_at: list[datetime] = Field(default_factory=list,
+                                             description="When the driver was asked for the proof of delivery")
 
 
 class LoadListParams(ListParams):

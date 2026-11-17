@@ -325,3 +325,40 @@ def invitations(db: Session) -> list[dict[str, Any]]:
                     "invited_by_name": names.get(r.invited_by), "created_at": r.created_at,
                     "expires_at": r.expires_at, "accepted_at": r.accepted_at})
     return out
+
+
+# ---------------------------------------------------------------- asking for access
+def request_access(db: Session, p: Principal, permission: str, context: str | None) -> dict[str, Any]:
+    """Someone asks for a permission their role doesn't give: each person who manages the team gets a task saying
+    who, what and where they asked from. Asking again while it is open asks nobody twice."""
+    from app.modules.tasks.models import Task
+    if permission not in GRANTABLE:
+        raise Invalid("That can't be asked for", field="permission")
+    if p.can(permission):
+        raise Conflict("You already have this", code="ALREADY_ALLOWED")
+    admins = db.execute(select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
+                        .where(Membership.active.is_(True), Membership.role.in_((Role.OWNER.value, Role.ADMIN.value)),
+                               User.id != p.user_id).order_by(User.full_name)).all()
+    if not admins:
+        raise Conflict("Nobody in this company can give access", code="NO_ADMIN")
+    key = f"access:{p.user_id}:{permission}"
+    open_keys = set(db.scalars(select(Task.source_key).where(Task.status == "open", Task.source_key.like(f"{key}:%"))))
+    what = next(text_ for group in PERMISSION_GROUPS.values() for perm, text_ in group.items() if perm == permission)
+    who = db.scalar(select(User.full_name).where(User.id == p.user_id)) or "Someone"
+    role = label_of(db, p.role)
+    asked = []
+    for admin_id, name in admins:
+        if f"{key}:{admin_id}" in open_keys:
+            continue
+        db.add(Task(organization_id=p.org_id, title=f"{who} asks to {what[0].lower()}{what[1:]}"[:200],
+                    detail=" · ".join(x for x in (f"Asked from {context}" if context else None,
+                                                  f"their role ({role}) doesn't allow it",
+                                                  "allow it for them on Team & access, or tell them no") if x)[:300],
+                    assignee_user_id=admin_id, created_by=p.user_id, priority="medium", source="manual",
+                    source_key=f"{key}:{admin_id}"))
+        asked.append(name)
+    if asked:
+        db.flush()
+        audit(db, p, "access.requested", "user", p.user_id, {"permission": permission, "context": context,
+                                                             "asked": asked})
+    return {"asked": asked, "already": bool(open_keys) and not asked, "admins": [name for _, name in admins]}

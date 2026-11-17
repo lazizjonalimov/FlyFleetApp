@@ -164,8 +164,10 @@ function ConversationRow({ cv, on, timeZone, onOpen }: { cv: Item; on: boolean; 
 }
 
 function ThreadView({ id }: { id: string }) {
-  const { me, can, set } = useConsole();
+  const { me, can, set, state } = useConsole();
   const org = me.organization;
+  // A message drafted where the conversation was opened from (a load asking for a new appointment), for this one only.
+  const drafted = state.mtext && typeof state.mtext === "object" ? (state.mtext as { conv?: string; text?: string }) : null;
   const client = useQueryClient();
   const c = clocks(org.timezone);
   const thread = useQuery({
@@ -174,7 +176,7 @@ function ThreadView({ id }: { id: string }) {
     refetchInterval: 10_000,
   });
   const t = thread.data;
-  const [text, setText] = useState("");
+  const [text, setText] = useState(drafted?.conv === id ? (drafted.text ?? "") : "");
   const [older, setOlder] = useState<Msg[]>([]);
   const [moreGone, setMoreGone] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);

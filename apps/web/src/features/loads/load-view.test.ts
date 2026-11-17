@@ -24,7 +24,7 @@ describe("a load's lifecycle strip", () => {
 
 describe("what to act on", () => {
   it("is the API's risk, labelled", () => {
-    expect(riskOf(load({ risks: [{ code: "LATE_PICKUP", message: "Pickup was due at 08:00" }] as never }))).toEqual({ label: "Late pickup", tone: "bad", message: "Pickup was due at 08:00" });
+    expect(riskOf(load({ risks: [{ code: "LATE_PICKUP", message: "Pickup was due at 08:00" }] as never }))).toEqual({ label: "Late pickup", tone: "bad", message: "Pickup was due at 08:00", code: "LATE_PICKUP" });
     expect(riskOf(load())).toBeNull();
   });
 

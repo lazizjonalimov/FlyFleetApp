@@ -35,7 +35,7 @@ from app.modules.loads.models import (
     LoadStop,
     TrackingEvent,
 )
-from app.modules.organizations.models import Organization, Terminal, User
+from app.modules.organizations.models import Membership, Organization, Terminal, User
 
 # Until a truck is sent, the route itself can still be rebuilt.
 ROUTE_EDITABLE = ("draft", "planned", "assigned")
@@ -717,6 +717,10 @@ def load_detail(db: Session, p: Principal, load_id: uuid.UUID) -> s.LoadDetail:
         .where(DispatchAssignment.load_id == load_id).order_by(DispatchAssignment.created_at.desc())).all()
     names = _names(db, [*(n.author_user_id for n in notes), *(e.actor_user_id for e in events),
                         *(t.actor_user_id for t in tracking), *(a.assigned_by for a, *_ in history)])
+    # What a driver did, they did in the driver app: their sign-in is the app's.
+    actors = {e.actor_user_id for e in events if e.actor_user_id}
+    drivers_signed_in = set(db.scalars(select(Membership.user_id).where(
+        Membership.role == "driver", Membership.user_id.in_(actors)))) if actors else set()
     charges = list(db.scalars(select(LoadCharge).where(LoadCharge.load_id == load_id)
                               .order_by(LoadCharge.created_at))) if rates else []
     invoice = db.get(Invoice, load.invoice_id) if load.invoice_id and p.can("invoices.read") else None
@@ -735,7 +739,9 @@ def load_detail(db: Session, p: Principal, load_id: uuid.UUID) -> s.LoadDetail:
         notes=[s.NoteOut(id=n.id, body=n.body, author_name=names.get(n.author_user_id), created_at=n.created_at)
                for n in notes],
         events=[s.StatusEventOut(id=e.id, action=e.action, from_status=e.from_status, to_status=e.to_status,
-                                 actor_name=names.get(e.actor_user_id), note=e.note, created_at=e.created_at)
+                                 actor_name=names.get(e.actor_user_id), note=e.note, created_at=e.created_at,
+                                 source="system" if e.actor_user_id is None else
+                                 "driver app" if e.actor_user_id in drivers_signed_in else "web")
                 for e in events],
         tracking=[s.TrackingOut(id=t.id, kind=t.kind, occurred_at=t.occurred_at, city=t.city, state=t.state,
                                 note=t.note, source=t.source, actor_name=names.get(t.actor_user_id))
@@ -746,4 +752,43 @@ def load_detail(db: Session, p: Principal, load_id: uuid.UUID) -> s.LoadDetail:
             trailer=s.Ref(id=a.trailer_id, name=trailer_unit) if a.trailer_id else None,
             assigned_at=a.created_at, assigned_by_name=names.get(a.assigned_by), released_at=a.released_at,
             release_reason=a.release_reason) for a, first, last, unit, trailer_unit in history],
-        allowed_actions=allowed_actions(load, p), editable=editable(load, p))
+        allowed_actions=allowed_actions(load, p), editable=editable(load, p),
+        position=_position(db, load, row, now), pod_requested_at=_pod_requests(db, load))
+
+
+def _position(db: Session, load: Load, row, now: datetime) -> s.LoadPosition | None:
+    """The hauling truck's latest position, how fresh it is, and the road miles still to the last delivery."""
+    from app.core import places
+    from app.modules.tracking import incidents
+    from app.modules.tracking.service import freshness
+    vehicle_id, assignment_status = row[7], row[3]
+    if vehicle_id is None or assignment_status not in ("active", "completed"):
+        return None
+    pos = incidents.latest_positions(db, [vehicle_id]).get(vehicle_id)
+    if pos is None:
+        return s.LoadPosition(freshness="none", recorded_at=None, source=None, accuracy_m=None, speed_mph=None, lat=None,
+                              lon=None, place=None, remaining_miles=None)
+    remaining = None
+    last = db.scalar(select(LoadStop).where(LoadStop.load_id == load.id, LoadStop.type == "delivery")
+                     .order_by(LoadStop.seq.desc()).limit(1))
+    if last is not None and last.arrived_at is None:
+        where = places.locate(last.city, last.state)
+        if where is not None:
+            km = places.km(float(pos.lat), float(pos.lon), *where) * incidents.ROAD_FACTOR
+            remaining = round(km / 1.609344)
+    elif last is not None:
+        remaining = 0
+    lat, lon = float(pos.lat), float(pos.lon)
+    return s.LoadPosition(freshness=freshness(pos.recorded_at, now), recorded_at=pos.recorded_at, source=pos.source,
+                          accuracy_m=pos.accuracy_m, speed_mph=float(pos.speed_mph) if pos.speed_mph is not None else None,
+                          lat=lat, lon=lon, place=places.describe(lat, lon, pos.heading, True), remaining_miles=remaining)
+
+
+def _pod_requests(db: Session, load: Load) -> list[datetime]:
+    """When the driver was asked for the proof of delivery, from the load's missing-POD alert."""
+    if load.status != "delivered":
+        return []
+    from app.modules.tracking.models import Incident
+    data = db.scalar(select(Incident.data).where(Incident.kind == "pod_missing", Incident.load_id == load.id,
+                                                 Incident.state != "resolved")) or {}
+    return [datetime.fromisoformat(at) for at in data.get("pod_requests_at", [])]

@@ -2,23 +2,27 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { cell } from "@/components/data-table/cell";
 import { BasicCell } from "@/components/data-table/cells";
 import { ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
-import { useSoon } from "@/features/console/use-action";
+
 import { useOpenConversation } from "@/features/messages/use-message";
 import { useUpload, viewDocument } from "@/features/documents/use-upload";
 import { api, unwrap } from "@/lib/api/client";
-import { formatDateTime } from "@/lib/format/dates";
+import { formatStamp, timeZoneLabel } from "@/lib/format/dates";
 import { formatNumber, initials, place } from "@/lib/format/text";
 import type { DocumentType } from "@/lib/upload";
+import { AddStop } from "./add-stop";
 import { StatusMenu, useLoadActions } from "./load-actions";
 import { useLoad, useLoadDocuments } from "./load-data";
+import { sinceNow } from "./load-drawer";
 import { activity, alertOf, describe, equipmentLabel, financials, lifecycle, paperwork, riskOf, statusOf, stopStates, type LoadAlert } from "./load-view";
+import { usePodRequest } from "./use-pod-request";
+
 
 const head = (labels: [string, boolean?][]) => labels.map(([l, right]) => ({ l, al: right ? "rt" : "" }));
 const noop = () => {};
@@ -26,8 +30,9 @@ const noop = () => {};
 /** Load detail page: lifecycle, route and tracking, stops, documents, financials, activity. */
 export function LoadScreen() {
   const { me, state, can, fin, noFin, set, notify } = useConsole();
-  const soon = useSoon();
+  const [adding, setAdding] = useState(false);
   const message = useOpenConversation();
+  const requestPod = usePodRequest();
   const upload = useUpload();
   const id = typeof state.loadId === "string" ? state.loadId : null;
   const query = useLoad(id);
@@ -61,8 +66,8 @@ export function LoadScreen() {
   const zone = me.organization.timezone;
   const status = statusOf(load);
   const risk = riskOf(load);
-  const alert = alertOf(load);
-  const stops = stopStates(load);
+  const alert = alertOf(load, zone, { notify: can("messages.send"), requestPod: can("loads.update", "loads.close") });
+  const stops = stopStates(load, undefined, zone);
   const money = financials(load);
   const papers = paperwork(load, documents.data?.items ?? []);
   const moving = ["dispatched", "at_pickup", "in_transit", "at_delivery"].includes(load.status);
@@ -76,21 +81,38 @@ export function LoadScreen() {
   const last = stops[stops.length - 1];
   const operations = customer.data?.contacts.find((contact) => contact.kind === "operations") ?? customer.data?.contacts.find((contact) => contact.is_primary);
   const billing = customer.data?.contacts.find((contact) => contact.kind === "billing");
-  const act = (alert: LoadAlert) => () => (alert.act === "assign" ? actions.start("assign") : alert.act === "release" ? actions.start("release") : alert.act === "ready" ? actions.start("mark_ready") : alert.act === "pod" ? actions.start("approve_pod") : undefined);
+  const act = (alert: LoadAlert) => () => (alert.act === "assign" ? actions.start("assign") : alert.act === "release" ? actions.start("release") : alert.act === "ready" ? actions.start("mark_ready") : alert.act === "pod" ? actions.start("approve_pod") : alert.act === "notify" ? void message({ customerId: load.customer.id, contactId: operations?.id ?? null }) : alert.act === "request_pod" ? void requestPod(load.id) : undefined);
+  // Asking the customer for a new delivery appointment: a message drafted with the ETA, to read over and send.
+  const reschedule = () => {
+    const stop = last?.stop;
+    const eta = load.eta ? formatStamp(load.eta, zone) : null;
+    void message({ customerId: load.customer.id, contactId: operations?.id ?? null }, `Load ${load.load_number}${load.reference ? ` (${load.reference})` : ""} won’t make the ${stop?.appt_start ? formatStamp(stop.appt_start, zone) : "booked"} delivery appointment at ${stop?.name || place(stop?.city, stop?.state)}.${eta ? ` Our ETA is ${eta} ${timeZoneLabel(zone)}.` : ""} Can we move the appointment?`);
+  };
+  const position = load.position;
+  const live = position && position.freshness !== "none" && position.recorded_at;
+  const progress = position?.remaining_miles !== null && position?.remaining_miles !== undefined && load.miles ? `${formatNumber(Math.max(0, load.miles - position.remaining_miles))} of ${formatNumber(load.miles)} mi` : null;
 
-  const stats = moving
+  const stats = moving && live
     ? [
-        { k: "Last check call", v: lastCall ? formatDateTime(lastCall.occurred_at, zone) : "None yet", tk: "" },
+        { k: "Progress", v: progress ?? "—", tk: "" },
+        { k: "ETA · last position", v: load.eta ? `${formatStamp(load.eta, zone).split(" · ")[1]} ${timeZoneLabel(zone)}` : "—", tk: load.late_by_minutes >= 60 ? "bad" : load.late_by_minutes > 0 ? "late" : "" },
+        { k: "Last position", v: `${position.freshness === "stale" ? formatStamp(position.recorded_at!, zone) : formatStamp(position.recorded_at!, zone).split(" · ")[1]} ${timeZoneLabel(zone)}`, tk: position.freshness === "stale" ? "warn" : "" },
+        { k: "Source", v: position.source === "driver_app" ? "Driver’s phone" : "Vehicle telematics", tk: "" },
+        { k: "Accuracy", v: position.accuracy_m ? `±${formatNumber(position.accuracy_m)} m` : "—", tk: "" },
+      ]
+    : moving
+    ? [
+        { k: "Last check call", v: lastCall ? formatStamp(lastCall.occurred_at, zone) : "None yet", tk: "" },
         { k: "Last known place", v: lastCall?.city ? place(lastCall.city, lastCall.state) : "—", tk: "" },
         { k: "Distance", v: load.miles ? `${formatNumber(load.miles)} mi` : "—", tk: "" },
-        { k: "Delivery appointment", v: last?.stop.appt_start ? formatDateTime(last.stop.appt_start, zone) : "—", tk: risk?.tone === "bad" ? "bad" : "" },
+        { k: "Delivery appointment", v: last?.stop.appt_start ? formatStamp(last.stop.appt_start, zone) : "—", tk: risk?.tone === "bad" ? "bad" : "" },
         { k: "Reported by", v: lastCall ? (lastCall.source === "driver" ? "Driver" : "Dispatcher") : "—", tk: "" },
       ]
     : [
         { k: "Progress", v: delivered ? (load.miles ? `${formatNumber(load.miles)} of ${formatNumber(load.miles)} mi` : "Delivered") : "Not started", tk: "" },
         { k: "Distance", v: load.miles ? `${formatNumber(load.miles)} mi` : "—", tk: "" },
-        { k: "Pickup", v: first?.stop.appt_start ? formatDateTime(first.stop.appt_start, zone) : "—", tk: "" },
-        { k: "Delivery", v: last?.stop.appt_start ? formatDateTime(last.stop.appt_start, zone) : "—", tk: "" },
+        { k: "Pickup", v: first?.stop.appt_start ? formatStamp(first.stop.appt_start, zone) : "—", tk: "" },
+        { k: "Delivery", v: last?.stop.appt_start ? formatStamp(last.stop.appt_start, zone) : "—", tk: "" },
         { k: "Tracking", v: delivered ? "Ended at delivery" : load.status === "cancelled" ? "Cancelled" : "Starts at dispatch", tk: "" },
       ];
 
@@ -102,38 +124,47 @@ export function LoadScreen() {
       open: noop,
       cells: [
         cell.text(s.stop.name || s.where, `${s.kind} · ${s.where}`, "w5"),
-        cell.text(s.stop.appt_start ? formatDateTime(s.stop.appt_start, zone) : "—", "", "num t2"),
-        cell.text(s.stop.arrived_at ? formatDateTime(s.stop.arrived_at, zone) : "—", "", "num t2"),
-        cell.text(s.stop.departed_at ? formatDateTime(s.stop.departed_at, zone) : "—", "", "num t2"),
+        cell.text(s.stop.appt_start ? formatStamp(s.stop.appt_start, zone) : "—", "", "num t2"),
+        cell.text(s.stop.arrived_at ? formatStamp(s.stop.arrived_at, zone) : "—", "", "num t2"),
+        cell.text(s.stop.departed_at ? formatStamp(s.stop.departed_at, zone) : "—", "", "num t2"),
         cell.text(s.dwell, "", "num t3"),
-        cell.badge(s.label, s.tone),
+        s.eta ? cell.risk(s.eta, s.tone) : cell.badge(s.label, s.tone),
       ],
     })),
   };
+  // Where each paper came from: the driver's phone or the console, and how sure an automatic reading was.
+  const source = (paper: (typeof papers.papers)[number]) => {
+    const d = paper.document;
+    if (!d) return "—";
+    const where = d.source === "driver app" ? "Driver app scan" : d.source === "system" ? "FlyFleet" : d.uploaded_by_name ? `Uploaded by ${d.uploaded_by_name}` : "Uploaded";
+    return d.read_confidence !== null && d.read_confidence !== undefined ? `${where} · read ${d.read_confidence}%` : where;
+  };
   const docTable = {
-    cols: "minmax(0,1fr) 160px 132px 140px 76px",
-    head: head([["Document"], ["Uploaded by"], ["Review"], ["Uploaded"], [""]]),
+    cols: "minmax(0,1fr) minmax(0,1fr) 132px 140px 84px",
+    head: head([["Document"], ["Source"], ["Review"], ["Uploaded"], [""]]),
     rows: papers.papers.map((paper, i) => ({
       key: paper.document?.id ?? `${paper.type}-${i}`,
       open: noop,
       cells: [
         cell.text(paper.label, paper.document && paper.document.filename !== paper.label ? paper.document.filename : "", "w5"),
-        cell.text(paper.document?.uploaded_by_name ?? "—", "", "t3"),
+        cell.text(source(paper), "", "t3"),
         cell.badge(paper.state, paper.tone),
-        cell.text(paper.document ? formatDateTime(paper.document.created_at, zone) : "—", "", "num t3"),
+        cell.text(paper.document ? formatStamp(paper.document.created_at, zone) : "—", "", "num t3"),
         paper.document
           ? cell.button("View", () => viewDocument(paper.document!.id))
-          : can("documents.upload")
-            ? cell.button("Upload", () => void upload({ type: paper.type as DocumentType, entityType: "load", entityId: load.id, label: paper.label }))
-            : cell.text(""),
+          : paper.type === "pod" && load.status === "delivered" && can("loads.update", "loads.close")
+            ? cell.button("Request", () => void requestPod(load.id))
+            : can("documents.upload")
+              ? cell.button("Upload", () => void upload({ type: paper.type as DocumentType, entityType: "load", entityId: load.id, label: paper.label }))
+              : cell.text(""),
       ],
     })),
   };
   const asg = [
     { k: "Truck", v: assignment?.vehicle.name ?? "—" },
     { k: "Trailer", v: assignment?.trailer ? `${assignment.trailer.name} · ${equipmentLabel(load.equipment_type)}` : "—" },
-    { k: "Assigned", v: assigned ? `${formatDateTime(assigned.assigned_at, zone)}${assigned.assigned_by_name ? ` by ${assigned.assigned_by_name}` : ""}` : "—" },
-    { k: "Dispatched", v: dispatched ? formatDateTime(dispatched.created_at, zone) : "—" },
+    { k: "Assigned", v: assigned ? `${formatStamp(assigned.assigned_at, zone)}${assigned.assigned_by_name ? ` by ${assigned.assigned_by_name}` : ""}` : "—" },
+    { k: "Dispatched", v: dispatched ? formatStamp(dispatched.created_at, zone) : "—" },
   ];
   const created = load.events.find((event) => event.action === "created");
 
@@ -161,7 +192,7 @@ export function LoadScreen() {
               </span>
             ) : null}
           </div>
-          <p className="sub"><span>{[describe(load), created ? `created ${formatDateTime(created.created_at, zone)}${created.actor_name ? ` by ${created.actor_name}` : ""}` : ""].filter(Boolean).join(" · ")}</span></p>
+          <p className="sub"><span>{[describe(load), created ? `created ${formatStamp(created.created_at, zone)}${created.actor_name ? ` by ${created.actor_name}` : ""}` : ""].filter(Boolean).join(" · ")}</span></p>
         </div>
         <div className="r g8">
           {can("messages.send") ? (
@@ -171,10 +202,12 @@ export function LoadScreen() {
             </button>
           ) : null}
           <StatusMenu items={actions.items} start={actions.start} />
-          <button className="btn pri" onClick={() => (can("messages.send") ? void message({ customerId: load.customer.id }) : soon("Notifying customers")())}>
-            <Icon className="s14" d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
-            Notify customer
-          </button>
+          {can("messages.send") ? (
+            <button className="btn pri" onClick={() => void message({ customerId: load.customer.id, contactId: operations?.id ?? null })}>
+              <Icon className="s14" d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
+              Notify customer
+            </button>
+          ) : null}
         </div>
       </div>
       <div className="lc">
@@ -231,6 +264,7 @@ export function LoadScreen() {
               </div>
               {alert.button ? (
                 <div className="r g8">
+                  {alert.act === "notify" && last?.kind === "Delivery" && !last.done ? <button className="btn sm" onClick={reschedule}><span>Request new appointment</span></button> : null}
                   <button className="btn sm pri" onClick={act(alert)}><span>{alert.button}</span></button>
                 </div>
               ) : null}
@@ -239,9 +273,9 @@ export function LoadScreen() {
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">{"Route & tracking"}</h2>
-              <span className="badge" data-k={moving ? "ok" : "mu"}>
+              <span className="badge" data-k={moving ? (live ? (position.freshness === "live" ? "ok" : position.freshness === "delayed" ? "warn" : "bad") : "ok") : "mu"}>
                 <i></i>
-                <span>{moving ? (lastCall ? `Last check call ${formatDateTime(lastCall.occurred_at, zone)}` : "On the road") : delivered ? "Trip complete" : "Not started"}</span>
+                <span>{moving ? (live ? `${position.freshness === "live" ? "Live" : position.freshness === "delayed" ? "Delayed" : "Stale"} · ${sinceNow(position.recorded_at!)}` : lastCall ? `Last check call ${formatStamp(lastCall.occurred_at, zone)}` : "On the road") : delivered ? "Trip complete" : "Not started"}</span>
               </span>
               <span className="sp"></span>
               <button className="lnk" onClick={() => set(goTo("tracking"))}>Open in Live fleet</button>
@@ -262,17 +296,17 @@ export function LoadScreen() {
               </svg>
               <span className="mpin" style={{ left: "calc(70 / 770 * 100%)", top: "160px" }} data-k="ok"></span>
               <span className="mlab" style={{ left: "calc(58 / 770 * 100%)", top: "172px" }}>
-                <span>{`${load.origin_city ?? ""}${first?.stop.departed_at ? ` · departed ${formatDateTime(first.stop.departed_at, zone)}` : first?.stop.appt_start ? ` · pickup ${formatDateTime(first.stop.appt_start, zone)}` : ""}`}</span>
+                <span>{`${load.origin_city ?? ""}${first?.stop.departed_at ? ` · departed ${formatStamp(first.stop.departed_at, zone)}` : first?.stop.appt_start ? ` · pickup ${formatStamp(first.stop.appt_start, zone)}` : ""}`}</span>
               </span>
               <span className="mpin" style={{ left: "calc(690 / 770 * 100%)", top: "42px" }} data-k={risk?.tone === "bad" ? "bad" : "brand"}></span>
               <span className="mlab" style={{ left: "calc(560 / 770 * 100%)", top: "16px" }}>
-                <span>{`${last?.stop.name || load.destination_city || ""}${last?.stop.appt_start ? ` · appt ${formatDateTime(last.stop.appt_start, zone)}` : ""}`}</span>
+                <span>{`${last?.stop.name || load.destination_city || ""}${last?.stop.appt_start ? ` · appt ${formatStamp(last.stop.appt_start, zone)}` : ""}`}</span>
               </span>
               {moving && assignment ? (
                 <>
                   <span className="mtruck" style={{ left: "calc(492 / 770 * 100%)", top: "84px" }}><Icon className="s12 fill" d="M12 2l7 19-7-4-7 4z" /></span>
                   <span className="mlab" style={{ left: "calc(440 / 770 * 100%)", top: "104px" }}>
-                    <span>{`${assignment.vehicle.name}${lastCall?.city ? ` · ${place(lastCall.city, lastCall.state)}` : ""}`}</span>
+                    <span>{`${assignment.vehicle.name}${live && position.place ? ` · ${position.place}` : lastCall?.city ? ` · ${place(lastCall.city, lastCall.state)}` : ""}`}</span>
                   </span>
                 </>
               ) : null}
@@ -292,7 +326,7 @@ export function LoadScreen() {
               <span className="fs12 mu">Times in the company’s time zone</span>
               <span className="sp"></span>
               {load.editable.stops && can("loads.update") ? (
-                <button className="btn sm" onClick={soon("Changing stops here")}>
+                <button className="btn sm" onClick={() => setAdding(true)}>
                   <Icon className="s12 b" d="M12 5v14M5 12h14" />
                   Add stop
                 </button>
@@ -462,6 +496,7 @@ export function LoadScreen() {
         </div>
       </div>
       {actions.dialog}
+      {adding ? <AddStop load={load} onClose={() => setAdding(false)} /> : null}
     </div>
   );
 }

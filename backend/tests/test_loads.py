@@ -331,6 +331,13 @@ def test_the_list_shows_each_loads_papers_eta_and_hold_reason(org):
     assert now + timedelta(minutes=60) < eta < now + timedelta(hours=3)
     assert on_road["late_by_minutes"] == int((eta - (now + timedelta(hours=1))).total_seconds() // 60)
     assert rows[held["id"]]["hold_reason"] == "Customer hold" and rows[held["id"]]["eta"] is None
+    # The load itself: where its truck is, how fresh that is and how far it has left, and who did what from where.
+    detail = org.get(f"/loads/{moving['id']}").json()
+    position = detail["position"]
+    assert position["freshness"] == "live" and position["accuracy_m"] is None and position["speed_mph"] == 61
+    assert 80 < position["remaining_miles"] < 150 and "Waco" in position["place"]
+    assert {e["source"] for e in detail["events"]} == {"web"}
+    assert org.get(f"/loads/{held['id']}").json()["position"] is None
     assert rows[held["id"]]["papers"] == {"rate_confirmation": False, "bol": False, "pod": False}
 
 

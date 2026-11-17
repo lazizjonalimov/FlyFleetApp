@@ -59,6 +59,64 @@
         "title": "AccessChange",
         "type": "object"
       },
+      "AccessRequestIn": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where it was asked from, e.g. a load",
+            "title": "Context"
+          },
+          "permission": {
+            "maxLength": 60,
+            "title": "Permission",
+            "type": "string"
+          }
+        },
+        "required": [
+          "permission"
+        ],
+        "title": "AccessRequestIn",
+        "type": "object"
+      },
+      "AccessRequestOut": {
+        "properties": {
+          "admins": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Admins",
+            "type": "array"
+          },
+          "already": {
+            "description": "True when everyone had already been asked and hasn't answered",
+            "title": "Already",
+            "type": "boolean"
+          },
+          "asked": {
+            "description": "Who was asked just now",
+            "items": {
+              "type": "string"
+            },
+            "title": "Asked",
+            "type": "array"
+          }
+        },
+        "required": [
+          "asked",
+          "already",
+          "admins"
+        ],
+        "title": "AccessRequestOut",
+        "type": "object"
+      },
       "ActionIn": {
         "properties": {
           "action": {
@@ -4650,6 +4708,18 @@
             "title": "Links",
             "type": "array"
           },
+          "read_confidence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it was read automatically: how sure the reading was, 0-100, across the fields it found",
+            "title": "Read Confidence"
+          },
           "review_note": {
             "anyOf": [
               {
@@ -4695,6 +4765,17 @@
           "size_bytes": {
             "title": "Size Bytes",
             "type": "integer"
+          },
+          "source": {
+            "default": "web",
+            "description": "Where it came in: a driver's phone, the console, or FlyFleet itself",
+            "enum": [
+              "driver app",
+              "web",
+              "system"
+            ],
+            "title": "Source",
+            "type": "string"
           },
           "type": {
             "title": "Type",
@@ -11411,6 +11492,26 @@
             ],
             "title": "Pickup At"
           },
+          "pod_requested_at": {
+            "description": "When the driver was asked for the proof of delivery",
+            "items": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "title": "Pod Requested At",
+            "type": "array"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LoadPosition"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The assigned truck's latest position, while it is the one hauling the load"
+          },
           "reference": {
             "anyOf": [
               {
@@ -11850,6 +11951,123 @@
           }
         },
         "title": "LoadPapers",
+        "type": "object"
+      },
+      "LoadPosition": {
+        "description": "Where the load's truck last reported from, how fresh that is, and how far it has to go.",
+        "properties": {
+          "accuracy_m": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accuracy M"
+          },
+          "freshness": {
+            "enum": [
+              "live",
+              "delayed",
+              "stale",
+              "none"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At"
+          },
+          "remaining_miles": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Miles"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "speed_mph": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Speed Mph"
+          }
+        },
+        "required": [
+          "freshness",
+          "recorded_at",
+          "source",
+          "accuracy_m",
+          "speed_mph",
+          "lat",
+          "lon",
+          "place",
+          "remaining_miles"
+        ],
+        "title": "LoadPosition",
         "type": "object"
       },
       "LoadSplitOut": {
@@ -22750,6 +22968,17 @@
             ],
             "title": "Note"
           },
+          "source": {
+            "default": "web",
+            "description": "Where it was done: the console, the driver app, or FlyFleet itself",
+            "enum": [
+              "web",
+              "driver app",
+              "system"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
           "to_status": {
             "title": "To Status",
             "type": "string"
@@ -29507,6 +29736,92 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/access-requests": {
+      "post": {
+        "operationId": "request_access_api_v1_access_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccessRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ask the people who manage the team for a permission the role doesn't give",
+        "tags": [
+          "team"
+        ]
+      }
+    },
     "/api/v1/access-review": {
       "get": {
         "description": "Who can do what: each person's role, their exceptions and the sensitive access they end up with.",

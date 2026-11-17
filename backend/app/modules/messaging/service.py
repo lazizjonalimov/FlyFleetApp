@@ -315,8 +315,9 @@ def request_pod(db: Session, p: Principal, load: Load) -> dict[str, Any]:
                                            Incident.state != "resolved"))
     who = _user_name(db, p.user_id) or "Someone"
     if row is not None:
-        times = int((row.data or {}).get("pod_requests", 0)) + 1
-        row.data = {**(row.data or {}), "pod_requests": times, "pod_requested_at": now.isoformat()}
+        asked = [*(row.data or {}).get("pod_requests_at", []), now.isoformat()]
+        times = len(asked)
+        row.data = {**(row.data or {}), "pod_requests": times, "pod_requests_at": asked}
         how = "driver app" if sent else "not sent: not on the driver app"
         incidents._event(db, row, "requested", now, f"{who} asked {_name(driver)} for the POD · {how}",
                          "info" if sent else "warn", p.user_id)

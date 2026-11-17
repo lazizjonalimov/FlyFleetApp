@@ -39,6 +39,7 @@ def test_needs_attention_lists_each_alert_with_its_action(org):
     assert again["times"] == 2
     pod = next(r for r in org.get("/dashboard/attention").json()["items"] if r["kind"] == "pod_missing")
     assert pod["detail"].endswith(" · driver asked twice")
+    assert len(org.get(f"/loads/{hauled['id']}").json()["pod_requested_at"]) == 2
     alert = org.get(f"/incidents/{pod['incident_id']}").json()
     assert any(e["text"] == "Olive Owner asked Dana Driver for the POD · not sent: not on the driver app" for e in alert["events"])
     org.error("POST", f"/loads/{waiting['id']}/pod-request", 409, "WRONG_STATE")

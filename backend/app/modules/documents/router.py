@@ -37,7 +37,7 @@ from app.modules.finance.models import Invoice
 from app.modules.loads import service as loads
 from app.modules.loads.models import Load
 from app.modules.maintenance.models import Inspection, WorkOrder
-from app.modules.organizations.models import User
+from app.modules.organizations.models import Membership, User
 from app.modules.owners.models import Owner
 from app.modules.safety.rules import WARN_DAYS
 
@@ -120,6 +120,10 @@ class DocumentOut(BaseModel):
     uploaded_by_name: str | None
     created_at: datetime
     links: list[LinkOut]
+    source: Literal["driver app", "web", "system"] = Field(
+        default="web", description="Where it came in: a driver's phone, the console, or FlyFleet itself")
+    read_confidence: int | None = Field(default=None, description="When it was read automatically: how sure the "
+                                                                  "reading was, 0-100, across the fields it found")
 
 
 class UploadTarget(BaseModel):
@@ -226,12 +230,26 @@ def _present(db: Session, docs: list[Document]) -> list[DocumentOut]:
         by_doc.setdefault(link.document_id, []).append(LinkOut(
             id=link.id, entity_type=link.entity_type, entity_id=link.entity_id,
             label=labels.get((link.entity_type, link.entity_id))))
+    # Who uploaded from the driver app: the uploader's sign-in is a driver's.
+    uploaders = {d.uploaded_by for d in docs if d.uploaded_by}
+    drivers = set(db.scalars(select(Membership.user_id).where(Membership.role == "driver",
+                                                              Membership.user_id.in_(uploaders)))) if uploaders else set()
+    confidence: dict[uuid.UUID, int] = {}
+    if ids:
+        from app.modules.intake.models import DocumentRead
+        for read in db.scalars(select(DocumentRead).where(DocumentRead.document_id.in_(ids), DocumentRead.status == "done")
+                               .order_by(DocumentRead.created_at)):
+            sure = [float(f["confidence"]) for f in read.fields or [] if isinstance(f.get("confidence"), int | float)]
+            if sure:
+                confidence[read.document_id] = round(100 * sum(sure) / len(sure))
     return [DocumentOut(
         id=d.id, type=d.type, filename=d.filename, content_type=d.content_type, size_bytes=d.size_bytes,
         upload_status=d.upload_status, scan_status=d.scan_status, review_status=d.review_status,
         review_note=d.review_note, reviewed_by_name=names.get(d.reviewed_by), reviewed_at=d.reviewed_at,
         expires_on=d.expires_on, in_portal=d.in_portal, uploaded_by_name=names.get(d.uploaded_by), created_at=d.created_at,
-        links=by_doc.get(d.id, [])) for d in docs]
+        links=by_doc.get(d.id, []),
+        source="system" if d.uploaded_by is None else "driver app" if d.uploaded_by in drivers else "web",
+        read_confidence=confidence.get(d.id)) for d in docs]
 
 
 # ---------------------------------------------------------------- upload

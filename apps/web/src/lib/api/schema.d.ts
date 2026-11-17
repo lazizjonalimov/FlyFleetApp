@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/v1/access-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the people who manage the team for a permission the role doesn't give */
+        post: operations["request_access_api_v1_access_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/access-review": {
         parameters: {
             query?: never;
@@ -4271,6 +4288,31 @@ export interface components {
             /** Who */
             who: string;
         };
+        /** AccessRequestIn */
+        AccessRequestIn: {
+            /**
+             * Context
+             * @description Where it was asked from, e.g. a load
+             */
+            context?: string | null;
+            /** Permission */
+            permission: string;
+        };
+        /** AccessRequestOut */
+        AccessRequestOut: {
+            /** Admins */
+            admins: string[];
+            /**
+             * Already
+             * @description True when everyone had already been asked and hasn't answered
+             */
+            already: boolean;
+            /**
+             * Asked
+             * @description Who was asked just now
+             */
+            asked: string[];
+        };
         /** ActionIn */
         ActionIn: {
             /**
@@ -5672,6 +5714,11 @@ export interface components {
             in_portal: boolean;
             /** Links */
             links: components["schemas"]["LinkOut"][];
+            /**
+             * Read Confidence
+             * @description When it was read automatically: how sure the reading was, 0-100, across the fields it found
+             */
+            read_confidence?: number | null;
             /** Review Note */
             review_note: string | null;
             /** Review Status */
@@ -5684,6 +5731,13 @@ export interface components {
             scan_status: string;
             /** Size Bytes */
             size_bytes: number;
+            /**
+             * Source
+             * @description Where it came in: a driver's phone, the console, or FlyFleet itself
+             * @default web
+             * @enum {string}
+             */
+            source: "driver app" | "web" | "system";
             /** Type */
             type: string;
             /** Upload Status */
@@ -7722,6 +7776,13 @@ export interface components {
             papers: components["schemas"]["LoadPapers"];
             /** Pickup At */
             pickup_at: string | null;
+            /**
+             * Pod Requested At
+             * @description When the driver was asked for the proof of delivery
+             */
+            pod_requested_at?: string[];
+            /** @description The assigned truck's latest position, while it is the one hauling the load */
+            position?: components["schemas"]["LoadPosition"] | null;
             /** Reference */
             reference: string | null;
             /** Revenue */
@@ -7847,6 +7908,33 @@ export interface components {
              * @default false
              */
             rate_confirmation: boolean;
+        };
+        /**
+         * LoadPosition
+         * @description Where the load's truck last reported from, how fresh that is, and how far it has to go.
+         */
+        LoadPosition: {
+            /** Accuracy M */
+            accuracy_m: number | null;
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "live" | "delayed" | "stale" | "none";
+            /** Lat */
+            lat: number | null;
+            /** Lon */
+            lon: number | null;
+            /** Place */
+            place: string | null;
+            /** Recorded At */
+            recorded_at: string | null;
+            /** Remaining Miles */
+            remaining_miles: number | null;
+            /** Source */
+            source: string | null;
+            /** Speed Mph */
+            speed_mph: number | null;
         };
         /** LoadSplitOut */
         LoadSplitOut: {
@@ -11405,6 +11493,13 @@ export interface components {
             id: string;
             /** Note */
             note: string | null;
+            /**
+             * Source
+             * @description Where it was done: the console, the driver app, or FlyFleet itself
+             * @default web
+             * @enum {string}
+             */
+            source: "web" | "driver app" | "system";
             /** To Status */
             to_status: string;
         };
@@ -13305,6 +13400,75 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    request_access_api_v1_access_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessRequestOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     access_review_api_v1_access_review_get: {
         parameters: {
             query?: {

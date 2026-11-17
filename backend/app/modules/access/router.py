@@ -290,3 +290,23 @@ def access_review(format: Literal["json", "csv"] = "json", p: Principal = Depend
     db.commit()
     return Response(content="﻿" + out.getvalue(), media_type="text/csv", headers={
         "Content-Disposition": f'attachment; filename="access-review-{p.today()}.csv"', "Cache-Control": "private, no-store"})
+
+
+# ---------------------------------------------------------------- asking for access
+class AccessRequestIn(BaseModel):
+    permission: str = Field(max_length=60)
+    context: str | None = Field(default=None, max_length=120, description="Where it was asked from, e.g. a load")
+
+
+class AccessRequestOut(BaseModel):
+    asked: list[str] = Field(description="Who was asked just now")
+    already: bool = Field(description="True when everyone had already been asked and hasn't answered")
+    admins: list[str]
+
+
+@router.post("/access-requests", response_model=AccessRequestOut, status_code=201,
+             summary="Ask the people who manage the team for a permission the role doesn't give")
+def request_access(body: AccessRequestIn, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    out = service.request_access(db, p, body.permission, body.context)
+    db.commit()
+    return AccessRequestOut(**out)

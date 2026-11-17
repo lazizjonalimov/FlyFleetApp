@@ -149,3 +149,20 @@ def test_the_audit_log_by_kind_with_names_and_an_export(org):
     assert csv.startswith("﻿Time,Actor,Role,Action") and load["load_number"] in csv
     assert org.items("/audit-logs", group="security")[0]["action"] == "audit.exported"
     org.add_user("dispatcher").error("GET", "/audit-logs", 403, "FORBIDDEN")
+
+
+def test_asking_for_access_gives_each_admin_a_task_once(org):
+    admin = org.add_user("admin")
+    dispatcher = org.add_user("dispatcher")
+    out = dispatcher.post("/access-requests", {"permission": "loads.rates.read", "context": "load L-1001"}, 201).json()
+    assert sorted(out["asked"]) == ["Admin", "Olive Owner"] and out["already"] is False
+    [task] = org.items("/tasks")
+    assert task["title"] == "Dispatcher asks to see customer rates and charges"
+    assert task["detail"] == ("Asked from load L-1001 · their role (Dispatcher) doesn't allow it · allow it for them on "
+                              "Team & access, or tell them no")
+    assert [t["title"] for t in admin.items("/tasks")] == [task["title"]]
+    again = dispatcher.post("/access-requests", {"permission": "loads.rates.read"}, 201).json()
+    assert again["asked"] == [] and again["already"] is True and len(org.items("/tasks")) == 1
+    dispatcher.error("POST", "/access-requests", 409, "ALREADY_ALLOWED", json={"permission": "loads.read"})
+    dispatcher.error("POST", "/access-requests", 422, "VALIDATION_ERROR", json={"permission": "users.manage"})
+    assert any(e["action"] == "access.requested" for e in org.items("/audit-logs"))
