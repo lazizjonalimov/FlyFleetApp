@@ -64,6 +64,7 @@ export function parseLocation(pathname: string, query: Query): Location {
   if (a === "portal" && !b) return at("ownerportal");
   if (a === "drivers" && b && !c) return at("driver", { driverId: b });
   if (a === "equipment" && (b === "trucks" || b === "trailers") && c && !d) return at("truck", { unitId: c, unitKind: b === "trucks" ? "truck" : "trailer" });
+  if (a === "finance" && b === "statements" && c === "owners" && d && !parts[5]) return at("ostmt", { statementId: d });
   if (a === "finance" && b === "statements" && c && !d) return at("stmt", { statementId: c });
   return { known: false, state: { ...base, screen: "dashboard" } };
 }
@@ -82,6 +83,7 @@ export function hrefOf(state: ConsoleState, slug: string): string {
   if (screen === "driver" && text(state.driverId)) path = `drivers/${encodeURIComponent(text(state.driverId))}`;
   if (screen === "truck" && text(state.unitId)) path = `equipment/${state.unitKind === "trailer" ? "trailers" : "trucks"}/${encodeURIComponent(text(state.unitId))}`;
   if (screen === "stmt" && text(state.statementId)) path = `finance/statements/${encodeURIComponent(text(state.statementId))}`;
+  if (screen === "ostmt" && text(state.statementId)) path = `finance/statements/owners/${encodeURIComponent(text(state.statementId))}`;
   if (screen === "owner" && text(state.ownerId)) path = `owners/${encodeURIComponent(text(state.ownerId))}`;
   if (screen === "ownerform") path = state.ownerForm === "edit" && text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/edit` : "owners/new";
   if (screen === "ownerportal") path = text(state.ownerId) ? `owners/${encodeURIComponent(text(state.ownerId))}/portal` : "portal";

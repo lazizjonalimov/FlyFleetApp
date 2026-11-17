@@ -632,3 +632,20 @@ class LiveUnit(BaseModel):
     place: str | None
     seen_at: datetime | None
     driver_name: str | None
+
+
+class UnitWeekOut(BaseModel):
+    """A truck's or trailer's money for a period: load revenue, the carrier's share, what its owners earned and
+    were charged on it, and the pay its drivers earned on its delivered loads."""
+    date_from: date
+    date_to: date
+    loads: int
+    miles: int
+    revenue: Money
+    carrier_share: Money
+    owner_gross: Money | None
+    owner_costs: Money | None
+    net: Money | None
+    owners: list[str]
+    driver_pay: Money | None
+    driver_pay_by: Literal["carrier", "owner", "carrier_for_owner", "owner_drives"] | None

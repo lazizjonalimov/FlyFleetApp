@@ -34,3 +34,24 @@ export const TRAILER_TYPES: Record<string, string> = { dry_van: "Dry van", reefe
 export const OWNERSHIP: Record<string, string> = { owned: "Company-owned", leased: "Leased", owner_operator: "Owner-operator" };
 export const DRIVER_TYPES: Record<string, string> = { company: "Company", owner_operator: "Owner-operator", contractor: "Contractor" };
 export const PAY_TYPES: Record<string, string> = { per_mile: "Per mile", percent: "Percent of load", flat: "Flat per load" };
+
+/** How fresh a unit's last position is, as the fleet screens say it: "Live · 4 min", "Stale · 47 min". */
+export function freshness(seenAt: string | null | undefined, now: number = Date.now()): [text: string, tone: "ok" | "warn" | "bad" | "mu"] {
+  if (!seenAt) return ["No position yet", "mu"];
+  const minutes = Math.max(0, Math.round((now - Date.parse(seenAt)) / 60_000));
+  if (minutes < 15) return [minutes < 1 ? "Live" : `Live · ${minutes} min`, "ok"];
+  if (minutes < 120) return [`Stale · ${minutes} min`, "warn"];
+  const hours = Math.round(minutes / 60);
+  return [hours < 48 ? `Stale · ${hours} h` : `Last seen ${Math.round(hours / 24)} days ago`, "bad"];
+}
+
+/** The carrier's name in sentences: without its legal suffix ("Acme Freight", not "Acme Freight LLC"). */
+export const carrierName = (name: string): string => name.replace(/,? (LLC|L\.L\.C\.|Inc\.?|Corp\.?|Corporation|Co\.?|Ltd\.?)$/i, "");
+
+/** "Nov 2–8", or "Oct 27–Nov 2" across a month. */
+export function weekRange(from: string, to: string): string {
+  const a = new Date(`${from}T12:00:00Z`);
+  const b = new Date(`${to}T12:00:00Z`);
+  const month = (d: Date) => d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+  return a.getUTCMonth() === b.getUTCMonth() ? `${month(a)} ${a.getUTCDate()}–${b.getUTCDate()}` : `${month(a)} ${a.getUTCDate()}–${month(b)} ${b.getUTCDate()}`;
+}

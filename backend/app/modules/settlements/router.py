@@ -46,7 +46,8 @@ def list_settlements(params: Annotated[s.SettlementListParams, Query()], p: Prin
                 "net_pay": DriverSettlement.net_pay}
     rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, "-created_at"), DriverSettlement.id,
                           cursor=params.cursor, limit=params.limit, count=params.count)
-    return envelope([s.SettlementListItem(**service.list_item(st, driver)) for st, driver in rows], info)
+    contexts = service.pay_contexts(db, p, [st for st, _ in rows])
+    return envelope([s.SettlementListItem(**service.list_item(st, driver), context=contexts[st.id]) for st, driver in rows], info)
 
 
 @router.post("", response_model=s.SettlementDetail, status_code=201)

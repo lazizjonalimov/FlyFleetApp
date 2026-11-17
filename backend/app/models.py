@@ -32,3 +32,4 @@ from app.modules.organizations.models import (  # noqa: F401
 from app.modules.owners.models import EquipmentOwnership, Owner, OwnerAgreement, OwnerContact  # noqa: F401
 from app.modules.people.models import Person, PersonDistinction  # noqa: F401
 from app.modules.settlements.models import DriverSettlement, SettlementLine  # noqa: F401
+from app.modules.settlements.owner_models import OwnerSettlement, OwnerSettlementLine  # noqa: F401

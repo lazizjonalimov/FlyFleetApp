@@ -31,6 +31,8 @@ class Vehicle(Base, IdMixin, TenantScoped, TimestampMixin):
     registered_owner: Mapped[str | None] = mapped_column(String(200))
     # The telematics provider's device or vehicle id, so positions map to this truck.
     telematics_device: Mapped[str | None] = mapped_column(String(80))
+    engine: Mapped[str | None] = mapped_column(String(80))
+    transmission: Mapped[str | None] = mapped_column(String(80))
     fuel_capacity_gal: Mapped[int | None] = mapped_column(Integer)
     ownership: Mapped[str] = mapped_column(String(20), default="owned", server_default="owned")
     terminal_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)

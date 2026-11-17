@@ -84,6 +84,22 @@ class LoadSplit:
 
 
 @dataclass
+class Item:
+    """One charge (or rental earning) and what it came from."""
+    kind: str
+    unit_id: uuid.UUID | None
+    amount: Decimal
+    description: str = ""
+    detail: str = ""
+    quantity: Decimal = Decimal("1")
+    rate: Decimal | None = None
+    load_id: uuid.UUID | None = None
+    expense_id: uuid.UUID | None = None
+    work_order_id: uuid.UUID | None = None
+    driver_id: uuid.UUID | None = None
+
+
+@dataclass
 class Period:
     loads: list[LoadSplit] = field(default_factory=list)
     costs: dict[str, Decimal] = field(default_factory=lambda: defaultdict(lambda: ZERO))
@@ -91,11 +107,15 @@ class Period:
     unit_costs: dict[uuid.UUID, Decimal] = field(default_factory=lambda: defaultdict(lambda: ZERO))
     unit_kinds: dict[tuple[uuid.UUID, str], Decimal] = field(default_factory=lambda: defaultdict(lambda: ZERO))
     unit_rental: dict[uuid.UUID, Decimal] = field(default_factory=lambda: defaultdict(lambda: ZERO))
+    # Every charge and rental amount with what it came from, for settlement lines.
+    items: list[Item] = field(default_factory=list)
 
-    def charge(self, unit: uuid.UUID, kind: str, amount: Decimal) -> None:
+    def charge(self, unit: uuid.UUID | None, kind: str, amount: Decimal, **info) -> None:
         self.costs[kind] += amount
-        self.unit_costs[unit] += amount
-        self.unit_kinds[(unit, kind)] += amount
+        if unit is not None:
+            self.unit_costs[unit] += amount
+            self.unit_kinds[(unit, kind)] += amount
+        self.items.append(Item(kind=kind, unit_id=unit, amount=amount, **info))
 
     @property
     def revenue(self) -> Decimal:
@@ -229,7 +249,10 @@ def period(db: Session, p: Principal, owner: Owner, lo: date, hi: date, unit_id:
             owner_gross=gross, carrier_share=revenue - gross, driver_pay=pay, agreement_kind=w.agreement.kind,
             on_time=on_time))
         if pay:
-            out.charge(assignment.vehicle_id, "driver_pay", pay)
+            out.charge(assignment.vehicle_id, "driver_pay", pay,
+                       description=f"Driver pay · {driver.first_name} {driver.last_name}", detail=load.load_number,
+                       quantity=Decimal(load.miles or 1), rate=driver.pay_rate, load_id=load.id,
+                       driver_id=driver.id)
     out.loads.sort(key=lambda x: (x.day, x.load_number), reverse=True)
 
     # Expenses on the owner's units: who pays follows the agreement in force that day.
@@ -241,7 +264,11 @@ def period(db: Session, p: Principal, owner: Owner, lo: date, hi: date, unit_id:
         if w is None or expense_payer(e, w.agreement) != "owner":
             continue
         key = "fuel" if e.category == "fuel" else ("repairs" if e.category in ("repairs", "tires") else "other")
-        out.charge(unit, key, money(e.amount * w.share))
+        label = {"fuel": "Fuel", "repairs": "Repair", "other": e.category.replace("_", " ").capitalize()}[key]
+        out.charge(unit, key, money(e.amount * w.share), description=f"{label}{f' · {e.vendor}' if e.vendor else ''}",
+                   detail=" · ".join(x for x in (f"{e.incurred_on:%b} {e.incurred_on.day}", e.jurisdiction or "",
+                                                f"{e.gallons:.1f} gal" if e.gallons else "") if x),
+                   expense_id=e.id)
 
     # Repairs on work orders completed in the period, when the agreement says the owner pays for maintenance.
     for wo in db.scalars(select(WorkOrder).where(
@@ -251,7 +278,8 @@ def period(db: Session, p: Principal, owner: Owner, lo: date, hi: date, unit_id:
         w = _window_on(ws, unit, _local_day(wo.completed_at, tz) or lo)
         if w is None or w.agreement.maintenance_paid_by != "owner" or not wo.total_cost:
             continue
-        out.charge(unit, "repairs", money(wo.total_cost * w.share))
+        out.charge(unit, "repairs", money(wo.total_cost * w.share), description=f"Repair · {wo.title}",
+                   detail=f"Work order {wo.number}", work_order_id=wo.id)
 
     # Fixed weekly chargebacks and rental terms, by the days each unit was the owner's in the period.
     for w in ws:
@@ -263,11 +291,15 @@ def period(db: Session, p: Principal, owner: Owner, lo: date, hi: date, unit_id:
         for key, weekly in (("insurance", a.insurance_weekly), ("occupational", a.occupational_weekly),
                             ("eld", a.eld_weekly), ("plates", a.plates_weekly)):
             if weekly:
-                out.charge(w.unit_id, key, money(weekly * weeks * w.share))
+                out.charge(w.unit_id, key, money(weekly * weeks * w.share), description=CHARGE_LABELS[key],
+                           detail="Weekly, under the agreement", quantity=weeks.quantize(Decimal("0.01")), rate=weekly)
         if a.kind == "rental" and w.kind == "trailer" and a.per_trailer_week:
             rent = money(a.per_trailer_week * weeks * w.share)
             out.rental_gross += rent
             out.unit_rental[w.unit_id] += rent
+            out.items.append(Item(kind="rental_week", unit_id=w.unit_id, amount=rent, description="Trailer rental",
+                                  detail="By the trailer week", quantity=weeks.quantize(Decimal("0.01")),
+                                  rate=a.per_trailer_week))
     # Escrow: a weekly deposit per truck until the target is reached.
     if owner.escrow_weekly:
         truck_weeks = sum((Decimal(w.overlap_days(lo, hi)) / Decimal(7) for w in ws if w.kind == "truck"), ZERO)
@@ -275,8 +307,13 @@ def period(db: Session, p: Principal, owner: Owner, lo: date, hi: date, unit_id:
         from app.modules.owners.service import escrow_balance
         room = max(owner.escrow_target - escrow_balance(db, owner), ZERO) if owner.escrow_target else deposit
         if min(deposit, room):
-            out.costs["escrow"] += min(deposit, room)
+            out.charge(None, "escrow", min(deposit, room), description="Escrow deposit",
+                       detail="Held for the owner · interest paid quarterly")
     return out
+
+
+CHARGE_LABELS = {"insurance": "Physical damage insurance", "occupational": "Occupational accident insurance",
+                 "eld": "ELD and telematics", "plates": "IRP plates and permits"}
 
 
 def expense_payer(e: Expense, a: OwnerAgreement) -> str:
@@ -308,4 +345,80 @@ def on_time_weeks(splits: list[LoadSplit], hi: date, n: int = 8) -> list[dict]:
         judged = [x for x in splits if x.on_time is not None and start <= x.day < start + timedelta(days=7)]
         out.append({"week_start": start, "on_time": sum(1 for x in judged if x.on_time),
                     "late": sum(1 for x in judged if not x.on_time), "judged": len(judged)})
+    return out
+
+
+@dataclass
+class UnitWeek:
+    """One truck's or trailer's money over a period, whoever owns it."""
+    loads: int = 0
+    miles: int = 0
+    revenue: Decimal = ZERO
+    owner_gross: Decimal | None = None
+    owner_costs: Decimal | None = None
+    driver_pay: Decimal = ZERO
+    driver_pay_by: str | None = None
+    owner_names: list[str] = field(default_factory=list)
+
+    @property
+    def carrier_share(self) -> Decimal:
+        return self.revenue - (self.owner_gross or ZERO)
+
+    @property
+    def net(self) -> Decimal | None:
+        return None if self.owner_gross is None else self.owner_gross - (self.owner_costs or ZERO)
+
+
+def unit_week(db: Session, p: Principal, kind: str, unit_id: uuid.UUID, lo: date, hi: date) -> UnitWeek:
+    """Load revenue on a unit in the period, what went to its owners under their agreements, the owners' costs
+    on it, and the pay its drivers earned on the loads delivered (by their pay terms; the settlement is what is
+    paid). A unit with no owner in the period is all the carrier's."""
+    from app.modules.owners.service import name_of
+    from app.modules.people.models import Person
+
+    out = UnitWeek()
+    tz = p.timezone
+    start = datetime.combine(lo, datetime.min.time(), ZoneInfo(tz))
+    end = datetime.combine(hi + timedelta(days=1), datetime.min.time(), ZoneInfo(tz))
+    col = DispatchAssignment.vehicle_id if kind == "vehicle" else DispatchAssignment.trailer_id
+    rows = db.execute(
+        select(Load, Driver)
+        .join(DispatchAssignment, (DispatchAssignment.load_id == Load.id)
+              & DispatchAssignment.status.in_(("active", "completed")))
+        .outerjoin(Driver, Driver.id == DispatchAssignment.driver_id)
+        .where(col == unit_id, Load.status != "cancelled",
+               or_((Load.delivered_at >= start) & (Load.delivered_at < end),
+                   Load.delivered_at.is_(None) & (Load.pickup_at >= start) & (Load.pickup_at < end),
+                   Load.delivered_at.is_(None) & Load.status.in_(LIVE) & (Load.pickup_at < end)))).tuples().all()
+    for load, driver in rows:
+        out.loads += 1
+        out.miles += load.miles or 0
+        out.revenue += load.customer_rate + load.charges_total
+        if load.status in DONE:
+            out.driver_pay += driver_pay(driver, load.miles or 0, load.customer_rate + load.charges_total)
+    own = EquipmentOwnership.vehicle_id if kind == "vehicle" else EquipmentOwnership.trailer_id
+    owner_ids = list(dict.fromkeys(db.scalars(
+        select(EquipmentOwnership.owner_id).where(own == unit_id, EquipmentOwnership.owner_id.is_not(None),
+                                                  EquipmentOwnership.effective_from <= hi,
+                                                  or_(EquipmentOwnership.effective_to.is_(None),
+                                                      EquipmentOwnership.effective_to >= lo))
+        .order_by(EquipmentOwnership.effective_from.desc()))))
+    if owner_ids:
+        out.owner_gross, out.owner_costs = ZERO, ZERO
+        owners = {o.id: o for o in db.scalars(select(Owner).where(Owner.id.in_(owner_ids)))}
+        persons = {x.id: x for x in db.scalars(select(Person).where(Person.id.in_(
+            [o.person_id for o in owners.values() if o.person_id])))}
+        for owner_id in owner_ids:
+            owner = owners[owner_id]
+            out.owner_names.append(name_of(owner, persons.get(owner.person_id)))
+            per = period(db, p, owner, lo, hi, unit_id)
+            out.owner_gross += per.owner_gross
+            out.owner_costs += per.owner_costs
+        # Who pays the driver follows the agreement in force at the end of the period.
+        latest = windows(db, owner_ids[0], lo, hi, unit_id)
+        current = next((w for w in sorted(latest, key=lambda w: w.start, reverse=True)), None)
+        out.driver_pay_by = current.agreement.driver_pay_by if current else "carrier"
+    else:
+        out.driver_pay_by = "carrier"
+    out.driver_pay = money(out.driver_pay)
     return out

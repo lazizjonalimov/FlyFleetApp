@@ -106,6 +106,8 @@ class VehicleCreate(UnitBase):
     gvwr: int | None = Field(default=None, gt=0, le=200_000)
     registered_owner: str | None = Field(default=None, max_length=200)
     telematics_device: str | None = Field(default=None, max_length=80)
+    engine: str | None = Field(default=None, max_length=80)
+    transmission: str | None = Field(default=None, max_length=80)
     fuel_capacity_gal: int | None = Field(default=None, gt=0, le=1000)
     odometer: int | None = Field(default=None, ge=0, le=5_000_000)
 
@@ -116,6 +118,8 @@ class VehicleUpdate(UnitPatch):
     gvwr: int | None = Field(default=None, gt=0, le=200_000)
     registered_owner: str | None = Field(default=None, max_length=200)
     telematics_device: str | None = Field(default=None, max_length=80)
+    engine: str | None = Field(default=None, max_length=80)
+    transmission: str | None = Field(default=None, max_length=80)
     fuel_capacity_gal: int | None = Field(default=None, gt=0, le=1000)
     odometer: int | None = Field(default=None, ge=0, le=5_000_000)
 
@@ -283,7 +287,7 @@ router.include_router(resource_router(
     prefix="/vehicles", tag="equipment", entity="vehicle", label="truck", model=Vehicle,
     create_schema=VehicleCreate, update_schema=VehicleUpdate, read_schema=VehicleRead,
     read_perm="equipment.read", write_perm="equipment.manage", list_params=VehicleListParams,
-    search=("unit_number", "vin", "plate", "make", "model", "telematics_device"),
+    search=("unit_number", "vin", "plate", "make", "model", "telematics_device", "engine"),
     sort={"unit_number": Vehicle.unit_number, "created_at": Vehicle.created_at,
           "make": func.coalesce(Vehicle.make, ""), "year": func.coalesce(Vehicle.year, 0),
           "odometer": func.coalesce(Vehicle.odometer, 0)}, default_sort="unit_number",

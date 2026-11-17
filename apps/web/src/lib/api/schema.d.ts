@@ -1530,6 +1530,160 @@ export interface paths {
         patch: operations["update_organization_api_v1_organization_patch"];
         trace?: never;
     };
+    "/api/v1/owner-settlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Owner Settlements */
+        get: operations["list_owner_settlements_api_v1_owner_settlements_get"];
+        put?: never;
+        /** Create Owner Settlement */
+        post: operations["create_owner_settlement_api_v1_owner_settlements_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The Statements screen's figures for a week (default: last full week) */
+        get: operations["statements_summary_api_v1_owner_settlements_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Owner Settlement */
+        get: operations["get_owner_settlement_api_v1_owner_settlements__settlement_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_v1_owner_settlements__settlement_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/lines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Line */
+        post: operations["add_line_api_v1_owner_settlements__settlement_id__lines_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/loads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settlement Loads */
+        get: operations["settlement_loads_api_v1_owner_settlements__settlement_id__loads_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pay */
+        post: operations["pay_api_v1_owner_settlements__settlement_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recalculate */
+        post: operations["recalculate_api_v1_owner_settlements__settlement_id__recalculate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner-settlements/{settlement_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void */
+        post: operations["void_api_v1_owner_settlements__settlement_id__void_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/owners": {
         parameters: {
             query?: never;
@@ -2308,6 +2462,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settlement-pay-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approved statements for a week as a CSV pay file */
+        get: operations["pay_file_api_v1_settlement_pay_file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settlement-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draft every driver and owner settlement for a week */
+        post: operations["run_api_v1_settlement_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/settlements": {
         parameters: {
             query?: never;
@@ -2592,6 +2780,23 @@ export interface paths {
         patch: operations["update__api_v1_trailers__item_id__patch"];
         trace?: never;
     };
+    "/api/v1/trailers/{trailer_id}/money": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A trailer's money for a period: revenue on its loads, rental to its owner */
+        get: operations["trailer_money_api_v1_trailers__trailer_id__money_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vehicles": {
         parameters: {
             query?: never;
@@ -2627,6 +2832,23 @@ export interface paths {
         head?: never;
         /** Update a truck */
         patch: operations["update__api_v1_vehicles__item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/vehicles/{vehicle_id}/money": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A truck's money for a period: load revenue, the carrier's and owner's shares, driver pay */
+        get: operations["vehicle_money_api_v1_vehicles__vehicle_id__money_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/vehicles/{vehicle_id}/seat": {
@@ -5527,6 +5749,23 @@ export interface components {
             /** Units */
             units: number;
         };
+        /** OwnerAgreementLite */
+        OwnerAgreementLite: {
+            /** Driver Pay By */
+            driver_pay_by: string;
+            /** Fsc Pct */
+            fsc_pct: string | null;
+            /** Fuel Paid By */
+            fuel_paid_by: string;
+            /** Kind */
+            kind: string;
+            /** Owner Pct */
+            owner_pct: string | null;
+            /** Per Mile */
+            per_mile: string | null;
+            /** Per Trailer Week */
+            per_trailer_week: string | null;
+        };
         /** OwnerCreate */
         OwnerCreate: {
             /** Account Number */
@@ -5777,12 +6016,86 @@ export interface components {
             /** Owner Paid */
             owner_paid: string;
         };
+        /** OwnerLineIn */
+        OwnerLineIn: {
+            /** Amount */
+            amount: number | string;
+            /** Description */
+            description: string;
+            /**
+             * Kind
+             * @default adjustment
+             * @enum {string}
+             */
+            kind: "adjustment" | "other";
+            /** Unit Id */
+            unit_id?: string | null;
+            /** Version */
+            version: number;
+        };
+        /** OwnerLineOut */
+        OwnerLineOut: {
+            /** Amount */
+            amount: string;
+            /** Carrier Share */
+            carrier_share: string | null;
+            /** Description */
+            description: string;
+            /** Detail */
+            detail: string | null;
+            /** Driver Id */
+            driver_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Load Id */
+            load_id: string | null;
+            /** Load Revenue */
+            load_revenue: string | null;
+            /** Manual */
+            manual: boolean;
+            /** Quantity */
+            quantity: string;
+            /** Rate */
+            rate: string;
+        };
         /** OwnerMaintenance */
         OwnerMaintenance: {
             /** Upcoming */
             upcoming: components["schemas"]["UpcomingItem"][];
             /** Work Orders */
             work_orders: components["schemas"]["WorkOrderRow"][];
+        };
+        /** OwnerNotOnIt */
+        OwnerNotOnIt: {
+            /** Value */
+            value: string;
+            /** What */
+            what: string;
+            /** Why */
+            why: string;
+        };
+        /** OwnerPayIn */
+        OwnerPayIn: {
+            /**
+             * Method
+             * @default ach
+             * @enum {string}
+             */
+            method: "ach" | "check" | "direct_deposit" | "cash" | "other";
+            /**
+             * Paid On
+             * Format: date
+             */
+            paid_on: string;
+            /** Reference */
+            reference?: string | null;
+            /** Version */
+            version: number;
         };
         /** OwnerRow */
         OwnerRow: {
@@ -5840,6 +6153,30 @@ export interface components {
             /** Trucks */
             trucks: number;
         };
+        /** OwnerSection */
+        OwnerSection: {
+            agreement?: components["schemas"]["OwnerAgreementLite"] | null;
+            /** Agreement Kind */
+            agreement_kind: string | null;
+            /** Driver */
+            driver: string | null;
+            /** Gross */
+            gross: string;
+            /** Kind */
+            kind: string;
+            /** Lines */
+            lines: components["schemas"]["OwnerLineOut"][];
+            /** Net */
+            net: string;
+            /** Not On It */
+            not_on_it: components["schemas"]["OwnerNotOnIt"][];
+            /** Title */
+            title: string;
+            /** Unit Id */
+            unit_id: string | null;
+            /** Unit Number */
+            unit_number: string;
+        };
         /** OwnerSensitive */
         OwnerSensitive: {
             /** Account Number */
@@ -5852,6 +6189,179 @@ export interface components {
             routing_number: string | null;
             /** Tax Id */
             tax_id: string | null;
+        };
+        /** OwnerSettlementCreate */
+        OwnerSettlementCreate: {
+            /**
+             * Final
+             * @default false
+             */
+            final: boolean;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+        };
+        /** OwnerSettlementDetail */
+        OwnerSettlementDetail: {
+            /** Account Last4 */
+            account_last4: string | null;
+            /** Allowed Actions */
+            allowed_actions: string[];
+            /** Approved At */
+            approved_at: string | null;
+            /** Carrier Share */
+            carrier_share: string;
+            /** Category */
+            category: string;
+            /** Driver Pay Run */
+            driver_pay_run: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Escrow */
+            escrow: string;
+            /** Escrow Balance */
+            escrow_balance: string;
+            /** Escrow Target */
+            escrow_target: string;
+            /** Escrow Weekly */
+            escrow_weekly: string;
+            /** Final */
+            final: boolean;
+            /** Fuel */
+            fuel: string;
+            /** General */
+            general: components["schemas"]["OwnerLineOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Load Revenue */
+            load_revenue: string;
+            /** Loads */
+            loads: number;
+            /** Net */
+            net: string;
+            /** Notes */
+            notes: string | null;
+            /** Number */
+            number: string | null;
+            /** Other Costs */
+            other_costs: string;
+            /** Owner Gross */
+            owner_gross: string;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Owner Name */
+            owner_name: string;
+            /** Paid On */
+            paid_on: string | null;
+            /** Pay Day */
+            pay_day: string;
+            /** Payment Method */
+            payment_method: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Sections */
+            sections: components["schemas"]["OwnerSection"][];
+            /** Status */
+            status: string;
+            /** Trail */
+            trail: components["schemas"]["OwnerTrailEntry"][];
+            /** Trailers */
+            trailers: number;
+            /** Trucks */
+            trucks: number;
+            /** Version */
+            version: number;
+        };
+        /** OwnerSettlementRow */
+        OwnerSettlementRow: {
+            /** Approved At */
+            approved_at: string | null;
+            /** Carrier Share */
+            carrier_share: string;
+            /** Category */
+            category: string;
+            /** Driver Pay Run */
+            driver_pay_run: string;
+            /** Entity Type */
+            entity_type: string;
+            /** Escrow */
+            escrow: string;
+            /** Final */
+            final: boolean;
+            /** Fuel */
+            fuel: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Load Revenue */
+            load_revenue: string;
+            /** Loads */
+            loads: number;
+            /** Net */
+            net: string;
+            /** Number */
+            number: string | null;
+            /** Other Costs */
+            other_costs: string;
+            /** Owner Gross */
+            owner_gross: string;
+            /**
+             * Owner Id
+             * Format: uuid
+             */
+            owner_id: string;
+            /** Owner Name */
+            owner_name: string;
+            /** Paid On */
+            paid_on: string | null;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Status */
+            status: string;
+            /** Trailers */
+            trailers: number;
+            /** Trucks */
+            trucks: number;
+            /** Version */
+            version: number;
         };
         /** OwnerSummary */
         OwnerSummary: {
@@ -5891,6 +6401,18 @@ export interface components {
             };
             /** Total */
             total: number;
+        };
+        /** OwnerTrailEntry */
+        OwnerTrailEntry: {
+            /** What */
+            what: string;
+            /**
+             * When
+             * Format: date-time
+             */
+            when: string;
+            /** Who */
+            who: string;
         };
         /** OwnerUpdate */
         OwnerUpdate: {
@@ -5967,6 +6489,18 @@ export interface components {
              * @description Reconciles the units: removed ones end today and keep their history
              */
             units?: components["schemas"]["UnitIn"][] | null;
+        };
+        /** OwnerVersioned */
+        OwnerVersioned: {
+            /** Version */
+            version: number;
+        };
+        /** OwnerVoidIn */
+        OwnerVoidIn: {
+            /** Reason */
+            reason: string;
+            /** Version */
+            version: number;
         };
         /** OwnershipOut */
         OwnershipOut: {
@@ -6086,6 +6620,13 @@ export interface components {
             meta: components["schemas"]["Meta"];
             page: components["schemas"]["PageInfo"];
         };
+        /** Page[OwnerSettlementRow] */
+        Page_OwnerSettlementRow_: {
+            /** Items */
+            items: components["schemas"]["OwnerSettlementRow"][];
+            meta: components["schemas"]["Meta"];
+            page: components["schemas"]["PageInfo"];
+        };
         /** Page[PaymentListItem] */
         Page_PaymentListItem_: {
             /** Items */
@@ -6155,6 +6696,40 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /**
+         * PayContext
+         * @description Who the driver works for and what they drove, for the Driver pay tab.
+         */
+        PayContext: {
+            /**
+             * Loads
+             * @default 0
+             */
+            loads: number;
+            /**
+             * Miles
+             * @default 0
+             */
+            miles: number;
+            /** Pay Basis */
+            pay_basis?: string | null;
+            /**
+             * Pay Kind
+             * @default company
+             * @enum {string}
+             */
+            pay_kind: "company" | "team" | "owners_driver" | "owners_team";
+            /** Team Partner */
+            team_partner?: string | null;
+            /** Team Split */
+            team_split?: string | null;
+            /** Truck */
+            truck?: string | null;
+            /** Truck Owner */
+            truck_owner?: string | null;
+            /** Works For */
+            works_for?: string | null;
         };
         /** PayIn */
         PayIn: {
@@ -6945,6 +7520,14 @@ export interface components {
             /** Calculated At */
             calculated_at: string | null;
             /**
+             * @default {
+             *       "loads": 0,
+             *       "miles": 0,
+             *       "pay_kind": "company"
+             *     }
+             */
+            context: components["schemas"]["PayContext"];
+            /**
              * Created At
              * Format: date-time
              */
@@ -7037,6 +7620,14 @@ export interface components {
             /** Approved At */
             approved_at: string | null;
             /**
+             * @default {
+             *       "loads": 0,
+             *       "miles": 0,
+             *       "pay_kind": "company"
+             *     }
+             */
+            context: components["schemas"]["PayContext"];
+            /**
              * Created At
              * Format: date-time
              */
@@ -7090,6 +7681,30 @@ export interface components {
             number: string | null;
             /** Status */
             status: string;
+        };
+        /** SettlementRunIn */
+        SettlementRunIn: {
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+        };
+        /** SettlementRunOut */
+        SettlementRunOut: {
+            /** Drivers Created */
+            drivers_created: number;
+            /** Owners Created */
+            owners_created: number;
+            /** Skipped */
+            skipped: {
+                [key: string]: unknown;
+            }[];
         };
         /** SettlementSummary */
         SettlementSummary: {
@@ -7148,6 +7763,43 @@ export interface components {
              * @default UTC
              */
             timezone: string;
+        };
+        /** StatementsSummary */
+        StatementsSummary: {
+            /** Driver Pay */
+            driver_pay: string;
+            /** Driver Pay Run */
+            driver_pay_run: string;
+            /** Drivers */
+            drivers: number;
+            /** Escrow Due */
+            escrow_due: {
+                [key: string]: unknown;
+            }[];
+            /** Escrow Held */
+            escrow_held: string;
+            /** Owner Net */
+            owner_net: string;
+            /** Owner Settlements */
+            owner_settlements: number;
+            /** Owner Trailers */
+            owner_trailers: number;
+            /** Owner Trucks */
+            owner_trucks: number;
+            /** Pay Run Drivers */
+            pay_run_drivers: number;
+            /** Pay Run Owners */
+            pay_run_owners: number;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
         };
         /** StatusEventOut */
         StatusEventOut: {
@@ -7803,6 +8455,43 @@ export interface components {
              */
             type: "vehicle" | "trailer";
         };
+        /**
+         * UnitWeekOut
+         * @description A truck's or trailer's money for a period: load revenue, the carrier's share, what its owners earned and
+         *     were charged on it, and the pay its drivers earned on its delivered loads.
+         */
+        UnitWeekOut: {
+            /** Carrier Share */
+            carrier_share: string;
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Driver Pay */
+            driver_pay: string | null;
+            /** Driver Pay By */
+            driver_pay_by: ("carrier" | "owner" | "carrier_for_owner" | "owner_drives") | null;
+            /** Loads */
+            loads: number;
+            /** Miles */
+            miles: number;
+            /** Net */
+            net: string | null;
+            /** Owner Costs */
+            owner_costs: string | null;
+            /** Owner Gross */
+            owner_gross: string | null;
+            /** Owners */
+            owners: string[];
+            /** Revenue */
+            revenue: string;
+        };
         /** UpcomingItem */
         UpcomingItem: {
             /** Days */
@@ -7870,6 +8559,8 @@ export interface components {
         VehicleCreate: {
             /** Body */
             body?: string | null;
+            /** Engine */
+            engine?: string | null;
             /** Fuel Capacity Gal */
             fuel_capacity_gal?: number | null;
             /** Gvwr */
@@ -7910,6 +8601,8 @@ export interface components {
             telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Transmission */
+            transmission?: string | null;
             /** Unit Number */
             unit_number: string;
             /** Vin */
@@ -7932,6 +8625,8 @@ export interface components {
             created_at: string;
             current_load: components["schemas"]["OtherLoad"] | null;
             driver?: components["schemas"]["UnitDriver"] | null;
+            /** Engine */
+            engine?: string | null;
             /** Fuel Capacity Gal */
             fuel_capacity_gal?: number | null;
             /** Gvwr */
@@ -7985,6 +8680,8 @@ export interface components {
             telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Transmission */
+            transmission?: string | null;
             /** Unit Number */
             unit_number: string;
             /** Vin */
@@ -7996,6 +8693,8 @@ export interface components {
         VehicleUpdate: {
             /** Body */
             body?: string | null;
+            /** Engine */
+            engine?: string | null;
             /** Fuel Capacity Gal */
             fuel_capacity_gal?: number | null;
             /** Gvwr */
@@ -8028,6 +8727,8 @@ export interface components {
             telematics_device?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
+            /** Transmission */
+            transmission?: string | null;
             /** Unit Number */
             unit_number?: string | null;
             /** Vin */
@@ -8170,6 +8871,8 @@ export interface components {
             id: string;
             /** Number */
             number: string;
+            /** Odometer */
+            odometer?: number | null;
             /** Out Of Service */
             out_of_service: boolean;
             /**
@@ -16250,6 +16953,713 @@ export interface operations {
             };
         };
     };
+    list_owner_settlements_api_v1_owner_settlements_get: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page */
+                cursor?: string | null;
+                limit?: number;
+                /** @description Sort key; prefix with - for descending */
+                sort?: string | null;
+                /** @description Search text */
+                q?: string | null;
+                /** @description Also return the total number of matching records */
+                count?: boolean;
+                status?: ("draft" | "approved" | "paid" | "void") | null;
+                owner_id?: string | null;
+                period_from?: string | null;
+                period_to?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_OwnerSettlementRow_"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_owner_settlement_api_v1_owner_settlements_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerSettlementCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    statements_summary_api_v1_owner_settlements_summary_get: {
+        parameters: {
+            query?: {
+                period_start?: string | null;
+                period_end?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementsSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_owner_settlement_api_v1_owner_settlements__settlement_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    approve_api_v1_owner_settlements__settlement_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerVersioned"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_line_api_v1_owner_settlements__settlement_id__lines_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerLineIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    settlement_loads_api_v1_owner_settlements__settlement_id__loads_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    pay_api_v1_owner_settlements__settlement_id__pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerPayIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recalculate_api_v1_owner_settlements__settlement_id__recalculate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerVersioned"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    void_api_v1_owner_settlements__settlement_id__void_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                settlement_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerVoidIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerSettlementDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_owners_api_v1_owners_get: {
         parameters: {
             query?: {
@@ -19504,6 +20914,142 @@ export interface operations {
             };
         };
     };
+    pay_file_api_v1_settlement_pay_file_get: {
+        parameters: {
+            query: {
+                period_start: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    run_api_v1_settlement_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettlementRunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettlementRunOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_settlements_api_v1_settlements_get: {
         parameters: {
             query?: {
@@ -21184,6 +22730,76 @@ export interface operations {
             };
         };
     };
+    trailer_money_api_v1_trailers__trailer_id__money_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+            };
+            header?: never;
+            path: {
+                trailer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitWeekOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list__api_v1_vehicles_get: {
         parameters: {
             query?: {
@@ -21487,6 +23103,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    vehicle_money_api_v1_vehicles__vehicle_id__money_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+            };
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitWeekOut"];
                 };
             };
             /** @description Unauthorized */

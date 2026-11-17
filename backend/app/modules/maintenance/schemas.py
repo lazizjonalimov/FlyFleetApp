@@ -97,6 +97,8 @@ class WorkOrderListItem(BaseModel):
     unit: UnitRef
     vendor: str | None
     scheduled_for: date | None
+    # The odometer it is due at (planned) or was done at (completed), when known.
+    odometer: int | None = None
     out_of_service: bool
     total_cost: Money
     currency: str

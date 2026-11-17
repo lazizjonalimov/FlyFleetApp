@@ -364,3 +364,80 @@ def summary(db: Session, p: Principal) -> s.SettlementSummary:
     paid = db.scalar(select(func.coalesce(func.sum(DriverSettlement.net_pay), 0))
                      .where(DriverSettlement.status == "paid", DriverSettlement.paid_on >= today.replace(day=1)))
     return s.SettlementSummary(currency=p.currency, drafts=drafts, to_pay=to_pay, approved_unpaid=approved, paid_this_month=paid)
+
+
+def pay_contexts(db: Session, p: Principal, settlements: list[DriverSettlement]) -> dict[uuid.UUID, s.PayContext]:
+    """For each statement: the driver's employer, team partner, truck and its owner, loads and miles paid."""
+    from app.modules.equipment.models import Vehicle
+    from app.modules.fleet.models import UnitAssignment
+    from app.modules.owners.models import EquipmentOwnership, Owner
+    from app.modules.people.models import Person
+
+    out: dict[uuid.UUID, s.PayContext] = {}
+    if not settlements:
+        return out
+    driver_ids = {st.driver_id for st in settlements}
+    drivers = {d.id: d for d in db.scalars(select(Driver).where(Driver.id.in_(driver_ids)))}
+    seats = {}
+    seated = (UnitAssignment.driver_id.in_(driver_ids)) | (UnitAssignment.co_driver_id.in_(driver_ids))
+    for seat in db.scalars(select(UnitAssignment).where(UnitAssignment.effective_to.is_(None), seated)):
+        for me, partner in ((seat.driver_id, seat.co_driver_id), (seat.co_driver_id, seat.driver_id)):
+            if me in driver_ids:
+                seats[me] = (seat, partner)
+    partner_names = {d.id: f"{d.first_name} {d.last_name}" for d in db.scalars(select(Driver).where(
+        Driver.id.in_({partner for _, partner in seats.values() if partner})))}
+    vehicle_ids = {seat.vehicle_id for seat, _ in seats.values()}
+    units = {v.id: v.unit_number for v in db.scalars(select(Vehicle).where(Vehicle.id.in_(vehicle_ids)))}
+    owners = {}
+    for r, o in db.execute(select(EquipmentOwnership, Owner).join(Owner, Owner.id == EquipmentOwnership.owner_id)
+                           .where(EquipmentOwnership.effective_to.is_(None),
+                                  EquipmentOwnership.vehicle_id.in_(units.keys()))).all():
+        person = db.get(Person, o.person_id) if o.person_id else None
+        owners[r.vehicle_id] = o.legal_name or (f"{person.first_name} {person.last_name}" if person else "Owner")
+    employers = {}
+    employer_ids = {d.employer_owner_id for d in drivers.values() if d.employer_owner_id}
+    for o in db.scalars(select(Owner).where(Owner.id.in_(employer_ids))):
+        person = db.get(Person, o.person_id) if o.person_id else None
+        employers[o.id] = o.legal_name or (f"{person.first_name} {person.last_name}" if person else "Owner")
+    hauled: dict[uuid.UUID, uuid.UUID] = {}
+    for sid, vehicle_id in db.execute(
+            select(SettlementLine.settlement_id, DispatchAssignment.vehicle_id)
+            .join(DispatchAssignment, (DispatchAssignment.load_id == SettlementLine.load_id)
+                  & DispatchAssignment.status.in_(("active", "completed")))
+            .where(SettlementLine.settlement_id.in_([st.id for st in settlements]))).all():
+        hauled.setdefault(sid, vehicle_id)
+    extra = {v.id: v.unit_number for v in db.scalars(select(Vehicle).where(Vehicle.id.in_(set(hauled.values()) - set(units))))}
+    units.update(extra)
+    for r, o in db.execute(select(EquipmentOwnership, Owner).join(Owner, Owner.id == EquipmentOwnership.owner_id)
+                           .where(EquipmentOwnership.effective_to.is_(None),
+                                  EquipmentOwnership.vehicle_id.in_(extra.keys()))).all():
+        person = db.get(Person, o.person_id) if o.person_id else None
+        owners[r.vehicle_id] = o.legal_name or (f"{person.first_name} {person.last_name}" if person else "Owner")
+    paid = {}
+    for sid, loads, miles in db.execute(
+            select(SettlementLine.settlement_id, func.count(func.distinct(SettlementLine.load_id)),
+                   func.coalesce(func.sum(Load.miles), 0))
+            .join(Load, Load.id == SettlementLine.load_id).where(SettlementLine.settlement_id.in_([st.id for st in settlements]),
+                                                                 SettlementLine.kind == "load_pay")
+            .group_by(SettlementLine.settlement_id)).all():
+        paid[sid] = (loads, int(miles))
+    for st in settlements:
+        d = drivers.get(st.driver_id)
+        seat, partner = seats.get(st.driver_id, (None, None))
+        owned_by_owner = d is not None and d.employer_owner_id is not None
+        team = partner is not None
+        kind = ("owners_team" if team else "owners_driver") if owned_by_owner else ("team" if team else "company")
+        loads, miles = paid.get(st.id, (0, 0))
+        basis = None
+        if d is not None and p.can("drivers.sensitive.read"):
+            basis = {"per_mile": f"Per mile · ${d.pay_rate:.2f}", "percent": f"{d.pay_rate.normalize()}% of revenue",
+                     "flat": f"Flat · ${d.pay_rate:.2f} a load"}.get(d.pay_type)
+        out[st.id] = s.PayContext(
+            pay_kind=kind, works_for=employers.get(d.employer_owner_id) if owned_by_owner else p.org_name,
+            team_partner=partner_names.get(partner) if partner else None,
+            team_split=("50/50" if seat.team_split == "equal" else "By miles each drove") if seat and team else None,
+            truck=units.get(seat.vehicle_id if seat else hauled.get(st.id)),
+            truck_owner=(owners.get(seat.vehicle_id if seat else hauled.get(st.id)) or "Company fleet")
+            if (seat or st.id in hauled) else None,
+            loads=loads, miles=miles, pay_basis=basis)
+    return out

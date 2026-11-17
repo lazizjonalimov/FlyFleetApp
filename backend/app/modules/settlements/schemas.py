@@ -71,11 +71,25 @@ class PayTerms(BaseModel):
     pay_rate: str
 
 
+class PayContext(BaseModel):
+    """Who the driver works for and what they drove, for the Driver pay tab."""
+    pay_kind: Literal["company", "team", "owners_driver", "owners_team"] = "company"
+    works_for: str | None = None
+    team_partner: str | None = None
+    team_split: str | None = None
+    truck: str | None = None
+    truck_owner: str | None = None
+    loads: int = 0
+    miles: int = 0
+    pay_basis: str | None = None
+
+
 class SettlementListItem(BaseModel):
     id: uuid.UUID
     number: str | None
     status: SettlementStatus
     driver: Ref
+    context: PayContext = PayContext()
     period_start: date
     period_end: date
     currency: str

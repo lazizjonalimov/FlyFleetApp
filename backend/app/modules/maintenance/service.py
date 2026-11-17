@@ -284,7 +284,7 @@ def units_by_id(db: Session, vehicle_ids, trailer_ids) -> dict[uuid.UUID, s.Unit
 
 def list_item(wo: WorkOrder, unit: s.UnitRef) -> dict:
     return dict(id=wo.id, number=wo.number, status=wo.status, priority=wo.priority, title=wo.title, unit=unit,
-                vendor=wo.vendor, scheduled_for=wo.scheduled_for, out_of_service=wo.out_of_service,
+                vendor=wo.vendor, scheduled_for=wo.scheduled_for, odometer=wo.odometer, out_of_service=wo.out_of_service,
                 total_cost=wo.total_cost, currency=wo.currency, created_at=wo.created_at, completed_at=wo.completed_at,
                 version=wo.version)
 
@@ -307,7 +307,7 @@ def work_order_detail(db: Session, p: Principal, work_order_id: uuid.UUID) -> s.
         .join(Inspection, Inspection.id == InspectionDefect.inspection_id).where(InspectionDefect.work_order_id == wo.id))
     people = names(db, [wo.created_by, wo.completed_by])
     return s.WorkOrderDetail(
-        **list_item(wo, unit), description=wo.description, odometer=wo.odometer, started_at=wo.started_at,
+        **list_item(wo, unit), description=wo.description, started_at=wo.started_at,
         resolution=wo.resolution, created_by_name=people.get(wo.created_by), completed_by_name=people.get(wo.completed_by),
         lines=[s.CostLineOut.model_validate(line) for line in lines],
         defects=[s.DefectSource(inspection_id=d.inspection_id, inspection_kind=kind, inspected_on=on, item=d.item,

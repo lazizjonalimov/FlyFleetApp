@@ -409,22 +409,66 @@ def list_ownerships(vehicle_id: uuid.UUID | None = None, trailer_id: uuid.UUID |
     return ownership_history(db, vehicle_id=vehicle_id, trailer_id=trailer_id, owner_id=owner_id)
 
 
-def seat_history(db: Session, vehicle_id: uuid.UUID) -> list[s.SeatOut]:
+def seat_history(db: Session, vehicle_id: uuid.UUID, today: date | None = None) -> list[s.SeatOut]:
     rows = list(db.scalars(select(UnitAssignment).where(UnitAssignment.vehicle_id == vehicle_id)
                            .order_by(UnitAssignment.effective_from.desc())))
     ids = {x for r in rows for x in (r.driver_id, r.co_driver_id) if x}
     drivers = {d.id: d for d in db.scalars(select(Driver).where(Driver.id.in_(ids)))}
-    return [s.SeatOut(id=r.id, vehicle_id=r.vehicle_id, driver=service._driver_ref(drivers[r.driver_id]),
-                      co_driver=service._driver_ref(drivers.get(r.co_driver_id)) if r.co_driver_id else None,
-                      team_split=r.team_split, effective_from=r.effective_from, effective_to=r.effective_to,
-                      reason=r.reason, created_at=r.created_at) for r in rows]
+    # A driver who is the person owning the truck at the time drives their own truck.
+    owned = list(db.execute(select(EquipmentOwnership.effective_from, EquipmentOwnership.effective_to, Owner.person_id)
+                            .join(Owner, Owner.id == EquipmentOwnership.owner_id)
+                            .where(EquipmentOwnership.vehicle_id == vehicle_id)).tuples())
+
+    def owner_person(day: date) -> uuid.UUID | None:
+        return next((person for start, end, person in owned if start <= day and (end is None or end >= day) and person), None)
+
+    out = []
+    for r in rows:
+        person = owner_person(r.effective_to or today or r.effective_from)
+        out.append(s.SeatOut(id=r.id, vehicle_id=r.vehicle_id, driver=service._driver_ref(drivers[r.driver_id], person),
+                             co_driver=service._driver_ref(drivers.get(r.co_driver_id), person) if r.co_driver_id else None,
+                             team_split=r.team_split, effective_from=r.effective_from, effective_to=r.effective_to,
+                             reason=r.reason, created_at=r.created_at))
+    return out
 
 
 @equipment_router.get("/vehicles/{vehicle_id}/seats", response_model=list[s.SeatOut],
                       summary="Who has driven a truck: the current seat assignment first")
 def get_seats(vehicle_id: uuid.UUID, p: Principal = Depends(require("equipment.read")), db: Session = Depends(get_db)):
     get_or_404(db, Vehicle, vehicle_id, "Truck")
-    return seat_history(db, vehicle_id)
+    return seat_history(db, vehicle_id, p.today())
+
+
+def _unit_week(db: Session, p: Principal, kind: str, unit_id: uuid.UUID, lo: date, hi: date) -> s.UnitWeekOut:
+    if hi < lo:
+        raise Invalid("The period ends before it starts", field="date_to")
+    if (hi - lo).days > 92:
+        raise Invalid("Pick a period of at most three months", field="date_from")
+    w = activity.unit_week(db, p, kind, unit_id, lo, hi)
+    owners = p.can("owners.read")
+    return s.UnitWeekOut(
+        date_from=lo, date_to=hi, loads=w.loads, miles=w.miles, revenue=w.revenue,
+        carrier_share=w.carrier_share if owners else w.revenue,
+        owner_gross=w.owner_gross if owners else None, owner_costs=w.owner_costs if owners else None,
+        net=w.net if owners else None, owners=w.owner_names if owners else [],
+        driver_pay=w.driver_pay if p.can("settlements.read") else None,
+        driver_pay_by=w.driver_pay_by if owners else None)
+
+
+@equipment_router.get("/vehicles/{vehicle_id}/money", response_model=s.UnitWeekOut,
+                      summary="A truck's money for a period: load revenue, the carrier's and owner's shares, driver pay")
+def vehicle_money(vehicle_id: uuid.UUID, date_from: date, date_to: date,
+                  p: Principal = Depends(require("loads.rates.read")), db: Session = Depends(get_db)):
+    get_or_404(db, Vehicle, vehicle_id, "Truck")
+    return _unit_week(db, p, "vehicle", vehicle_id, date_from, date_to)
+
+
+@equipment_router.get("/trailers/{trailer_id}/money", response_model=s.UnitWeekOut,
+                      summary="A trailer's money for a period: revenue on its loads, rental to its owner")
+def trailer_money(trailer_id: uuid.UUID, date_from: date, date_to: date,
+                  p: Principal = Depends(require("loads.rates.read")), db: Session = Depends(get_db)):
+    get_or_404(db, Trailer, trailer_id, "Trailer")
+    return _unit_week(db, p, "trailer", trailer_id, date_from, date_to)
 
 
 @equipment_router.put("/vehicles/{vehicle_id}/seat", response_model=list[s.SeatOut],
@@ -437,7 +481,7 @@ def set_seat(vehicle_id: uuid.UUID, body: s.SeatIn, p: Principal = Depends(requi
     service.seat(db, p, vehicle, body, p.today())
     audit(db, p, "vehicle.seat_assigned", "vehicle", vehicle.id, body.model_dump(mode="json"))
     db.commit()
-    return seat_history(db, vehicle_id)
+    return seat_history(db, vehicle_id, p.today())
 
 
 @equipment_router.delete("/vehicles/{vehicle_id}/seat", status_code=204, summary="Nobody drives this truck from today")

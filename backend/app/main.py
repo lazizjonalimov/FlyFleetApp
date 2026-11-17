@@ -29,6 +29,7 @@ from app.modules.owners.router import router as owners_router
 from app.modules.people.router import router as people_router
 from app.modules.reports.router import router as reports_router
 from app.modules.safety.router import router as safety_router
+from app.modules.settlements.owner_router import router as owner_settlements_router
 from app.modules.settlements.router import router as settlements_router
 
 DESCRIPTION = """
@@ -69,8 +70,8 @@ def create_app() -> FastAPI:
     for router in (auth_router, account_router, organization_router, customers_router, drivers_router, people_router,
                    owners_router, ownership_router, owner_portal_router,
                    equipment_router, loads_router, dispatch_router, driver_router, documents_router,
-                   safety_router, maintenance_router, finance_router, expenses_router, settlements_router,
-                   reports_router):
+                   safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router,
+                   settlements_router, reports_router):
         v1.include_router(router)
     app.include_router(v1)
 
