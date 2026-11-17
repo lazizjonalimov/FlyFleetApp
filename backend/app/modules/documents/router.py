@@ -82,8 +82,10 @@ class UploadIntentIn(BaseModel):
     content_type: str = Field(max_length=100)
     size_bytes: int = Field(gt=0)
     type: DocumentType
-    entity_type: EntityType
-    entity_id: uuid.UUID
+    # The record the document belongs to. Left out when the record is made from the document (a CDL photo that
+    # becomes a driver): the document is filed with the record once it is saved.
+    entity_type: EntityType | None = None
+    entity_id: uuid.UUID | None = None
     expires_on: date | None = None
 
 
@@ -218,7 +220,12 @@ def create_upload_intent(body: UploadIntentIn, p: Principal = Depends(require("d
         raise Invalid("Upload a PDF, JPEG, PNG or WebP file", field="content_type")
     if body.size_bytes > limit:
         raise Invalid(f"Files can be up to {limit // (1024 * 1024)} MB", field="size_bytes")
-    _check_entity(db, p, body.entity_type, body.entity_id, body.type)
+    if (body.entity_type is None) != (body.entity_id is None):
+        raise Invalid("Give both the record type and the record, or neither", field="entity_id")
+    if body.entity_type is not None:
+        _check_entity(db, p, body.entity_type, body.entity_id, body.type)
+    elif p.role == "driver" or (body.type in SENSITIVE and not _see_sensitive(p)):
+        raise Forbidden("Your role does not allow uploading this document on its own")
 
     doc = Document(
         id=uuid.uuid4(), organization_id=p.org_id, type=body.type, filename=body.filename.strip(),
@@ -228,8 +235,9 @@ def create_upload_intent(body: UploadIntentIn, p: Principal = Depends(require("d
     doc.storage_key = make_key(p.org_id, doc.id)
     db.add(doc)
     db.flush()
-    db.add(DocumentLink(organization_id=p.org_id, document_id=doc.id, entity_type=body.entity_type,
-                        entity_id=body.entity_id))
+    if body.entity_type is not None:
+        db.add(DocumentLink(organization_id=p.org_id, document_id=doc.id, entity_type=body.entity_type,
+                            entity_id=body.entity_id))
     db.commit()
     return UploadIntentOut(document=_present(db, [doc])[0],
                            upload=UploadTarget(url=f"/documents/{doc.id}/content",

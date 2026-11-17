@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     storage_dir: str = "./.storage"
     max_upload_bytes: int = 15 * 1024 * 1024
 
+    # Reading photos and scanned PDFs (CDLs, registrations, rate confirmations, PODs, inspection reports, fuel
+    # receipts). "off": only PDFs with a text layer are read, by the built-in reader. "anthropic": photos are read
+    # by Claude through the Anthropic API, with the credential the SDK finds in the environment (ANTHROPIC_API_KEY).
+    document_reader: str = "off"
+    document_reader_model: str = "claude-opus-5-5"
+
     cors_origins: list[str] = ["http://localhost:3000"]
     signup_enabled: bool = True
     # How many active companies one account (profile) may hold. Individual accounts can be given another limit.
