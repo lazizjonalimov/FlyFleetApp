@@ -133,7 +133,14 @@ def _labelled(lines: list[Line], labels: tuple[str, ...], kind: str,
             if found is None:
                 continue
             words, x = found
-            for candidate, sure, where in ((words, 0.92, line), (_below(lines, i, x), 0.86, None)):
+            candidates = [(words, 0.92, line)]
+            if not words and kind in ("money", "price", "decimal", "int"):
+                # Receipts and statements print amounts in a column at the right of the same line.
+                right = [w for w in line.words if w.x0 > x and re.search(r"\d", w.text)]
+                if right:
+                    candidates.append(([right[-1]], 0.9, line))
+            candidates.append((_below(lines, i, x), 0.86, None))
+            for candidate, sure, where in candidates:
                 if not candidate:
                     continue
                 text = " ".join(w.text for w in candidate)
@@ -196,6 +203,47 @@ def _places(lines: list[Line], labels: tuple[str, ...]) -> tuple[Read, Read, Rea
     return None
 
 
+def _receipt_head(lines: list[Line], found: dict[str, "Read"]) -> None:
+    """A receipt opens with the station, then its address: the name, the city and state, and the date somewhere."""
+    head = [ln for ln in lines if ln.page == 1][:8]
+    if "vendor" not in found:
+        name = next((ln for ln in head if re.search(r"[A-Za-z]{3}", ln.text)
+                     and not re.search(r"receipt|thank|copy|customer", ln.text, re.I)), None)
+        if name:
+            text = name.text.strip()
+            found["vendor"] = Read("vendor", (text.title() if text.isupper() else text)[:120], 0.7, name.page,
+                                   _box(name, name.words), "text")
+    if "state" not in found or "city" not in found:
+        for ln in head:
+            m = re.search(r"([A-Za-z][A-Za-z .'-]{1,40}),\s*([A-Za-z]{2})\b", ln.text)
+            if m and code_of(m[2]):
+                city = m[1].strip()
+                found.setdefault("city", Read("city", city.title() if city.isupper() else city, 0.84, ln.page,
+                                              _box(ln, [w for w in ln.words if w.text.strip(",") in m[1].split()]), "text"))
+                found.setdefault("state", Read("state", code_of(m[2]) or "", 0.9, ln.page,
+                                               _box(ln, [w for w in ln.words if m[2] in w.text]), "text"))
+                break
+    if "paid_with" not in found:
+        for ln in lines:
+            if m := re.search(r"\b(CASH|WEX|COMDATA|EFS|ATOB|FLEET ?ONE|TCH|T-CHEK|VISA|MASTERCARD|AMEX|DEBIT)\b",
+                              ln.text, re.I):
+                word = m[1].upper().replace(" ", "")
+                how = "cash" if word == "CASH" else "company_card" if word in ("VISA", "MASTERCARD", "AMEX", "DEBIT") \
+                    else "fuel_card"
+                found["paid_with"] = Read("paid_with", how, 0.9, ln.page, _box(ln, [w for w in ln.words
+                                                                                   if m[1].split()[0].lower() in w.text.lower()]),
+                                          "text")
+                break
+    if "purchased_on" not in found:
+        for ln in lines:
+            if dm := norm.DATE_PATTERN.search(ln.text):
+                iso = norm.normalize("date", dm[1])
+                if iso:
+                    found["purchased_on"] = Read("purchased_on", iso, 0.85, ln.page,
+                                                 _box(ln, [w for w in ln.words if w.text in dm[1]]), "text")
+                    break
+
+
 def read(data: bytes, kind: str, this_year: int) -> Result | None:
     """The fields of a text PDF; None when the PDF has no text to read (a scan)."""
     try:
@@ -240,6 +288,8 @@ def read(data: bytes, kind: str, this_year: int) -> Result | None:
             if head:
                 found["customer_name"] = Read("customer_name", head.text.strip()[:120], 0.55, head.page,
                                               _box(head, head.words), "text")
+    if kind == "fuel_receipt":
+        _receipt_head(lines, found)
     violations: list[dict] = []
     if kind == "inspection_report":
         for line in lines:

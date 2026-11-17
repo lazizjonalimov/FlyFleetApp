@@ -56,7 +56,7 @@ const CREATE: [kind: string, title: string, sub: string, icon: keyof typeof I, a
   ["owner", "Add an owner", "Owner-operator, fleet owner or investor", "owner", ["owners.manage"]],
 ];
 /** The permission needed to add each kind of record. */
-export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(CREATE.map(([kind, , , , anyOf]) => [kind, anyOf])), fuel: ["expenses.manage"], customer: ["customers.manage"], payment: ["payments.record"], statement: ["settlements.manage"], payout: ["settlements.manage"], workorder: ["maintenance.manage"], member: ["users.manage"] };
+export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(CREATE.map(([kind, , , , anyOf]) => [kind, anyOf])), fuel: ["expenses.manage"], mileage: ["expenses.manage"], customer: ["customers.manage"], payment: ["payments.record"], statement: ["settlements.manage"], payout: ["settlements.manage"], workorder: ["maintenance.manage"], member: ["users.manage"] };
 
 const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string][] = [
   ["Profile & preferences", "user", ""],
@@ -97,7 +97,7 @@ export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, o
 
 /** Opening the add flow for a kind of record. */
 /** Kinds that can be added from a document or a spreadsheet as well as by hand: they open on the choice. */
-const FROM_DOCUMENT = new Set(["driver", "truck", "trailer", "load", "invoice", "inspection"]);
+const FROM_DOCUMENT = new Set(["driver", "truck", "trailer", "load", "invoice", "inspection", "fuel"]);
 export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mstep: FROM_DOCUMENT.has(kind) ? "choose" : "manual", overlay: "none", dd: null, ddq: "", fv: {}, ferr: {} });
 
 /** Everything the shell draws: navigation for the signed-in role, who and where, and what is open on top. */

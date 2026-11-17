@@ -31,7 +31,6 @@ export type Kind = {
   defaults: Values;
 };
 
-const STATES_HINT = "Two letters, like IL";
 const STATUS: Option[] = [["active", "Active"], ["in_maintenance", "In the shop"], ["out_of_service", "Out of service"], ["retired", "Retired"]];
 export const papers: Field[] = [
   { k: "registration_expiry", l: "Registration expires", span: 2, type: "date" },
@@ -218,23 +217,21 @@ export const KINDS: Record<string, Kind> = {
     ],
   },
   fuel: {
-    title: () => "Record a fuel purchase",
-    sub: "From a receipt or a fuel card statement",
+    title: () => "Add a fuel receipt",
+    sub: "Enter manually",
     icon: I.fuel,
     permission: "expenses.manage",
-    defaults: { fuel_type: "diesel", paid_with: "fuel_card", driver_treatment: "none" },
+    defaults: { paid_with: "cash" },
     fields: [
-      { k: "incurred_on", l: "Date", span: 2, type: "date", required: true },
-      { k: "amount", l: "Amount", span: 2, type: "money", required: true },
-      { k: "gallons", l: "Gallons", span: 2, type: "money" },
-      { k: "vendor", l: "Station", span: 3 },
-      { k: "jurisdiction", l: "State", span: 1, mono: true, hint: STATES_HINT },
-      { k: "fuel_type", l: "Fuel", span: 2, type: "select", options: [["diesel", "Diesel"], ["def", "DEF"], ["gasoline", "Gasoline"], ["reefer", "Reefer fuel"]] },
-      { k: "vehicle_id", l: "Truck", span: 3, type: "select", options: "vehicles" },
-      { k: "driver_id", l: "Driver", span: 3, type: "select", options: "drivers" },
-      { k: "paid_with", l: "Paid with", span: 3, type: "select", options: [["fuel_card", "Fuel card"], ["company_card", "Company card"], ["cash", "Cash"], ["check", "Check"], ["ach", "ACH"], ["driver", "Driver paid"]] },
-      { k: "driver_treatment", l: "On the driver’s pay", span: 3, type: "select", options: [["none", "Nothing — the company paid"], ["reimburse", "Pay it back to the driver"], ["deduct", "Deduct it from pay"]], required: true },
-      { k: "reference", l: "Receipt number", span: 6, mono: true },
+      { k: "vendor", l: "Station", span: 4, placeholder: "Name and city", required: true, group: "Purchase" },
+      { k: "jurisdiction", l: "State", span: 2, type: "combo", options: "states", required: true, group: "Purchase" },
+      { k: "incurred_on", l: "Date", span: 2, type: "date", required: true, group: "Purchase" },
+      { k: "gallons", l: "Gallons", span: 2, type: "money", mono: true, required: true, group: "Purchase" },
+      { k: "price", l: "Price per gallon", span: 2, type: "money", mono: true, placeholder: "$", hint: "Total = gallons × price", required: true, group: "Purchase" },
+      { k: "vehicle_id", l: "Truck", span: 2, type: "combo", options: "vehicles", required: true, group: "Truck & payment" },
+      { k: "driver_id", l: "Driver", span: 2, type: "combo", options: "drivers", group: "Truck & payment" },
+      { k: "paid_with", l: "Paid with", span: 2, type: "seg", options: [["fuel_card", "Fuel card"], ["cash", "Cash"], ["other", "Other"]], group: "Truck & payment" },
+      { k: "reimburse", l: "Reimburse the driver on their statement", span: 6, type: "check", group: "Truck & payment" },
     ],
   },
   workorder: {

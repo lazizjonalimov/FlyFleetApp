@@ -131,6 +131,8 @@ def purchases(quarter: str | None = None, show: Literal["all", "flagged", "recei
 class Receipt(BaseModel):
     document_id: uuid.UUID
     filename: str
+    title: str
+    detail: str
     created_at: datetime
     status: str
     tone: str
@@ -175,6 +177,23 @@ class Mileage(BaseModel):
 @router.get("/mileage", response_model=Mileage, summary="Miles by truck and state, MPG per truck, and the gaps to review")
 def mileage(quarter: str | None = None, p: Principal = Depends(READ), db: Session = Depends(get_db)):
     return Mileage(**service.mileage(db, _quarter(p, quarter)))
+
+
+class Source(BaseModel):
+    kind: Literal["import", "manual"]
+    ext: str
+    title: str
+    detail: str
+    status: str
+    tone: str
+    import_id: uuid.UUID | None
+    vehicle_id: uuid.UUID | None
+    at: datetime
+
+
+@router.get("/sources", response_model=list[Source], summary="Mileage imports and trips entered by hand, newest first")
+def sources(quarter: str | None = None, p: Principal = Depends(READ), db: Session = Depends(get_db)):
+    return [Source(**x) for x in service.sources(db, _quarter(p, quarter))]
 
 
 class StateMiles(BaseModel):
@@ -314,6 +333,13 @@ class ReturnLine(BaseModel):
     tax: str | None
 
 
+class HistoryItem(BaseModel):
+    who: str
+    what: str
+    when: datetime
+    tone: str
+
+
 class ReturnOut(BaseModel):
     quarter: str
     label: str
@@ -339,6 +365,7 @@ class ReturnOut(BaseModel):
     reviewed_by_name: str | None = None
     approved_by_name: str | None = None
     allowed_actions: list[str]
+    history: list[HistoryItem] = []
 
 
 class ReturnRow(BaseModel):
@@ -368,7 +395,8 @@ def _return_out(db: Session, p: Principal, quarter: str) -> ReturnOut:
                                           "held_trips", "version", "filed_on", "filed_reference", "paid_on",
                                           "reviewed_at", "approved_at")},
                      lines=[ReturnLine(**x) for x in v["lines"]], reviewed_by_name=names.get(v["reviewed_by"]),
-                     approved_by_name=names.get(v["approved_by"]), allowed_actions=allowed)
+                     approved_by_name=names.get(v["approved_by"]), allowed_actions=allowed,
+                     history=[HistoryItem(**h) for h in service.history(db, service.get_return(db, quarter))])
 
 
 @router.get("/returns", response_model=list[ReturnRow], summary="Returns by quarter, newest first")
@@ -436,6 +464,17 @@ def export(quarter: str, p: Principal = Depends(READ), db: Session = Depends(get
                     headers={"Content-Disposition": f'attachment; filename="ifta-{quarter}.csv"'})
 
 
+@router.get("/returns/{quarter}/pdf", summary="The return's jurisdiction schedule as a PDF",
+            responses={200: {"content": {"application/pdf": {}}}})
+def return_pdf(quarter: str, p: Principal = Depends(READ), db: Session = Depends(get_db)):
+    service.parse(quarter)
+    content = service.return_pdf(db, p, quarter)
+    audit(db, p, "ifta.return_exported", "ifta_return", None, {"quarter": quarter, "format": "pdf"})
+    db.commit()
+    return Response(content=content, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="ifta-{quarter}.pdf"'})
+
+
 class Week(BaseModel):
     week_start: date
     amount: str
@@ -447,9 +486,12 @@ class Week(BaseModel):
 
 
 class TruckMpg(BaseModel):
+    vehicle_id: uuid.UUID
     unit_number: str
     driver: str | None
     mpg: str | None
+    miles: str
+    gallons: str
 
 
 class FuelReport(BaseModel):
@@ -461,8 +503,28 @@ class FuelReport(BaseModel):
     gallons: str
     net_tax: str
     miles: str
+    cost_per_mile: str | None
+    previous_cost_per_mile: str | None
+    previous_mpg: str | None
+    base: str | None
+    base_tax: str | None
+    missing_rates: list[str]
 
 
-@router.get("/report", response_model=FuelReport, summary="Fuel cost per mile by week, and MPG by truck against the fleet")
-def report(weeks: int = 8, p: Principal = Depends(require("reports.read")), db: Session = Depends(get_db)):
-    return FuelReport(**service.weekly(db, p, max(2, min(weeks, 26))))
+@router.get("/report", response_model=FuelReport, summary="Fuel cost per mile by week, and MPG by truck against the fleet",
+            responses={200: {"content": {"text/csv": {}}}})
+def report(weeks: int = 8, vehicle_id: uuid.UUID | None = None, format: Literal["json", "csv"] = "json",
+           p: Principal = Depends(require("reports.read")), db: Session = Depends(get_db)):
+    data = service.weekly(db, p, max(2, min(weeks, 26)), vehicle_id)
+    if format == "csv":
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(["Week of", "Fuel spend", "Gallons", "Miles", "Diesel per gallon", "MPG", "Fuel cost per mile"])
+        for x in data["weeks"]:
+            w.writerow([x["week_start"].isoformat(), x["amount"], x["gallons"], x["miles"], x["price_per_gallon"] or "",
+                        x["mpg"] or "", x["cost_per_mile"] or ""])
+        audit(db, p, "report.exported", "report", None, {"report": "fuel", "weeks": weeks})
+        db.commit()
+        return Response(content="\ufeff" + out.getvalue(), media_type="text/csv",
+                        headers={"Content-Disposition": f'attachment; filename="fuel_{data["quarter"]}_{weeks}w.csv"'})
+    return FuelReport(**data)

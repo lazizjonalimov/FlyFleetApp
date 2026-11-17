@@ -17,6 +17,7 @@ import { errorMessage } from "@/lib/api/errors";
 import type { Schema } from "@/lib/api/types";
 import { fromLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
+import { US_STATES } from "@/lib/reference/states";
 import { checkFile, uploadDocument } from "@/lib/upload";
 import { ModalFrame } from "./frame";
 import type { Flow } from "./flows";
@@ -28,9 +29,13 @@ const TONE: Record<string, string> = { ok: "ok", info: "info", warn: "warn", bad
 const ICON: Record<string, string> = { ok: "M5 12l5 5 9-10", info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01", warn: "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", bad: "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" };
 
 /** Add a record from a document: upload it, check what was read next to the document, save. */
-export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: Flow; onBack: () => void; onClose: () => void }) {
+export function ScanFlow({ kind, flow, docId = null, onBack, onClose }: { kind: string; flow: Flow; docId?: string | null; onBack: () => void; onClose: () => void }) {
   const { me, notify } = useConsole();
-  const [docs, setDocs] = useState<(Doc | null)[]>(flow.scan.slots.map(() => null));
+  const scan = flow.scan!;
+  // A document already uploaded (a receipt a driver sent in) starts in the first slot, ready to read.
+  const existing = useQuery({ queryKey: [me.organization.id, "documents", "one", docId], queryFn: () => unwrap(api.GET("/api/v1/documents/{document_id}", { params: { path: { document_id: docId! } } })), enabled: !!docId });
+  const [picked, setDocs] = useState<(Doc | null)[]>(scan.slots.map(() => null));
+  const docs = picked.map((d, i) => d ?? (i === 0 && existing.data ? existing.data : null));
   const [busy, setBusy] = useState<number | null>(null);
   const [reads, setReads] = useState<Read[] | null>(null);
   const [reading, setReading] = useState(false);
@@ -44,7 +49,7 @@ export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: 
     setBusy(slot);
     setProblem(null);
     try {
-      const doc = await uploadDocument({ file, type: flow.scan.doc });
+      const doc = await uploadDocument({ file, type: scan.doc });
       setDocs((list) => list.map((d, i) => (i === slot ? doc : d)));
     } catch (error) {
       setProblem(errorMessage(error));
@@ -53,12 +58,12 @@ export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: 
   };
   const read = async () => {
     const sent = docs.filter((d): d is Doc => !!d);
-    if (!sent.length) return setProblem(`Upload the ${flow.scan.slots[0]![0].toLowerCase()} first`);
+    if (!sent.length) return setProblem(`Upload the ${scan.slots[0]![0].toLowerCase()} first`);
     setReading(true);
     setProblem(null);
     try {
       const done: Read[] = [];
-      for (const d of sent) done.push(await unwrap(api.POST("/api/v1/intake/reads", { body: { document_id: d.id, kind: flow.scan.intake } })));
+      for (const d of sent) done.push(await unwrap(api.POST("/api/v1/intake/reads", { body: { document_id: d.id, kind: scan.intake } })));
       setReads(done);
     } catch (error) {
       setProblem(errorMessage(error));
@@ -66,11 +71,11 @@ export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: 
     setReading(false);
   };
 
-  if (reads) return <Review key={reads.map((r) => r.id).join()} kind={kind} flow={flow} reads={reads} docs={docs.filter((d): d is Doc => !!d)} onRetake={() => { setReads(null); setDocs(flow.scan.slots.map(() => null)); }} onClose={onClose} />;
-  const slots = flow.scan.slots;
+  if (reads) return <Review key={reads.map((r) => r.id).join()} kind={kind} flow={flow} reads={reads} docs={docs.filter((d): d is Doc => !!d)} onRetake={() => { setReads(null); setDocs(scan.slots.map(() => null)); }} onClose={onClose} />;
+  const slots = scan.slots;
   return (
     <ModalFrame
-      title={flow.scan.title}
+      title={scan.title}
       sub={`${flow.title} · ${me.organization.name}`}
       icon={flow.icon}
       steps={STEPS}
@@ -103,7 +108,7 @@ export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: 
         </div>
         <div className="tips">
           <span className="fs12 w6 t2">For the best read</span>
-          {flow.scan.tips.map((tp) => (
+          {scan.tips.map((tp) => (
             <span key={tp} className="r g8 ast fs12 t3">
               <Icon className="s14 pc" d="M5 12l5 5 9-10" />
               <span><span>{tp}</span></span>
@@ -112,7 +117,7 @@ export function ScanFlow({ kind, flow, onBack, onClose }: { kind: string; flow: 
         </div>
         <p className="note">
           <Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />
-          <span>{tx(flow.scan.note)}</span>
+          <span>{tx(scan.note)}</span>
         </p>
       </div>
     </ModalFrame>
@@ -193,8 +198,8 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
   const lists: Lists = {
     customers: useQuery({ queryKey: [org.id, "customers", "pick"], queryFn: () => unwrap(api.GET("/api/v1/customers", { params: { query: { status: "active", sort: "name", limit: 100 } } })), enabled: kind === "load", staleTime: 60_000 }).data?.items.map((c) => ({ v: c.id, l: c.name })) ?? [],
     loads: useQuery({ queryKey: [org.id, "loads", "pick-pod"], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { sort: "-pickup_at", limit: 100 } } })), enabled: kind === "invoice", staleTime: 30_000 }).data?.items.filter((l) => ["delivered", "pod_review", "completed", "at_delivery", "in_transit"].includes(l.status)).map((l) => ({ v: l.id, l: `${l.load_number} · ${l.customer.name}`, ab: l.status.replace(/_/g, " ") })) ?? [],
-    drivers: useQuery({ queryKey: [org.id, "drivers", "pick"], queryFn: () => unwrap(api.GET("/api/v1/drivers", { params: { query: { sort: "name", limit: 100 } } })), enabled: kind === "inspection", staleTime: 60_000 }).data?.items.map((d) => ({ v: d.id, l: d.full_name })) ?? [],
-    trucks: useQuery({ queryKey: [org.id, "vehicles", "pick"], queryFn: () => unwrap(api.GET("/api/v1/vehicles", { params: { query: { sort: "unit_number", limit: 100 } } })), enabled: kind === "inspection", staleTime: 60_000 }).data?.items.map((u) => ({ v: u.id, l: `Truck ${u.unit_number}`, ab: u.plate ?? "" })) ?? [],
+    drivers: useQuery({ queryKey: [org.id, "drivers", "pick"], queryFn: () => unwrap(api.GET("/api/v1/drivers", { params: { query: { sort: "name", limit: 100 } } })), enabled: kind === "inspection" || kind === "fuel", staleTime: 60_000 }).data?.items.map((d) => ({ v: d.id, l: d.full_name })) ?? [],
+    trucks: useQuery({ queryKey: [org.id, "vehicles", "pick"], queryFn: () => unwrap(api.GET("/api/v1/vehicles", { params: { query: { sort: "unit_number", limit: 100 } } })), enabled: kind === "inspection" || kind === "fuel", staleTime: 60_000 }).data?.items.map((u) => ({ v: u.id, l: `Truck ${u.unit_number}`, ab: u.plate ?? "" })) ?? [],
     trailers: useQuery({ queryKey: [org.id, "trailers", "pick"], queryFn: () => unwrap(api.GET("/api/v1/trailers", { params: { query: { sort: "unit_number", limit: 100 } } })), enabled: kind === "inspection", staleTime: 60_000 }).data?.items.map((u) => ({ v: u.id, l: `Trailer ${u.unit_number}`, ab: u.plate ?? "" })) ?? [],
   };
   const base = reviewFields(kind, reads, lists);
@@ -204,6 +209,7 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
   const [open, setOpen] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [linkPerson, setLinkPerson] = useState(true);
+  const [reimburse, setReimburse] = useState<boolean | null>(null);
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // Lists arrive after the first render: options and matched records come from the latest data.
@@ -221,13 +227,24 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
   const state = { open, q, setOpen, setQ };
   const v = (key: string) => given(vals[key]);
 
-  const apply = async (entity_type: "driver" | "vehicle" | "trailer" | "load" | "inspection", entity_id: string) => {
+  const apply = async (entity_type: "driver" | "vehicle" | "trailer" | "load" | "inspection" | "expense", entity_id: string) => {
     for (const r of reads) {
       const saved = Object.fromEntries(fields.filter((f) => f.read?.readId === r.id).map((f) => [f.readKey ?? f.key, f.input === "combo" && f.readKey ? f.read!.value : (vals[f.key] ?? "")]));
       await unwrap(api.POST("/api/v1/intake/reads/{read_id}/apply", { params: { path: { read_id: r.id } }, body: { entity_type, entity_id, saved } }));
     }
   };
   const missing = fields.filter((f) => f.required && !given(vals[f.key]));
+  // A purchase the driver paid for is paid back on their statement, unless the person says otherwise.
+  const repay = reimburse ?? vals.paid_with === "cash";
+  const driverName = lists.drivers.find((d) => d.v === vals.driver_id)?.l ?? "the driver";
+  const truckName = lists.trucks.find((t) => t.v === vals.vehicle_id)?.l.replace(/^Truck /, "");
+  const fuelAfter = kind === "fuel"
+    ? [
+        ...(repay && vals.driver_id && vals.total ? [`Added to ${driverName}’s next statement as a ${formatMoney(Number(vals.total).toFixed(2))} reimbursement`] : []),
+        ...(vals.gallons && vals.state ? [`${Number(vals.gallons).toFixed(1)} gallons counted for ${US_STATES.find(([c]) => c === vals.state)?.[1] ?? vals.state} in IFTA`] : []),
+        ...(truckName ? [`${truckName}’s MPG for the quarter includes it`] : []),
+      ]
+    : [];
 
   const save = async () => {
     if (missing.length) return setProblem(`Fill in ${missing.map((f) => f.label.toLowerCase()).join(", ")}`);
@@ -298,6 +315,18 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
         await apply("inspection", inspection.id);
         message = `Inspection saved${oos ? " · out-of-service order recorded" : ""}`;
         go = goTo("inspections");
+      } else if (kind === "fuel") {
+        const city = reads.flatMap((r) => r.fields).find((f) => f.key === "city" && f.value)?.value;
+        const station = v("vendor")!;
+        const paysBack = repay && !!v("driver_id");
+        const bought = await unwrap(api.POST("/api/v1/expenses", { params: { header: { "idempotency-key": crypto.randomUUID() } }, body: {
+          category: "fuel", incurred_on: v("purchased_on")!, amount: Number(v("total")).toFixed(2), gallons: v("gallons"), fuel_type: "diesel",
+          vendor: city && !station.toLowerCase().includes(city.toLowerCase()) ? `${station} · ${city}` : station, jurisdiction: v("state"),
+          vehicle_id: v("vehicle_id"), driver_id: v("driver_id"), paid_with: (v("paid_with") as "cash" | null), driver_treatment: paysBack ? "reimburse" : "none",
+        } as never }));
+        await apply("expense", bought.id);
+        message = paysBack ? `Fuel purchase saved · added to ${driverName}’s statement as a reimbursement` : "Fuel purchase saved";
+        go = { ...goTo("fuel"), ftab: 0 };
       }
       await act(async () => undefined);
       onClose();
@@ -338,7 +367,7 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
               <div className="banner" data-k={TONE[banner.tone] ?? "info"}>
                 <Icon className="s14 b" d={ICON[banner.tone] ?? ICON.info!} />
                 <div>
-                  <b>{banner.title}</b> {banner.detail}
+                  <b>{/[.!?]$/.test(banner.title) ? banner.title : `${banner.title}.`}</b> {banner.detail}
                 </div>
               </div>
             ) : null}
@@ -436,6 +465,25 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
                 );
               })}
             </div>
+            {kind === "fuel" ? (
+              <>
+                <label className="r g8 fs13">
+                  <input type="checkbox" className="cbx" checked={repay} onChange={(e) => setReimburse(e.currentTarget.checked)} />
+                  <span>Reimburse the driver on their statement</span>
+                </label>
+                {fuelAfter.length ? (
+                  <div className="card oh" style={{ boxShadow: "none" }}>
+                    <div className="ch" style={{ minHeight: "38px" }}><h3 className="h3">When you save</h3></div>
+                    {fuelAfter.map((line) => (
+                      <div key={line} className="wl" style={{ alignItems: "flex-start" }}>
+                        <span className="dot" data-k="info" style={{ marginTop: "6px" }}></span>
+                        <span className="f1 fs12 t2"><span>{line}</span></span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            ) : null}
             {kind === "invoice" && invoiceLoad ? (
               <p className="note">
                 <Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />

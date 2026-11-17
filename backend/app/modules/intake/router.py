@@ -33,7 +33,7 @@ class ReadIn(BaseModel):
 
 
 class ApplyIn(BaseModel):
-    entity_type: Literal["driver", "vehicle", "trailer", "load", "inspection"]
+    entity_type: Literal["driver", "vehicle", "trailer", "load", "inspection", "expense"]
     entity_id: uuid.UUID
     # The values saved on the record, by field key: compared with what was read to keep the corrections.
     saved: dict[str, str | None] = Field(default_factory=dict)

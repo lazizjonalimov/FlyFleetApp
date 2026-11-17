@@ -474,14 +474,20 @@ def _record(imp: Import, v: dict[str, str]) -> dict:
 def _commit_mileage(db: Session, p: Principal, imp: Import, hold: bool) -> dict:
     from decimal import Decimal
 
-    from app.modules.ifta.service import add_trip
+    from app.modules.ifta.service import add_trip, quarter_of
     issues, blocked, looked = _check_mileage(db, p, imp)
+    why = {i.row: i.message for i in issues}
     units = {u.unit_number.upper(): u for u in db.scalars(select(Vehicle))}
     created, skipped, failed = 0, 0, []
+    odometer: list[int] = []
+    skipped_rows: list[dict] = []
+    trucks: set[str] = set()
+    quarters: set[str] = set()
     for index, row in enumerate(imp.rows):
         n = index + 2
         if n in blocked:
             skipped += 1
+            skipped_rows.append({"row": n, "message": why.get(n, "")})
             continue
         v = _values(imp, row)
         miles = Decimal(normalize("money", v["miles"]))
@@ -489,8 +495,10 @@ def _commit_mileage(db: Session, p: Principal, imp: Import, hold: bool) -> dict:
             choice = imp.decisions.get(str(n))
             if choice == "odometer":
                 miles = Decimal(looked[n])
+                odometer.append(n)
             elif choice != "miles":
                 skipped += 1
+                skipped_rows.append({"row": n, "message": "Skipped: choose odometer or miles"})
                 continue
         start, end = normalize("int", v.get("odometer_start")), normalize("int", v.get("odometer_end"))
         try:
@@ -500,11 +508,15 @@ def _commit_mileage(db: Session, p: Principal, imp: Import, hold: bool) -> dict:
                      odometer_end=int(end) if end and n not in looked else None, held=hold, note=v.get("note"),
                      import_id=imp.id)
             created += 1
+            trucks.add(units[v["unit_number"].strip().upper()].unit_number)
+            quarters.add(quarter_of(date.fromisoformat(normalize("date", v["trip_date"]))))
         except (Invalid, Conflict) as e:
             failed.append({"row": n, "message": e.message})
     imp.status = "committed"
     imp.committed_at = datetime.now(UTC)
-    imp.result = {"created": created, "updated": 0, "skipped": skipped, "failed": failed, "due_soon": [], "held": hold}
+    imp.result = {"created": created, "updated": 0, "skipped": skipped, "failed": failed, "due_soon": [], "held": hold,
+                  "odometer_rows": odometer, "skipped_rows": skipped_rows, "trucks": sorted(trucks),
+                  "quarters": sorted(quarters)}
     audit(db, p, "import.committed", "import", imp.id, {"kind": "mileage", "created": created, "skipped": skipped,
                                                         "held": hold})
     return imp.result

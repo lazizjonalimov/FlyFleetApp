@@ -21,14 +21,13 @@ the signed-in person deciding what they see. It reads and writes everything thro
 | Operations | Dispatch board with the assignment panel (eligibility and conflicts from the API), Loads with the detail drawer, the load's page with every lifecycle action, the guided new-load form |
 | Directory | Customers, Drivers and the driver profile with the qualification file |
 | Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks, Trailers and the unit record, Maintenance board with work orders |
-| Finance and analytics | Invoices with receivables aging, driver pay statements, Fuel purchases by state and truck, Reports with CSV export |
+| Finance and analytics | Invoices with receivables aging, driver pay and owner settlement statements, Fuel & IFTA (purchases with their checks, scanned receipts, miles by truck and state, the quarterly return through filing, tax rates), Reports with CSV export, the fuel report among them |
 | Administration | Team & access (members, roles and the permission matrix), company settings, Audit log |
 | Everywhere | Search (⌘K), notifications, Create and edit forms for drivers, trucks, trailers, customers, inspections, invoices, payments, statements, fuel and work orders |
 | Outside the console | Sign-up, sign-in, choosing and switching company |
 
 Screens of the design that have nothing behind them in the API yet show an empty state that says so: My
-tasks, Live fleet positions, Messages, Owners, Dispatch teams, integrations, alert policies, IFTA returns and
-tax rates, and Ask FlyFleet.
+tasks, Live fleet positions, Messages, Dispatch teams, integrations, alert policies and Ask FlyFleet.
 
 How it is built: [apps/web/README.md](apps/web/README.md).
 
@@ -46,12 +45,13 @@ How it is built: [apps/web/README.md](apps/web/README.md).
 | Maintenance | Work orders with parts and labour costs, start, complete and cancel; inspections with defects; out-of-service units kept off the dispatch board until returned to service, which is refused while the repair is open |
 | Finance | Draft invoices built from completed loads, gapless numbering at issue, immutable issued invoices, void, payments with allocations, unapplied money, reversal, receivables aging |
 | Costs and driver pay | Expenses with receipts (fuel with gallons and state, tolls, lumpers, advances and more), fuel by state for fuel tax and by truck with miles per gallon, driver settlements built from delivered loads, driver-payable charges, reimbursements and deductions, approved settlements fixed by the database |
-| Insight | Role-aware dashboard, exceptions list, global search, revenue, driver, truck and aging reports with CSV export |
+| Fuel tax (IFTA) | Diesel rates per quarter, entered or imported from the tax matrix; miles by truck and state from trips entered by hand (checked against the odometer) or imported from a spreadsheet (optionally held for review); the quarterly return worked out live, then reviewed, approved with its lines fixed, filed and paid, with CSV and PDF exports; each purchase checked against the load the truck was on and its tank; receipts read from a PDF or photo into purchases |
+| Insight | Role-aware dashboard, exceptions list, global search, revenue, driver, truck, aging and fuel reports with CSV export |
 | Driver access | A driver sees and updates only the loads they are hauling, and can add the proof of delivery |
 
 Not built yet: the driver mobile app, the website, ELD, and the AWS infrastructure. In the API: the customer
-and owner portals, live tracking, messages, tasks, equipment owners and their settlements, IFTA, dispatch
-teams and the assistant. The console shows those screens empty until they exist.
+portal, live tracking (and with it GPS miles by state), messages, tasks, dispatch teams and the assistant. The
+console shows those screens empty until they exist.
 
 ## Architecture in one minute
 
@@ -212,8 +212,10 @@ docs/                Architecture, decisions, roadmap, the implementation audit
 
 ## Known limitations
 
-- **Some screens of the design have no API yet** (tasks, live positions, messages, owners, dispatch teams,
-  integrations, alert policies, IFTA, the assistant). They show an empty state saying so, never sample data.
+- **Some screens of the design have no API yet** (tasks, live positions, messages, dispatch teams,
+  integrations, alert policies, the assistant). They show an empty state saying so, never sample data.
+- **IFTA miles come from trips entered by hand and imports** until a telematics provider can be connected;
+  fuel cards are not connected yet either, so purchases are scanned or typed in.
 - **Sign-in is local email and password** with signed tokens. Cognito, MFA, password reset by email and
   invitations by email are deferred to the deployment phase
   ([decision 0003](docs/decisions/0003-local-adapters-until-deployment.md)). An administrator sets a

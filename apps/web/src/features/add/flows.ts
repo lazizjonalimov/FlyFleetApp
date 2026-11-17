@@ -3,14 +3,15 @@ import { I } from "@/features/console/icons";
 import type { DocumentType } from "@/lib/upload";
 
 export type IntakeKind = "cdl" | "registration" | "rate_confirmation" | "pod" | "inspection_report" | "fuel_receipt";
-export type ImportKind = "drivers" | "trucks" | "trailers";
+export type ImportKind = "drivers" | "trucks" | "trailers" | "mileage";
 
 export type Flow = {
   title: string;
   icon: string;
   /** The button that saves the record. */
   cta: string;
-  scan: {
+  /** Adding from a document: absent where there is no document to start from (a trip). */
+  scan?: {
     intake: IntakeKind;
     doc: DocumentType;
     title: string;
@@ -141,6 +142,32 @@ export const FLOWS: Record<string, Flow> = {
       note: "The report is kept with the inspection; out-of-service orders block dispatch until they are cleared.",
       keptWith: "inspection",
     },
+  },
+  fuel: {
+    title: "Add a fuel receipt",
+    icon: I.fuel,
+    cta: "Save purchase",
+    plural: "fuel receipts",
+    manualDetail: "Type the station, gallons and amount yourself.",
+    scan: {
+      intake: "fuel_receipt",
+      doc: "receipt",
+      title: "Scan the receipt",
+      detail: "Snap the pump receipt. We read the station, gallons, price and total, then match the truck from the number on it or the load it was on.",
+      reads: ["Station", "Gallons", "Price per gallon", "Total", "Truck"],
+      slots: [["Fuel receipt", "Photo or PDF"]],
+      tips: ["The whole receipt in the frame, flat and in good light", "Thermal paper fades, so scan it the same day", "One receipt per photo"],
+      note: "Fuel card purchases come in on their own once a fuel card is connected. Scan receipts for cash or any other card.",
+      keptWith: "purchase",
+    },
+  },
+  mileage: {
+    title: "Add a trip",
+    icon: I.pin,
+    cta: "Save trip",
+    plural: "mileage",
+    importKind: "mileage",
+    manualDetail: "Miles by state for a truck without GPS, marked as manual on the return.",
   },
 };
 

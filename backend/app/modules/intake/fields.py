@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class Field:
     key: str
     label: str
-    # text | date (YYYY-MM-DD) | money (1234.56) | int | state (two letters) | vin | list (comma separated)
+    # text | date (YYYY-MM-DD) | money (1234.56) | price (3.849) | decimal (88.214) | int | state | vin | list
     type: str = "text"
     # Where the label usually reads on the document, for the built-in reader of text PDFs.
     labels: tuple[str, ...] = ()
@@ -91,12 +91,13 @@ KINDS: dict[str, tuple[str, list[Field]]] = {
         Field("city", "City"),
         Field("state", "State", "state", labels=("state",)),
         Field("purchased_on", "Date", "date", labels=("date", "trans date", "transaction date")),
-        Field("gallons", "Gallons", labels=("gallons", "gal", "qty", "quantity", "volume")),
-        Field("price_per_gallon", "Price per gallon", "money", labels=("price/gal", "ppg", "unit price", "price")),
+        Field("gallons", "Gallons", "decimal", labels=("gallons", "gal", "qty", "quantity", "volume")),
+        Field("price_per_gallon", "Price per gallon", "price", labels=("price/gal", "ppg", "unit price", "price")),
         Field("total", "Total", "money", labels=("total", "amount", "total sale", "fuel total")),
         Field("def_gallons", "DEF gallons", labels=("def",)),
         Field("unit_number", "Truck", labels=("unit", "truck", "tractor", "vehicle")),
         Field("card_last4", "Card", labels=("card", "card no", "card number")),
+        Field("paid_with", "Paid with"),
     ]),
 }
 

@@ -14,6 +14,8 @@ DATE_PATTERN = re.compile(
     r"\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{2,4}|"
     r"\d{1,2}[/-]\d{2,4})\b", re.I)
 MONEY_PATTERN = re.compile(r"\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)")
+# A price per unit, like diesel at $3.849 a gallon: up to four decimals.
+PRICE_PATTERN = re.compile(r"\$?\s?(\d{1,3}(?:,\d{3})+(?:\.\d{1,4})?|\d+(?:\.\d{1,4})?)")
 
 
 def _year(y: int) -> int:
@@ -78,6 +80,17 @@ def to_money(text: str | None) -> Decimal | None:
         return None
 
 
+def to_price(text: str | None) -> Decimal | None:
+    """A price per unit or a quantity, to three places: $3.849 a gallon, 88.214 gallons, 1,250.5 gallons."""
+    m = PRICE_PATTERN.search(str(text or "").replace("USD", ""))
+    if not m:
+        return None
+    try:
+        return Decimal(m[1].replace(",", "")).quantize(Decimal("0.001"))
+    except InvalidOperation:
+        return None
+
+
 def to_int(text: str | None) -> int | None:
     digits = re.sub(r"[^\d]", "", str(text or "").split(".")[0])
     return int(digits) if digits and len(digits) <= 9 else None
@@ -102,6 +115,9 @@ def normalize(kind: str, text: str | None):
     if kind == "money":
         m = to_money(text)
         return str(m) if m is not None else None
+    if kind in ("price", "decimal"):
+        price = to_price(text)
+        return str(price) if price is not None else None
     if kind == "int":
         n = to_int(text)
         return str(n) if n is not None else None

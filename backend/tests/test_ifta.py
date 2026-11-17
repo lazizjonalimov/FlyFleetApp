@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from app.modules.ifta.service import bounds, previous, quarter_of
-from tests.conftest import assign, new_load, seed
+from tests.conftest import assign, new_load, seed, upload
 from tests.test_owners import DATES
 
 TODAY = datetime.now(UTC).date()
@@ -68,9 +68,21 @@ def test_the_return_is_worked_out_reviewed_approved_filed_and_paid(org):
     r = org.post(f"/ifta/returns/{LAST}/actions", {"action": "file", "version": r["version"], "reference": "TX-IFTA-1"}, 200).json()
     r = org.post(f"/ifta/returns/{LAST}/actions", {"action": "pay", "version": r["version"]}, 200).json()
     assert r["status"] == "paid" and r["filed_reference"] == "TX-IFTA-1"
+    assert [h["what"] for h in r["history"]] == ["started the review", "approved the return · credit of $1.00",
+                                                 "filed the return · confirmation TX-IFTA-1", "carried the credit, $1.00"]
     assert org.get("/ifta/returns").json()[0]["status"] == "paid"
     csv = org.get(f"/ifta/returns/{LAST}/export").text
     assert "Truck,Date,State,Miles" in csv and ",TX,1200.0,manual" in csv
+    pdf = org.get(f"/ifta/returns/{LAST}/pdf")
+    assert pdf.headers["content-type"] == "application/pdf" and pdf.content.startswith(b"%PDF")
+    import io
+
+    import pdfplumber
+    with pdfplumber.open(io.BytesIO(pdf.content)) as doc:
+        text = "\n".join(page.extract_text() or "" for page in doc.pages)
+    assert "IFTA quarterly fuel tax return" in text and "Texas (TX)" in text and "(1.00)" in text
+    [manual] = org.get("/ifta/sources", params={"quarter": LAST}).json()
+    assert manual["title"] == f"Manual · {s['truck']['unit_number']}" and manual["detail"].startswith("1 trip · 2,000 mi")
 
 
 def test_held_miles_and_missing_rates_stop_approval(org):
@@ -88,7 +100,11 @@ def test_held_miles_and_missing_rates_stop_approval(org):
     org.put(f"/imports/{imp['id']}", {"mapping": {c["header"]: c["field"] for c in imp["columns"]},
                                       "decisions": {"2": "odometer"}}, 200)
     done = org.post(f"/imports/{imp['id']}/commit", {"hold": True}, 200).json()
-    assert done["result"]["created"] == 2
+    assert done["result"]["created"] == 2 and done["result"]["odometer_rows"] == [2]
+    assert done["result"]["skipped_rows"] == [{"row": 3, "message": "“XT” isn't a US state or Canadian province"}]
+    assert done["result"]["trucks"] == [s["truck"]["unit_number"]] and done["result"]["quarters"] == [LAST]
+    [source] = org.get("/ifta/sources", params={"quarter": LAST}).json()
+    assert (source["kind"], source["title"], source["status"]) == ("import", "miles.csv", "Held")
     miles = org.get("/ifta/mileage", params={"quarter": LAST}).json()
     [row] = miles["rows"]
     assert row["miles"] == {"TX": "226.0", "OK": "100.0"} and row["held"] == 2 and row["sources"] == ["import"]
@@ -114,8 +130,16 @@ def test_purchases_are_checked_against_loads_and_the_tank(org):
     assert checks[big["id"]]["check"] == "Over tank capacity" and checks[big["id"]]["tone"] == "bad"
     assert checks[ok["id"]]["check"] == f"Matched · {load['load_number']}"
     assert found["flagged"] == 1 and len(org.get("/ifta/purchases", params={"show": "flagged"}).json()["items"]) == 1
+    # A receipt put straight onto a purchase waits for someone to check it.
+    upload(org, "expense", ok["id"], "receipt", filename="receipt.pdf")
+    found = org.get("/ifta/purchases").json()
+    assert {x["id"]: x["check"] for x in found["items"]}[ok["id"]] == "Receipt · needs review" and found["receipts"] == 1
+    [receipt] = org.get("/ifta/receipts").json()
+    assert (receipt["status"], receipt["title"], receipt["detail"]) == ("Review", "Truck stop · TX", f"{TODAY:%b} {TODAY.day} · $380.00")
     overview = org.get("/ifta/overview").json()
     assert overview["purchases"] == 2 and Decimal(overview["gallons"]) == Decimal("350")
     report = org.get("/ifta/report").json()
     assert len(report["weeks"]) == 8 and Decimal(report["weeks"][-1]["amount"]) == Decimal("1330.00")
-    assert DATES
+    other = org.post("/vehicles", {"unit_number": "T-OTHER", **DATES}, 201).json()
+    assert Decimal(org.get("/ifta/report", params={"vehicle_id": other["id"]}).json()["weeks"][-1]["amount"]) == 0
+    assert org.get("/ifta/report", params={"format": "csv"}).text.startswith("\ufeffWeek of,Fuel spend,Gallons")

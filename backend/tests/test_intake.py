@@ -179,3 +179,54 @@ def test_a_pdf_page_is_shown_as_an_image(org):
     page = org.get(f"/documents/{doc['id']}/pages/1")
     assert page.headers["content-type"] == "image/png" and page.content[:4] == b"\x89PNG"
     org.get(f"/documents/{doc['id']}/pages/2", expect=404)
+
+
+def test_a_fuel_receipt_is_read_matched_to_the_truck_on_the_load_and_filed_with_the_purchase(org):
+    from datetime import UTC, datetime, timedelta
+
+    from tests.conftest import assign, new_load
+    s = seed(org)
+    now = datetime.now(UTC)
+    load = new_load(org, s["customer"]["id"], stops=[
+        {"type": "pickup", "city": "Dallas", "state": "TX", "appt_start": (now - timedelta(days=1)).isoformat()},
+        {"type": "delivery", "city": "Tulsa", "state": "OK", "appt_start": (now + timedelta(days=1)).isoformat()}])
+    assign(org, load, s)
+    day = now.date()
+    receipt = text_pdf([[(40, 740, "TRAVEL CENTER #432"), (40, 725, "I-35 FRONTAGE RD"), (40, 710, "WACO, TX"),
+                         (40, 680, f"{day:%m/%d/%Y} 08:02"), (40, 650, "DIESEL #2"), (40, 635, "GALLONS 88.214"),
+                         (40, 620, "PRICE/GAL $3.849"), (40, 590, "FUEL TOTAL $339.53"), (40, 575, "CASH $340.00")]])
+    doc = upload_unattached(org, receipt, "receipt", "receipt.pdf", "application/pdf")
+    read = org.post("/intake/reads", {"document_id": doc["id"], "kind": "fuel_receipt"}, 201).json()
+    got = {f["key"]: f for f in read["fields"]}
+    assert (got["vendor"]["value"], got["city"]["value"], got["state"]["value"]) == ("Travel Center #432", "Waco", "TX")
+    assert (got["gallons"]["value"], got["price_per_gallon"]["value"], got["total"]["value"]) == ("88.214", "3.849", "339.53")
+    assert got["purchased_on"]["value"] == day.isoformat() and got["paid_with"]["value"] == "cash"
+    assert got["total"]["note"] == "Matches gallons × price"
+    truck = next(c for c in read["checks"] if c["title"] == "Truck matched")
+    assert truck["record_id"] == s["truck"]["id"] and load["load_number"] in truck["detail"]
+    assert read["suggestions"]["vehicle_id"] == s["truck"]["id"] and read["suggestions"]["driver_id"] == s["driver"]["id"]
+
+    bought = org.post("/expenses", {"category": "fuel", "incurred_on": str(day), "amount": "339.53", "gallons": "88.214",
+                                    "jurisdiction": "TX", "vendor": "Travel Center #432 · Waco", "paid_with": "cash",
+                                    "vehicle_id": s["truck"]["id"], "driver_id": s["driver"]["id"],
+                                    "driver_treatment": "reimburse"}, 201).json()
+    applied = org.post(f"/intake/reads/{read['id']}/apply", {"entity_type": "expense", "entity_id": bought["id"],
+                                                             "saved": {"vendor": "Travel Center #432 · Waco"}}, 200).json()
+    assert list(applied["corrections"]) == ["vendor"]
+    assert [d["id"] for d in org.items("/documents", entity_type="expense", entity_id=bought["id"])] == [doc["id"]]
+    [kept] = org.get("/ifta/receipts").json()
+    assert (kept["status"], kept["title"]) == ("Matched", "Travel Center #432 · Waco · TX")
+    assert org.get(f"/documents/{doc['id']}").json()["review_status"] == "approved"
+    # The same receipt again is caught as a duplicate.
+    again = org.post("/intake/reads", {"document_id": doc["id"], "kind": "fuel_receipt"}, 201).json()
+    assert any(c["title"] == "Possible duplicate" and c["record_id"] == bought["id"] for c in again["checks"])
+
+
+def test_a_receipt_that_prints_its_amounts_in_a_column_is_read_from_the_same_line(org):
+    receipt = text_pdf([[(200, 740, "TRAVEL CENTER #432"), (240, 710, "WACO, TX"), (150, 680, "11/12/2026 08:02"),
+                         (150, 635, "GALLONS"), (360, 635, "88.214"), (150, 620, "PRICE/GAL"), (360, 620, "$3.849"),
+                         (150, 590, "FUEL TOTAL"), (360, 590, "$339.53"), (150, 575, "CASH"), (360, 575, "$340.00")]])
+    doc = upload_unattached(org, receipt, "receipt", "receipt.pdf", "application/pdf")
+    read = org.post("/intake/reads", {"document_id": doc["id"], "kind": "fuel_receipt"}, 201).json()
+    got = {f["key"]: f["value"] for f in read["fields"]}
+    assert (got["gallons"], got["price_per_gallon"], got["total"], got["paid_with"]) == ("88.214", "3.849", "339.53", "cash")

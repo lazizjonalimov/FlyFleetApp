@@ -17,6 +17,7 @@ from app.modules.customers.models import Customer
 from app.modules.documents.models import Document, DocumentLink
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Trailer, Vehicle
+from app.modules.expenses.models import Expense
 from app.modules.intake import pdf_reader, vision
 from app.modules.intake import vin as vins
 from app.modules.intake.fields import KINDS
@@ -249,12 +250,87 @@ def checks(db: Session, p: Principal, r: DocumentRead) -> tuple[list[CheckOut], 
             out.append(CheckOut(tone="bad", title="Out-of-service order",
                                 detail="The unit or driver can't be dispatched until the violation is fixed and signed off."))
     elif r.kind == "fuel_receipt":
-        unit = _value(r, "unit_number")
-        truck = db.scalar(select(Vehicle).where(Vehicle.unit_number == unit)) if unit else None
-        if truck:
-            out.append(CheckOut(tone="ok", title="Truck matched", detail=f"Truck {truck.unit_number}.",
-                                record_type="vehicle", record_id=truck.id))
+        _fuel_checks(db, r, out, suggest, notes)
     return out, suggest, notes
+
+
+def _fuel_checks(db: Session, r: DocumentRead, out: list[CheckOut], suggest: dict[str, str],
+                 notes: dict[str, str]) -> None:
+    """A receipt: which truck bought it (the number on it, or the one load that ran through that state that day),
+    whether it's already recorded, and whether the total is gallons times price."""
+    from datetime import date as date_type
+    from datetime import timedelta
+    from decimal import Decimal
+
+    from app.core.states import code_of
+    from app.modules.dispatch.models import DispatchAssignment
+    from app.modules.expenses.models import Expense
+    from app.modules.ifta.service import seat_drivers
+    from app.modules.loads.models import LoadStop
+    unit = _value(r, "unit_number")
+    state = code_of(_value(r, "state") or "") or code_of(_value(r, "city") or "")
+    if state and _value(r, "state") is None:
+        notes["state"] = "From the address"
+    day_text = normalize("date", _value(r, "purchased_on"))
+    day = date_type.fromisoformat(day_text) if day_text else None
+    gallons, price = normalize("price", _value(r, "gallons")), normalize("price", _value(r, "price_per_gallon"))
+    total = normalize("money", _value(r, "total"))
+    truck, load_number = None, None
+    if unit:
+        truck = db.scalar(select(Vehicle).where(func.upper(Vehicle.unit_number) == unit.strip().upper()))
+        if truck:
+            out.append(CheckOut(tone="ok", title="Truck matched", detail=f"{truck.unit_number} is on the receipt.",
+                                record_type="vehicle", record_id=truck.id))
+    if truck is None and day and state:
+        moment = datetime(day.year, day.month, day.day, 12, tzinfo=UTC)
+        rows = db.execute(select(DispatchAssignment.vehicle_id, Load.load_number)
+                          .join(Load, Load.id == DispatchAssignment.load_id)
+                          .join(LoadStop, LoadStop.load_id == Load.id)
+                          .where(DispatchAssignment.status.in_(("active", "completed")),
+                                 DispatchAssignment.vehicle_id.is_not(None), LoadStop.state == state,
+                                 Load.pickup_at <= moment + timedelta(days=1),
+                                 or_(Load.delivered_at.is_(None), Load.delivered_at >= moment - timedelta(days=1)))
+                          .distinct()).all()
+        trucks = {v: n for v, n in rows}
+        if len(trucks) == 1:
+            vehicle_id, load_number = next(iter(trucks.items()))
+            truck = db.get(Vehicle, vehicle_id)
+            if truck:
+                out.append(CheckOut(tone="ok", title="Truck matched",
+                                    detail=f"{truck.unit_number} was on load {load_number} through {state} that day.",
+                                    record_type="vehicle", record_id=truck.id))
+        elif len(trucks) > 1:
+            out.append(CheckOut(tone="info", title="Pick the truck",
+                                detail=f"{len(trucks)} trucks were on loads through {state} that day.", field="unit_number"))
+    if truck is None and not any(c.record_type == "vehicle" for c in out):
+        out.append(CheckOut(tone="info", title="Pick the truck", field="unit_number",
+                            detail="No truck number on the receipt, and no single load ran through that state that day."))
+    if truck is not None:
+        suggest["vehicle_id"] = str(truck.id)
+        driver = seat_drivers(db, [truck.id]).get(truck.id)
+        seated = db.scalar(select(Driver.id).join(DispatchAssignment, DispatchAssignment.driver_id == Driver.id)
+                           .where(DispatchAssignment.vehicle_id == truck.id,
+                                  DispatchAssignment.status.in_(("active", "completed")))
+                           .order_by(DispatchAssignment.created_at.desc()).limit(1))
+        if seated:
+            suggest["driver_id"] = str(seated)
+        elif driver:
+            suggest["driver_name"] = driver
+    if gallons and price and total:
+        worked = (Decimal(gallons) * Decimal(price)).quantize(Decimal("0.01"))
+        if abs(worked - Decimal(total)) <= Decimal("0.05"):
+            notes["total"] = "Matches gallons × price"
+        else:
+            out.append(CheckOut(tone="warn", title="The total isn't gallons × price", field="total",
+                                detail=f"{gallons} gal × ${price} is ${worked:,.2f}; the receipt says ${Decimal(total):,.2f}."))
+    if day and total:
+        same = db.scalar(select(Expense).where(Expense.incurred_on == day, Expense.amount == Decimal(total),
+                                               Expense.category == "fuel").limit(1))
+        if same:
+            out.append(CheckOut(tone="warn", title="Possible duplicate", field="total",
+                                detail=f"A ${Decimal(total):,.2f} fuel purchase on this day is already recorded"
+                                       f"{' at ' + same.vendor if same.vendor else ''}.", record_type="expense",
+                                record_id=same.id))
 
 
 def present(db: Session, p: Principal, r: DocumentRead) -> ReadOut:
@@ -282,7 +358,8 @@ def present(db: Session, p: Principal, r: DocumentRead) -> ReadOut:
                    applied_entity_id=r.applied_entity_id, corrections=r.corrections, created_at=r.created_at)
 
 
-ENTITY_MODELS = {"driver": Driver, "vehicle": Vehicle, "trailer": Trailer, "load": Load, "inspection": Inspection}
+ENTITY_MODELS = {"driver": Driver, "vehicle": Vehicle, "trailer": Trailer, "load": Load, "inspection": Inspection,
+                 "expense": Expense}
 
 
 def apply(db: Session, p: Principal, r: DocumentRead, entity_type: str, entity_id: uuid.UUID,
@@ -316,6 +393,9 @@ def apply(db: Session, p: Principal, r: DocumentRead, entity_type: str, entity_i
         if doc is not None and doc.type == "pod" and entity_type == "load" and doc.review_status == "pending":
             db.flush()
             loads.on_pod_uploaded(db, p, entity_id)  # the same as a POD uploaded on the load
+        if doc is not None and doc.type == "receipt" and entity_type == "expense":
+            # Every value was checked against the receipt on the way in.
+            doc.review_status, doc.reviewed_by, doc.reviewed_at = "approved", p.user_id, datetime.now(UTC)
     audit(db, p, "document.read_applied", entity_type, entity_id,
           {"document_id": str(r.document_id), "kind": r.kind, "corrected": sorted(corrections)})
     return r

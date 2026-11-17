@@ -246,8 +246,9 @@ def transition(db: Session, p: Principal, quarter: str, action: str, version: in
     if note:
         r.note = note.strip()
     r.version += 1
-    audit(db, p, f"ifta_return.{action}", "ifta_return", r.id, {"quarter": quarter, "status": r.status,
-                                                               "net_tax": str(r.net_tax) if r.net_tax is not None else None})
+    audit(db, p, f"ifta_return.{action}", "ifta_return", r.id, {
+        "quarter": quarter, "status": r.status, "net_tax": str(r.net_tax) if r.net_tax is not None else None,
+        **({"reference": r.filed_reference} if action == "file" and r.filed_reference else {})})
     return r
 
 
@@ -383,18 +384,38 @@ def mileage(db: Session, quarter: str) -> dict:
             "totals": {j: str(by_state[j]) for j in states}, "total": str(c.total_miles)}
 
 
-def receipts(db: Session, limit: int = 8) -> list[dict]:
+PAID = {"fuel_card": "Fuel card", "company_card": "Company card", "cash": "Cash", "check": "Check", "ach": "ACH",
+        "driver": "Driver paid"}
+
+
+def receipts(db: Session, limit: int = 6) -> list[dict]:
+    """Scanned receipts, newest first: saved as a purchase (and whether someone still has to check it), or waiting
+    to be read and saved."""
     docs = list(db.scalars(select(Document).where(Document.type == "receipt", Document.upload_status == "uploaded")
                            .order_by(Document.created_at.desc()).limit(limit)))
     links = defaultdict(list)
     for link in db.scalars(select(DocumentLink).where(DocumentLink.document_id.in_([d.id for d in docs]))):
         links[link.document_id].append(link)
+    expense_ids = [x.entity_id for d in docs for x in links[d.id] if x.entity_type == "expense"]
+    expenses = {e.id: e for e in db.scalars(select(Expense).where(Expense.id.in_(expense_ids)))} if expense_ids else {}
+    drivers = {d.id: f"{d.first_name} {d.last_name}" for d in db.scalars(select(Driver).where(Driver.id.in_(
+        [e.driver_id for e in expenses.values() if e.driver_id])))} if expenses else {}
     out = []
     for d in docs:
-        on_expense = [x for x in links[d.id] if x.entity_type == "expense"]
-        status = ("Matched", "ok") if on_expense else ("Review", "info")
-        out.append({"document_id": d.id, "filename": d.filename, "created_at": d.created_at, "status": status[0],
-                    "tone": status[1], "expense_id": on_expense[0].entity_id if on_expense else None})
+        e = next((expenses[x.entity_id] for x in links[d.id] if x.entity_type == "expense" and x.entity_id in expenses),
+                 None)
+        if e is None:
+            out.append({"document_id": d.id, "title": d.filename, "detail": f"Uploaded {d.created_at:%b} {d.created_at.day}"
+                        " · not saved as a purchase yet", "created_at": d.created_at, "status": "Review", "tone": "info",
+                        "expense_id": None, "filename": d.filename})
+            continue
+        where = " · ".join(x for x in (e.vendor, e.jurisdiction) if x) or d.filename
+        detail = " · ".join(x for x in (PAID.get(e.paid_with or "", ""), drivers.get(e.driver_id) if e.driver_id else "",
+                                         f"{e.incurred_on:%b} {e.incurred_on.day}", f"${e.amount:,.2f}") if x)
+        pending = d.review_status == "pending"
+        out.append({"document_id": d.id, "title": where, "detail": detail, "created_at": d.created_at,
+                    "status": "Review" if pending else "Matched", "tone": "info" if pending else "ok",
+                    "expense_id": e.id, "filename": d.filename})
     return out
 
 
@@ -439,21 +460,24 @@ def set_rates(db: Session, p: Principal, quarter: str, rows: list[tuple[str, Dec
 
 
 # ---------------------------------------------------------------- the fuel report
-def weekly(db: Session, p: Principal, weeks: int = 8) -> dict:
-    """Fuel cost per mile and the diesel price by week, and MPG by truck against the fleet average."""
+def weekly(db: Session, p: Principal, weeks: int = 8, vehicle_id: uuid.UUID | None = None) -> dict:
+    """Fuel cost per mile and the diesel price by week, MPG by truck against the fleet average, and the quarter
+    against the one before it. With a truck, the weeks are that truck's."""
     today = p.today()
     monday = today - timedelta(days=today.weekday())
     out = []
     for i in range(weeks - 1, -1, -1):
         start = monday - timedelta(days=7 * i)
         end = start + timedelta(days=6)
-        amount, gallons = db.execute(select(func.coalesce(func.sum(Expense.amount), 0),
-                                            func.coalesce(func.sum(Expense.gallons), 0))
-                                     .where(Expense.category == "fuel", Expense.incurred_on >= start,
-                                            Expense.incurred_on <= end)).one()
-        miles = db.scalar(select(func.coalesce(func.sum(IftaTripMiles.miles), 0))
-                          .join(IftaTrip, IftaTrip.id == IftaTripMiles.trip_id)
-                          .where(IftaTrip.trip_date >= start, IftaTrip.trip_date <= end)) or ZERO
+        fuel = select(func.coalesce(func.sum(Expense.amount), 0), func.coalesce(func.sum(Expense.gallons), 0)) \
+            .where(Expense.category == "fuel", Expense.incurred_on >= start, Expense.incurred_on <= end)
+        driven = select(func.coalesce(func.sum(IftaTripMiles.miles), 0)).join(IftaTrip, IftaTrip.id == IftaTripMiles.trip_id) \
+            .where(IftaTrip.trip_date >= start, IftaTrip.trip_date <= end)
+        if vehicle_id:
+            fuel = fuel.where(Expense.vehicle_id == vehicle_id)
+            driven = driven.where(IftaTrip.vehicle_id == vehicle_id)
+        amount, gallons = db.execute(fuel).one()
+        miles = db.scalar(driven) or ZERO
         amount, gallons, miles = Decimal(amount), Decimal(gallons), Decimal(miles)
         out.append({"week_start": start, "amount": str(amount), "gallons": str(gallons), "miles": str(miles),
                     "cost_per_mile": str((amount / miles).quantize(Decimal("0.001"))) if miles else None,
@@ -461,8 +485,216 @@ def weekly(db: Session, p: Principal, weeks: int = 8) -> dict:
                     "mpg": str((miles / gallons).quantize(Decimal("0.01"))) if gallons and miles else None})
     q = quarter_of(today)
     m = mileage(db, q)
-    _, totals = compute(db, q)
-    return {"weeks": out, "trucks": [{"unit_number": r["unit_number"], "driver": r["driver"], "mpg": r["mpg"]}
+    lines, totals = compute(db, q)
+    _, before = compute(db, previous(q))
+
+    def per_mile(t: dict) -> str | None:
+        miles = Decimal(t["total_miles"])
+        return str((Decimal(t["amount"]) / miles).quantize(Decimal("0.001"))) if miles else None
+
+    base = base_of(db, p)
+    base_line = next((x for x in lines if x["jurisdiction"] == base), None)
+    return {"weeks": out, "trucks": [{"vehicle_id": r["vehicle_id"], "unit_number": r["unit_number"], "driver": r["driver"],
+                                      "mpg": r["mpg"], "miles": r["total"], "gallons": r["gallons"]}
                                      for r in m["rows"] if r["mpg"]],
             "fleet_mpg": totals["mpg"], "quarter": q, "amount": totals["amount"], "gallons": totals["total_gallons"],
-            "net_tax": totals["net_tax"], "miles": totals["total_miles"]}
+            "net_tax": totals["net_tax"], "miles": totals["total_miles"], "cost_per_mile": per_mile(totals),
+            "previous_cost_per_mile": per_mile(before), "previous_mpg": before["mpg"], "base": base,
+            "base_tax": base_line["tax"] if base_line else None, "missing_rates": totals["missing_rates"]}
+
+
+# ---------------------------------------------------------------- where the miles came from, and the return's history
+def _names(db: Session, ids: set) -> dict:
+    from app.modules.organizations.models import User
+    ids = {x for x in ids if x}
+    return dict(db.execute(select(User.id, User.full_name).where(User.id.in_(ids))).all()) if ids else {}
+
+
+def _miles_by_trip(db: Session, trip_ids: list[uuid.UUID]) -> dict[uuid.UUID, Decimal]:
+    if not trip_ids:
+        return {}
+    return {t: Decimal(m) for t, m in db.execute(select(IftaTripMiles.trip_id, func.sum(IftaTripMiles.miles))
+                                                 .where(IftaTripMiles.trip_id.in_(trip_ids))
+                                                 .group_by(IftaTripMiles.trip_id)).all()}
+
+
+def sources(db: Session, quarter: str) -> list[dict]:
+    """The latest mileage imports, and the trips entered by hand this quarter, truck by truck."""
+    from app.modules.intake.models import Import
+    start, end = bounds(quarter)
+    imports = list(db.scalars(select(Import).where(Import.kind == "mileage").order_by(Import.created_at.desc()).limit(5)))
+    trips = list(db.scalars(select(IftaTrip).where(or_(
+        IftaTrip.import_id.in_([i.id for i in imports]) if imports else False,
+        (IftaTrip.source == "manual") & (IftaTrip.trip_date >= start) & (IftaTrip.trip_date <= end)))))
+    miles = _miles_by_trip(db, [t.id for t in trips])
+    names = _names(db, {i.created_by for i in imports} | {t.created_by for t in trips})
+    units = {v.id: v.unit_number for v in db.scalars(select(Vehicle).where(Vehicle.id.in_({t.vehicle_id for t in trips})))} \
+        if trips else {}
+    out = []
+    for imp in imports:
+        mine = [t for t in trips if t.import_id == imp.id]
+        total = sum((miles.get(t.id, ZERO) for t in mine), ZERO)
+        held = sum(1 for t in mine if t.held)
+        who = names.get(imp.created_by, "")
+        when = f"{imp.created_at:%b} {imp.created_at.day}"
+        if imp.status == "mapping":
+            status, tone, detail = "Check", "warn", f"{len(imp.rows)} rows · not imported yet · {who}"
+        else:
+            status, tone = ("Held", "info") if held else ("Imported", "ok")
+            detail = f"{len(mine)} trips · {total:,.0f} mi · {who} · {when}"
+        out.append({"kind": "import", "ext": "CSV" if imp.filename.lower().endswith(".csv") else "XLSX",
+                    "title": imp.filename, "detail": detail, "status": status, "tone": tone, "import_id": imp.id,
+                    "vehicle_id": None, "at": imp.created_at})
+    manual: dict[uuid.UUID, list[IftaTrip]] = defaultdict(list)
+    for t in trips:
+        if t.source == "manual" and start <= t.trip_date <= end:
+            manual[t.vehicle_id].append(t)
+    for vehicle_id, mine in manual.items():
+        last = max(mine, key=lambda t: t.created_at)
+        total = sum((miles.get(t.id, ZERO) for t in mine), ZERO)
+        out.append({"kind": "manual", "ext": "✎", "title": f"Manual · {units.get(vehicle_id, '')}",
+                    "detail": f"{len(mine)} {'trip' if len(mine) == 1 else 'trips'} · {total:,.0f} mi · "
+                              f"{names.get(last.created_by, '')} · {last.created_at:%b} {last.created_at.day}",
+                    "status": "Manual", "tone": "info", "import_id": None, "vehicle_id": vehicle_id,
+                    "at": last.created_at})
+    return sorted(out, key=lambda x: x["at"], reverse=True)
+
+
+HISTORY = {"review": ("started the review", "info"), "approve": ("approved the return", "ok"),
+           "reopen": ("reopened the return", "warn"), "file": ("filed the return", "brand"),
+           "pay": ("recorded the payment", "ok")}
+
+
+def history(db: Session, r: IftaReturn | None) -> list[dict]:
+    from app.modules.organizations.models import AuditLog
+    if r is None:
+        return []
+    rows = list(db.scalars(select(AuditLog).where(AuditLog.entity_type == "ifta_return", AuditLog.entity_id == r.id)
+                           .order_by(AuditLog.created_at)))
+    names = _names(db, {x.actor_user_id for x in rows})
+    out = []
+    for x in rows:
+        action = x.action.removeprefix("ifta_return.")
+        what, tone = HISTORY.get(action, (action.replace("_", " "), "mu"))
+        data = x.data or {}
+        if action == "approve" and data.get("net_tax") is not None:
+            net = Decimal(data["net_tax"])
+            what += f" · {'credit of ' if net < 0 else ''}${abs(net):,.2f}{'' if net < 0 else ' due'}"
+        if action == "file" and data.get("reference"):
+            what += f" · confirmation {data['reference']}"
+        if action == "pay" and data.get("net_tax") is not None:
+            net = Decimal(data["net_tax"])
+            what = f"carried the credit, ${abs(net):,.2f}" if net < 0 else f"recorded the payment, ${net:,.2f}"
+        out.append({"who": names.get(x.actor_user_id, "FlyFleet"), "what": what, "when": x.created_at, "tone": tone})
+    return out
+
+
+# ---------------------------------------------------------------- the return as a PDF
+def _money(value: str | None) -> str:
+    if value is None:
+        return "—"
+    d = Decimal(value)
+    return f"({abs(d):,.2f})" if d < 0 else f"{d:,.2f}"
+
+
+def return_pdf(db: Session, p: Principal, quarter: str) -> bytes:
+    """The jurisdiction schedule of the return: miles, taxable and tax-paid gallons, rate and tax by state, then
+    the miles by truck and state they come from."""
+    from app.core import pdf
+    v = view(db, p, quarter)
+    org = db.get(Organization, p.org_id)
+    pages: list[pdf.Page] = [pdf.Page()]
+    page = pages[0]
+    y = 744.0
+
+    def need(space: float) -> None:
+        nonlocal page, y
+        if y - space < 60:
+            page = pdf.Page()
+            pages.append(page)
+            y = 744.0
+
+    start, end = v["period_start"], v["period_end"]
+    page.text(48, y, "IFTA quarterly fuel tax return", 15, bold=True)
+    y -= 18
+    page.text(48, y, f"{org.name if org else ''} · {v['label']} · {start:%b} {start.day} – {end:%b} {end.day}, {end.year}",
+              9, grey=True)
+    y -= 13
+    if v["status"] in ("approved", "filed", "paid") and not v["estimate"]:
+        state = {"approved": "Approved", "filed": f"Filed {v['filed_on']:%b} {v['filed_on'].day}" if v["filed_on"] else "Filed",
+                 "paid": "Paid"}[v["status"]]
+    else:
+        today = p.today()
+        state = f"Estimate as of {today:%b} {today.day}, {today.year}"
+    base = ALL.get(v["base"] or "", v["base"] or "not set")
+    due = v["due_on"]
+    page.text(48, y, f"Base jurisdiction {base} · due {due:%b} {due.day}, {due.year} · {state}", 9, grey=True)
+    y -= 28
+    for i, (lbl, val) in enumerate((("Total miles", f"{Decimal(v['total_miles']):,.0f}"),
+                                    ("Total gallons", f"{Decimal(v['total_gallons']):,.0f}"),
+                                    ("Fleet MPG", v["mpg"] or "—"),
+                                    ("Net tax (credit)", _money(v["net_tax"])))):
+        page.text(48 + i * 130, y, lbl, 8, grey=True)
+        page.text(48 + i * 130, y - 15, val, 13, bold=True)
+    y -= 44
+    cols = (("Jurisdiction", 48, False), ("Total miles", 230, True), ("Taxable miles", 295, True),
+            ("Taxable gal", 355, True), ("Tax-paid gal", 415, True), ("Net gal", 463, True), ("Rate", 510, True),
+            ("Tax (credit)", 564, True))
+
+    def header() -> None:
+        nonlocal y
+        for name, x, right in cols:
+            page.text(x, y, name, 8, bold=True, right=right)
+        y -= 6
+        page.rule(48, y, 564)
+        y -= 13
+
+    header()
+    for line in v["lines"]:
+        need(16)
+        if y == 744.0:
+            header()
+        cells = (f"{line['name']} ({line['jurisdiction']})", f"{Decimal(line['total_miles']):,.0f}",
+                 f"{Decimal(line['taxable_miles']):,.0f}", f"{Decimal(line['taxable_gallons']):,.0f}",
+                 f"{Decimal(line['tax_paid_gallons']):,.0f}", f"{Decimal(line['net_gallons']):,.0f}",
+                 f"{Decimal(line['rate']):.4f}" if line["rate"] else "no rate", _money(line["tax"]))
+        for (_, x, right), cell in zip(cols, cells, strict=True):
+            page.text(x, y, cell, 9, right=right)
+        y -= 6
+        page.rule(48, y, 564, 0.3)
+        y -= 12
+    need(30)
+    totals = ("Total", f"{Decimal(v['total_miles']):,.0f}", f"{Decimal(v['total_miles']):,.0f}",
+              f"{sum(Decimal(x['taxable_gallons']) for x in v['lines']):,.0f}", f"{Decimal(v['total_gallons']):,.0f}", "",
+              "", _money(v["net_tax"]))
+    for (_, x, right), cell in zip(cols, totals, strict=True):
+        page.text(x, y, cell, 9, bold=True, right=right)
+    y -= 24
+    need(40)
+    page.text(48, y, f"Fleet MPG {v['mpg'] or '—'} = total miles ÷ total gallons. Taxable gallons = taxable miles ÷ MPG; "
+                     "net = taxable − tax-paid gallons;", 8, grey=True)
+    y -= 11
+    page.text(48, y, "a negative net is a credit, which offsets what is due in other jurisdictions on the same return.",
+              8, grey=True)
+    y -= 30
+    m = mileage(db, quarter)
+    need(60)
+    page.text(48, y, "Miles by truck and jurisdiction", 11, bold=True)
+    y -= 18
+    for name, x, right in (("Truck", 48, False), ("Jurisdiction", 160, False), ("Miles", 330, True),
+                           ("Source", 360, False)):
+        page.text(x, y, name, 8, bold=True, right=right)
+    y -= 6
+    page.rule(48, y, 564)
+    y -= 13
+    for row in m["rows"]:
+        for j, miles in row["miles"].items():
+            need(16)
+            page.text(48, y, row["unit_number"], 9)
+            page.text(160, y, f"{ALL.get(j, j)} ({j})", 9)
+            page.text(330, y, f"{Decimal(miles):,.1f}", 9, right=True)
+            page.text(360, y, ", ".join(s.upper() if s == "gps" else s for s in row["sources"]) or "—", 9)
+            y -= 16
+    for i, pg in enumerate(pages, 1):
+        pg.text(48, 36, f"Prepared with FlyFleet · {v['label']} · page {i} of {len(pages)}", 7, grey=True)
+    return pdf.render(pages)

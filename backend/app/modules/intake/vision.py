@@ -77,6 +77,8 @@ def _schema(kind: str) -> dict:
 def _instructions(kind: str) -> str:
     label, specs = KINDS[kind]
     formats = {"date": "a date as YYYY-MM-DD", "money": "an amount in dollars like 1234.56, no symbol",
+               "price": "a price per unit with every printed decimal, like 3.849, no symbol",
+               "decimal": "a number with every printed decimal, like 88.214",
                "int": "a whole number, digits only", "state": "the two-letter US state or Canadian province code",
                "vin": "the 17-character VIN exactly as printed", "list": "the codes separated by commas"}
     lines = [f"- {s.key}: {s.label}{' (' + formats[s.type] + ')' if s.type in formats else ''}" for s in specs]
@@ -87,6 +89,9 @@ def _instructions(kind: str) -> str:
                  "out of service. For out_of_service among the fields, answer Yes or No.")
     if kind == "cdl":
         extra = "\nendorsements and restrictions are the letter codes on the license; write NONE as an empty list."
+    if kind == "fuel_receipt":
+        extra = ("\npaid_with is how it was paid: cash, fuel_card (WEX, Comdata, EFS, AtoB, Fleet One and other fleet "
+                 "cards) or company_card (Visa, Mastercard, Amex, debit). card_last4 is the last four digits only.")
     return (f"This should be a {label.lower()}. Set is_expected_document to false if it is something else.\n"
             f"Read these fields when they appear:\n" + "\n".join(lines) + extra +
             "\nFor each field: confidence is 0 to 1 (below 0.8 when glare, blur, handwriting or a cut-off edge makes it "

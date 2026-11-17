@@ -6,18 +6,26 @@ import { useConsole } from "@/features/console/console-provider";
 import { tx } from "@/features/console/dom";
 import { type ComboboxField } from "@/features/console/view";
 
-/** A dropdown with an optional search box and an “Other” entry. */
-export function Combobox({ f }: { f: ComboboxField }) {
+/** A dropdown with an optional search box and an “Other” entry. With `chip`, it opens from a dashed “+ Filter”
+ * chip, as a report's filters do. */
+export function Combobox({ f, chip }: { f: ComboboxField; chip?: string }) {
   const { I } = useConsole();
   return (
     <div className="dd">
-      <button className={clsx("inp ddb", f.ddsz)} onClick={f.toggle} aria-haspopup="listbox" aria-expanded={f.exp} aria-label={f.aria}>
-        <span className={clsx("f1 ell", f.vcls)}>{tx(f.shown)}</span>
-        {f.ab ? (
-          <span className="ddab"><span>{f.ab}</span></span>
-        ) : null}
-        <Icon className="s14 ddc" d="M6 9l6 6 6-6" />
-      </button>
+      {chip ? (
+        <button className="chip add" onClick={f.toggle} aria-haspopup="listbox" aria-expanded={f.exp} aria-label={f.aria}>
+          <Icon className="s12 b" d="M12 5v14M5 12h14" />
+          {chip}
+        </button>
+      ) : (
+        <button className={clsx("inp ddb", f.ddsz)} onClick={f.toggle} aria-haspopup="listbox" aria-expanded={f.exp} aria-label={f.aria}>
+          <span className={clsx("f1 ell", f.vcls)}>{tx(f.shown)}</span>
+          {f.ab ? (
+            <span className="ddab"><span>{f.ab}</span></span>
+          ) : null}
+          <Icon className="s14 ddc" d="M6 9l6 6 6-6" />
+        </button>
+      )}
       {f.open ? (
         <>
           <div className="ddcatch" onClick={f.close}></div>

@@ -234,7 +234,9 @@ def create_upload_intent(body: UploadIntentIn, p: Principal = Depends(require("d
         id=uuid.uuid4(), organization_id=p.org_id, type=body.type, filename=body.filename.strip(),
         content_type=body.content_type, size_bytes=body.size_bytes, expires_on=body.expires_on,
         uploaded_by=p.user_id,
-        review_status="pending" if body.type == "pod" or body.type in COMPLIANCE else "not_required")
+        # A receipt put straight onto a purchase waits for someone to check it against the purchase.
+        review_status="pending" if body.type == "pod" or body.type in COMPLIANCE
+        or (body.type == "receipt" and body.entity_type == "expense") else "not_required")
     doc.storage_key = make_key(p.org_id, doc.id)
     db.add(doc)
     db.flush()

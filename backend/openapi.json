@@ -1268,7 +1268,8 @@
               "vehicle",
               "trailer",
               "load",
-              "inspection"
+              "inspection",
+              "expense"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -6781,6 +6782,39 @@
             "title": "Amount",
             "type": "string"
           },
+          "base": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base"
+          },
+          "base_tax": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Tax"
+          },
+          "cost_per_mile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Mile"
+          },
           "fleet_mpg": {
             "anyOf": [
               {
@@ -6800,9 +6834,38 @@
             "title": "Miles",
             "type": "string"
           },
+          "missing_rates": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Rates",
+            "type": "array"
+          },
           "net_tax": {
             "title": "Net Tax",
             "type": "string"
+          },
+          "previous_cost_per_mile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Cost Per Mile"
+          },
+          "previous_mpg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Mpg"
           },
           "quarter": {
             "title": "Quarter",
@@ -6831,7 +6894,13 @@
           "amount",
           "gallons",
           "net_tax",
-          "miles"
+          "miles",
+          "cost_per_mile",
+          "previous_cost_per_mile",
+          "previous_mpg",
+          "base",
+          "base_tax",
+          "missing_rates"
         ],
         "title": "FuelReport",
         "type": "object"
@@ -6949,6 +7018,35 @@
           "detail"
         ],
         "title": "Gap",
+        "type": "object"
+      },
+      "HistoryItem": {
+        "properties": {
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          },
+          "when": {
+            "format": "date-time",
+            "title": "When",
+            "type": "string"
+          },
+          "who": {
+            "title": "Who",
+            "type": "string"
+          }
+        },
+        "required": [
+          "who",
+          "what",
+          "when",
+          "tone"
+        ],
+        "title": "HistoryItem",
         "type": "object"
       },
       "ImportOut": {
@@ -16204,6 +16302,10 @@
             "title": "Created At",
             "type": "string"
           },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
           "document_id": {
             "format": "uuid",
             "title": "Document Id",
@@ -16229,6 +16331,10 @@
             "title": "Status",
             "type": "string"
           },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
           "tone": {
             "title": "Tone",
             "type": "string"
@@ -16237,6 +16343,8 @@
         "required": [
           "document_id",
           "filename",
+          "title",
+          "detail",
           "created_at",
           "status",
           "tone",
@@ -16603,6 +16711,14 @@
           "held_trips": {
             "title": "Held Trips",
             "type": "integer"
+          },
+          "history": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/HistoryItem"
+            },
+            "title": "History",
+            "type": "array"
           },
           "label": {
             "title": "Label",
@@ -18201,6 +18317,80 @@
           "password"
         ],
         "title": "SignupIn",
+        "type": "object"
+      },
+      "Source": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "ext": {
+            "title": "Ext",
+            "type": "string"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "kind": {
+            "enum": [
+              "import",
+              "manual"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          },
+          "vehicle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Id"
+          }
+        },
+        "required": [
+          "kind",
+          "ext",
+          "title",
+          "detail",
+          "status",
+          "tone",
+          "import_id",
+          "vehicle_id",
+          "at"
+        ],
+        "title": "Source",
         "type": "object"
       },
       "StateMiles": {
@@ -20527,6 +20717,14 @@
             ],
             "title": "Driver"
           },
+          "gallons": {
+            "title": "Gallons",
+            "type": "string"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "string"
+          },
           "mpg": {
             "anyOf": [
               {
@@ -20541,12 +20739,20 @@
           "unit_number": {
             "title": "Unit Number",
             "type": "string"
+          },
+          "vehicle_id": {
+            "format": "uuid",
+            "title": "Vehicle Id",
+            "type": "string"
           }
         },
         "required": [
+          "vehicle_id",
           "unit_number",
           "driver",
-          "mpg"
+          "mpg",
+          "miles",
+          "gallons"
         ],
         "title": "TruckMpg",
         "type": "object"
@@ -31640,6 +31846,37 @@
               "title": "Weeks",
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "vehicle_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -31649,7 +31886,8 @@
                 "schema": {
                   "$ref": "#/components/schemas/FuelReport"
                 }
-              }
+              },
+              "text/csv": {}
             },
             "description": "Successful Response"
           },
@@ -32060,6 +32298,190 @@
           }
         ],
         "summary": "The return as CSV: one row per truck, state and trip",
+        "tags": [
+          "fuel"
+        ]
+      }
+    },
+    "/api/v1/ifta/returns/{quarter}/pdf": {
+      "get": {
+        "operationId": "return_pdf_api_v1_ifta_returns__quarter__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "quarter",
+            "required": true,
+            "schema": {
+              "title": "Quarter",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The return's jurisdiction schedule as a PDF",
+        "tags": [
+          "fuel"
+        ]
+      }
+    },
+    "/api/v1/ifta/sources": {
+      "get": {
+        "operationId": "sources_api_v1_ifta_sources_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "quarter",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Quarter"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Source"
+                  },
+                  "title": "Response Sources Api V1 Ifta Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mileage imports and trips entered by hand, newest first",
         "tags": [
           "fuel"
         ]

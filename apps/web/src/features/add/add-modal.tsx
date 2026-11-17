@@ -23,6 +23,7 @@ import { KINDS, type Field, type Option, type Values } from "./forms";
 import { ChooseStep } from "./frame";
 import { ImportFlow } from "./import-flow";
 import { ScanFlow } from "./scan";
+import { TripModal } from "@/features/fuel/trip-modal";
 
 const MONEY = /^-?\d{1,10}(\.\d{1,4})?$/;
 const blank = (value: unknown): string | null => (typeof value === "string" ? value.trim() || null : null);
@@ -122,9 +123,11 @@ async function save(kind: string, values: Values, editId: string | null, key: st
       return { message: `${formatMoney(saved.net_pay, saved.currency)} marked paid to ${saved.driver.name}` };
     }
     case "fuel": {
-      const gallons = blank(v.gallons);
-      await unwrap(api.POST("/api/v1/expenses", { params: { header }, body: { category: "fuel", incurred_on: text(v.incurred_on), amount: text(v.amount), gallons, vendor: blank(v.vendor), jurisdiction: blank(text(v.jurisdiction).toUpperCase()), fuel_type: (blank(v.fuel_type) as "diesel" | null), vehicle_id: blank(v.vehicle_id), driver_id: blank(v.driver_id), paid_with: (blank(v.paid_with) as "fuel_card" | null), driver_treatment: text(v.driver_treatment) as "none", reference: blank(v.reference) } }));
-      return { message: "Fuel purchase recorded", go: { ...goTo("fuel"), ftab: 0 } };
+      const amount = (Number(text(v.gallons)) * Number(text(v.price).replace("$", ""))).toFixed(2);
+      const reimburse = v.reimburse === true && !!blank(v.driver_id);
+      const paid = text(v.paid_with);
+      await unwrap(api.POST("/api/v1/expenses", { params: { header }, body: { category: "fuel", incurred_on: text(v.incurred_on), amount, gallons: blank(v.gallons), vendor: blank(v.vendor), jurisdiction: blank(text(v.jurisdiction).toUpperCase()), fuel_type: "diesel", vehicle_id: blank(v.vehicle_id), driver_id: blank(v.driver_id), paid_with: (paid && paid !== "other" ? paid : null) as "fuel_card" | null, driver_treatment: reimburse ? "reimburse" : "none" } }));
+      return { message: reimburse ? "Fuel purchase saved · added to the driver’s statement as a reimbursement" : "Fuel purchase saved", go: { ...goTo("fuel"), ftab: 0 } };
     }
     case "workorder": {
       const saved = await unwrap(api.POST("/api/v1/maintenance/work-orders", { params: { header }, body: { title: text(v.title).trim(), ...unitOf(v.unit), priority: text(v.priority) as "normal", scheduled_for: blank(v.scheduled_for), vendor: blank(v.vendor), out_of_service: v.out_of_service === true, description: blank(v.description) } }));
@@ -177,6 +180,8 @@ export function AddModal() {
       case "trailerMakes": return TRAILER_MAKES.map((m) => ({ v: m, l: m }));
       case "trailerTypes": return Object.entries(TRAILER_TYPES).filter(([v]) => v !== "other").map(([v, l]) => ({ v, l }));
       case "owners": return [{ v: "company", l: org.name, ab: "Company" }, ...(owners.data?.items ?? []).filter((o) => o.status !== "ended").map((o) => ({ v: o.id, l: o.name, ab: o.status === "onboarding" ? "Onboarding" : "" }))];
+      case "vehicles": return (options.vehicles.data?.items ?? []).filter((u) => u.status !== "retired").map((u) => ({ v: u.id, l: u.unit_number, ab: u.make ?? "" }));
+      case "drivers": return (options.drivers.data?.items ?? []).map((d) => ({ v: d.id, l: d.full_name }));
       default: return Array.isArray(field.options) ? field.options.map(([v, l]) => ({ v, l })) : [];
     }
   };
@@ -197,9 +202,12 @@ export function AddModal() {
   };
   // From a document or a spreadsheet: the choice, then the scan or the import, each with its own steps.
   if (flow && !editId && step !== "manual") {
-    const toChoose = () => set({ mstep: "choose" });
-    if (step === "scan") return <ScanFlow kind={kind} flow={flow} onBack={toChoose} onClose={close} />;
+    const toChoose = flow.scan ? () => set({ mstep: "choose" }) : null;
+    if (step === "scan" && flow.scan) return <ScanFlow kind={kind} flow={flow} docId={typeof preset.docId === "string" ? preset.docId : null} onBack={toChoose!} onClose={close} />;
     if (step === "import" && flow.importKind) return <ImportFlow kind={flow.importKind} flow={flow} onBack={toChoose} onClose={close} />;
+  }
+  if (kind === "mileage") return <TripModal onClose={close} />;
+  if (flow?.scan && !editId && step !== "manual") {
     return (
       <ChooseStep
         flow={flow}
@@ -244,6 +252,8 @@ export function AddModal() {
   const put = (k: string, value: string | boolean | string[]) => setValues((previous) => ({ ...previous, [k]: value }));
 
   const suggestion = editId ? null : kind === "truck" ? truckSummary.data?.next_unit_number ?? null : kind === "trailer" ? trailerSummary.data?.next_unit_number ?? null : null;
+  // A purchase the driver paid for in cash is paid back on their statement unless the box is cleared.
+  if (kind === "fuel" && all.reimburse === undefined) all.reimburse = text(all.paid_with) === "cash";
   const filled: Values = suggestion && !text(all.unit_number) ? { ...all, unit_number: suggestion } : all;
 
   async function submit() {
@@ -257,6 +267,8 @@ export function AddModal() {
     }
     if (kind === "statement" && text(all.period_start) && text(all.period_end) && text(all.period_end) < text(all.period_start)) found.period_end = "The period ends before it starts";
     if (kind === "invoice" && !(Array.isArray(all.loads) && all.loads.length)) found.loads = "Choose at least one completed load";
+    if (kind === "fuel" && all.reimburse === true && !text(all.driver_id)) found.driver_id = "Choose the driver to pay back";
+    if (kind === "fuel" && text(all.incurred_on) > today) found.incurred_on = "The date is in the future";
     setErrors(found);
     if (Object.keys(found).length) return setProblem("Some fields need attention");
     setPending(true);
@@ -289,7 +301,8 @@ export function AddModal() {
     const value = field.k === "unit_number" && !text(all[field.k]) && suggestion ? suggestion : all[field.k];
     const problem = errors[field.k];
     const label = `${field.l}${field.required ? " *" : ""}`;
-    const hint = field.k === "unit_number" && suggestion ? "The next free number" : field.hint;
+    const fuelTotal = kind === "fuel" && field.k === "price" && Number(all.gallons) > 0 && Number(text(all.price).replace("$", "")) > 0 ? formatMoney((Number(all.gallons) * Number(text(all.price).replace("$", ""))).toFixed(2), org.base_currency) : null;
+    const hint = field.k === "unit_number" && suggestion ? "The next free number" : fuelTotal ? `Total ${fuelTotal} = gallons × price` : field.hint;
     if (field.type === "check") {
       return (
         <label key={field.k} className="r g8 fs13" style={{ gridColumn: `span ${field.span}` }}>
@@ -413,7 +426,7 @@ export function AddModal() {
           )}
         </div>
         <div className="mfoot">
-          {flow && !editId ? <button className="btn ghost" onClick={() => set({ mstep: "choose" })} disabled={pending}>Back</button> : <span className="fs12 mu">Checked again by the server when you save</span>}
+          {flow?.scan && !editId ? <button className="btn ghost" onClick={() => set({ mstep: "choose" })} disabled={pending}>Back</button> : <span className="fs12 mu">Checked again by the server when you save</span>}
           <span className="sp"></span>
           <button className="btn" onClick={close} disabled={pending}>Cancel</button>
           <button className="btn pri" onClick={() => void submit()} disabled={pending || !!loading}>{pending ? "Saving…" : editId ? "Save changes" : flow ? flow.cta : spec.title(false).replace(/^Add an? /, "Add ").replace(/^Log an /, "Log ")}</button>

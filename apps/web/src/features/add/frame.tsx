@@ -76,8 +76,9 @@ export function ChooseStep({ flow, onScan, onManual, onImport, onClose, photos }
   photos: boolean;
 }) {
   const { I } = useConsole();
+  const scan = flow.scan!;
   const choices = [
-    { t: flow.scan.title, d: flow.scan.detail + (photos ? "" : " PDFs with their text in them are read here; photos need the photo reader turned on."), ic: I.camera, tag: "Fastest", cls: "rec", reads: flow.scan.reads, go: onScan },
+    { t: scan.title, d: scan.detail + (photos ? "" : " PDFs with their text in them are read here; photos need the photo reader turned on."), ic: I.camera, tag: "Fastest", cls: "rec", reads: scan.reads, go: onScan },
     { t: "Enter manually", d: flow.manualDetail, ic: I.pencil, tag: "", cls: "alt", reads: [], go: onManual },
   ];
   return (

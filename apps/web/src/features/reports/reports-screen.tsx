@@ -16,9 +16,10 @@ import { formatDate, formatDateTime, timeZoneLabel, todayIn } from "@/lib/format
 import { formatMoney } from "@/lib/format/money";
 import { PERIODS, periodRange } from "@/lib/format/periods";
 import { formatNumber } from "@/lib/format/text";
+import { FuelReport, fuelReportUrl } from "./fuel-report";
 
 type Report = Schema<"Report">;
-type Key = "revenue-customer" | "revenue-month" | "revenue-terminal" | "drivers" | "trucks" | "ar-aging";
+type Key = "revenue-customer" | "revenue-month" | "revenue-terminal" | "drivers" | "trucks" | "ar-aging" | "fuel";
 
 const CATALOG: { l: string; items: { key: Key; l: string; anyOf: string[] }[] }[] = [
   { l: "Operational", items: [{ key: "drivers", l: "Driver performance", anyOf: ["reports.read"] }, { key: "trucks", l: "Truck performance", anyOf: ["reports.read"] }] },
@@ -29,6 +30,7 @@ const CATALOG: { l: string; items: { key: Key; l: string; anyOf: string[] }[] }[
       { key: "revenue-month", l: "Revenue by month", anyOf: ["reports.read"] },
       { key: "revenue-terminal", l: "Revenue by terminal", anyOf: ["reports.read"] },
       { key: "ar-aging", l: "Receivables aging", anyOf: ["reports.read", "invoices.read"] },
+      { key: "fuel", l: "Fuel & IFTA", anyOf: ["reports.read"] },
     ],
   },
 ];
@@ -39,6 +41,7 @@ const DEFINITIONS: Record<Key, { what: string; term: string; sources: string; ex
   drivers: { what: "Loads each driver delivered in the period: miles, on-time delivery and revenue.", term: "On time — arrived at the last stop no later than the end of its appointment.", sources: "loads, stops, assignments", excludes: "Cancelled loads, loads not yet delivered" },
   trucks: { what: "Loads each truck delivered in the period: miles, on-time delivery and revenue.", term: "On time — arrived at the last stop no later than the end of its appointment.", sources: "loads, stops, assignments", excludes: "Cancelled loads, loads not yet delivered" },
   "ar-aging": { what: "What each customer owes on issued invoices, by how far past the due date it is.", term: "Age — days past the invoice’s due date, as of today.", sources: "invoices, payments", excludes: "Draft and void invoices" },
+  fuel: { what: "Fuel cost per mile by week, MPG by truck and the quarter’s fuel tax.", term: "MPG — miles divided by gallons bought.", sources: "expenses, ifta_trips", excludes: "Non-fuel purchases" },
 };
 
 /** The address of a report, with its period, as JSON or CSV. */
@@ -72,7 +75,7 @@ export function ReportsScreen() {
       if (!response.ok) throw toApiError(response.status, body);
       return body as Report;
     },
-    enabled: available.length > 0,
+    enabled: available.length > 0 && key !== "fuel",
   });
   const report = query.data;
   const item = available.find((each) => each.key === key);
@@ -87,7 +90,9 @@ export function ReportsScreen() {
     const value = totals?.[column.key] ?? (column.kind === "money" || column.kind === "number" ? (report?.rows ?? []).reduce((sum, row) => sum + Number(row[column.key] ?? 0), 0) : null);
     return { label: column.label, value: value === null || value === undefined ? "—" : column.kind === "money" ? money(value) : column.kind === "percent" ? `${value}` : formatNumber(Number(value)), suffix: column.kind === "percent" && value !== null && value !== undefined ? "%" : "" };
   });
-  const csv = reportUrl(key, range.from, range.to, "csv");
+  const fuelWeeks = typeof state.rweeks === "number" ? state.rweeks : 8;
+  const fuelTruck = typeof state.rtruck === "string" ? state.rtruck : "";
+  const csv = key === "fuel" ? fuelReportUrl(fuelWeeks, fuelTruck, "csv") : reportUrl(key, range.from, range.to, "csv");
   const exportable = can("reports.export") || can("reports.read");
 
   return (
@@ -133,7 +138,8 @@ export function ReportsScreen() {
           ))}
         </nav>
         <div className="c g16" style={{ padding: "20px 24px 24px", overflow: "auto", minHeight: "0" }}>
-          <div className="c g16 vz">
+          {key === "fuel" ? <FuelReport /> : null}
+          <div className="c g16 vz" hidden={key === "fuel"}>
             <div className="r g12 ast">
               <div className="f1">
                 <h2 style={{ fontSize: "18px", lineHeight: "24px", fontWeight: "600" }}>{item?.l ?? "Report"}</h2>
@@ -227,7 +233,7 @@ export function ReportsScreen() {
             <div className="wl">
               <span className="eqic"><Icon className="s14" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></span>
               <div className="f1">
-                <div className="fs13 w5">{`${report?.name ?? key}${key === "ar-aging" ? `_${today}` : `_${range.from}_to_${range.to}`}.csv`}</div>
+                <div className="fs13 w5">{key === "fuel" ? `fuel_${fuelWeeks}_weeks.csv` : `${report?.name ?? key}${key === "ar-aging" ? `_${today}` : `_${range.from}_to_${range.to}`}.csv`}</div>
                 <div className="fs12 mu">{item?.l}</div>
               </div>
               <span className="badge" data-k="ok">

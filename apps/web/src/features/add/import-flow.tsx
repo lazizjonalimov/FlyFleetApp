@@ -21,11 +21,13 @@ const SHEETS = ".csv,.xlsx,.xlsm,text/csv,application/vnd.openxmlformats-officed
 const OK = "M5 12l5 5 9-10";
 const WARN = "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01";
 const NO = "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM4.9 4.9l14.2 14.2";
-const LIST_SCREEN: Record<ImportKind, string> = { drivers: "drivers", trucks: "trucks", trailers: "trailers" };
+const LIST_SCREEN: Record<ImportKind, string> = { drivers: "drivers", trucks: "trucks", trailers: "trailers", mileage: "fuel" };
+type Decision = "update" | "skip" | "odometer" | "miles";
+const DECISION: Record<string, string> = { update: "Update", skip: "Skip", odometer: "Use odometer", miles: "Use miles" };
 
-/** Bring drivers, trucks or trailers in from a CSV or Excel file: match the columns, look at the rows that need
- * it, import the rest. Nothing is saved until Import. */
-export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; flow: Flow; onBack: () => void; onClose: () => void }) {
+/** Bring drivers, trucks, trailers or IFTA miles in from a CSV or Excel file: match the columns, look at the rows
+ * that need it, import the rest. Nothing is saved until Import. */
+export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; flow: Flow; onBack: (() => void) | null; onClose: () => void }) {
   const { set, notify } = useConsole();
   const act = useAction();
   const [imp, setImp] = useState<Imp | null>(null);
@@ -33,7 +35,10 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [reminders, setReminders] = useState(true);
+  const [hold, setHold] = useState(true);
   const noun = flow.plural;
+  const miles = kind === "mileage";
+  const one = miles ? "row" : noun.replace(/s$/, "");
 
   const choose = async () => {
     const file = await pickFile(SHEETS);
@@ -54,7 +59,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
     }
     setPending(false);
   };
-  const update = async (mapping: Record<string, string | null>, decisions: Record<string, "update" | "skip">) => {
+  const update = async (mapping: Record<string, string | null>, decisions: Record<string, Decision>) => {
     if (!imp) return;
     setProblem(null);
     try {
@@ -64,17 +69,17 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
     }
   };
   const mapping = () => Object.fromEntries((imp?.columns ?? []).map((c) => [c.header, c.field ?? null]));
-  const decisions = () => Object.fromEntries((imp?.issues ?? []).filter((i) => i.decision).map((i) => [String(i.row), i.decision as "update" | "skip"]));
+  const decisions = () => Object.fromEntries((imp?.issues ?? []).filter((i) => i.decision).map((i) => [String(i.row), i.decision as Decision]));
   const commit = async () => {
     if (!imp) return;
     setPending(true);
     setProblem(null);
     try {
-      const done = await unwrap(api.POST("/api/v1/imports/{import_id}/commit", { params: { path: { import_id: imp.id } }, body: { reminders } }));
+      const done = await unwrap(api.POST("/api/v1/imports/{import_id}/commit", { params: { path: { import_id: imp.id } }, body: { reminders, hold } }));
       await act(async () => undefined);
       setImp(done);
       setStep(3);
-      notify(`${plural(Number(done.result?.created ?? 0), noun.replace(/s$/, ""))} imported`);
+      notify(`${plural(Number(done.result?.created ?? 0), miles ? "trip row" : one)} imported`);
     } catch (error) {
       setProblem(errorMessage(error));
     }
@@ -87,7 +92,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
 
   if (step === 0 || !imp) {
     return (
-      <ModalFrame title={title} sub={sub} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={0} onClose={close} left={[{ l: "Back", cls: "ghost", go: onBack }]} right={[{ l: "Cancel", go: close }]}>
+      <ModalFrame title={title} sub={sub} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={0} onClose={close} left={onBack ? [{ l: "Back", cls: "ghost", go: onBack }] : []} right={[{ l: "Cancel", go: close }]}>
         <div className="mbody c g14">
           <Problem message={problem} />
           <div className="drop big">
@@ -103,7 +108,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
             <span className="xls">CSV</span>
             <div className="f1">
               <div className="fs13 w5">Start from our template</div>
-              <div className="fs12 mu">{`One row per ${noun.replace(/s$/, "")}, with the columns FlyFleet reads already named.`}</div>
+              <div className="fs12 mu">{miles ? "Columns for the truck, date, state, miles and odometer start and end, already named." : `One row per ${one}, with the columns FlyFleet reads already named.`}</div>
             </div>
             <button className="btn sm" onClick={() => template("csv")}>
               <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
@@ -116,7 +121,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
           </div>
           <p className="note">
             <Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />
-            <span>Columns are matched by their names; you can change any match. Nothing is saved until you import.</span>
+            <span>{miles ? "For trucks without GPS. One row is one state on one trip; miles are checked against the odometer readings, and imported miles are marked on the return." : "Columns are matched by their names; you can change any match. Nothing is saved until you import."}</span>
           </p>
         </div>
       </ModalFrame>
@@ -128,7 +133,7 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
     return (
       <ModalFrame title={title} sub={sub} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={1} size="mid" onClose={close}
         left={[{ l: "Back", cls: "ghost", go: () => setStep(0) }]}
-        right={[{ l: `Check ${formatNumber(imp.rows)} ${imp.rows === 1 ? "row" : "rows"}`, cls: "pri", go: () => setStep(2), disabled: !imp.covered && imp.missing.includes("unit number") }]}>
+        right={[{ l: `Check ${formatNumber(imp.rows)} ${imp.rows === 1 ? "row" : "rows"}`, cls: "pri", go: () => setStep(2), disabled: !imp.covered && (miles || imp.missing.includes("unit number")) }]}>
         <div className="mbody c g12">
           <Problem message={problem} />
           <div className="filechip">
@@ -183,11 +188,11 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
   }
 
   if (step === 2) {
-    const toAdd = imp.ready + imp.issues.filter((i) => i.decision === "update").length;
+    const toAdd = imp.ready + imp.issues.filter((i) => i.decision && i.decision !== "skip").length;
     return (
-      <ModalFrame title={title} sub={sub} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={2} onClose={close}
+      <ModalFrame title={title} sub={sub} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={2} size="mid" onClose={close}
         left={[{ l: "Back", cls: "ghost", go: () => setStep(1) }]} note="Nothing is saved until you import"
-        right={[{ l: pending ? "Importing…" : `Import ${plural(toAdd, noun.replace(/s$/, ""))}`, cls: "pri", go: () => void commit(), disabled: pending || toAdd === 0 }]}>
+        right={[{ l: pending ? "Importing…" : `Import ${plural(toAdd, one)}`, cls: "pri", go: () => void commit(), disabled: pending || toAdd === 0 }]}>
         <div className="mbody c g12">
           <Problem message={problem} />
           <div className="kpis" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))", boxShadow: "none" }}>
@@ -220,8 +225,8 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
                 {r.actions.length ? (
                   <div className="seg sm" role="group" aria-label={`Row ${r.row}`}>
                     {r.actions.map((a) => (
-                      <button key={a} className={r.decision === a ? "on" : ""} aria-pressed={r.decision === a} onClick={() => void update(mapping(), { ...decisions(), [String(r.row)]: a as "update" | "skip" })}>
-                        <span>{a === "update" ? "Update" : "Skip"}</span>
+                      <button key={a} className={r.decision === a ? "on" : ""} aria-pressed={r.decision === a} onClick={() => void update(mapping(), { ...decisions(), [String(r.row)]: a as Decision })}>
+                        <span>{DECISION[a] ?? a}</span>
                       </button>
                     ))}
                   </div>
@@ -231,7 +236,12 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
               </div>
             ))}
           </div>
-          {kind !== "drivers" ? (
+          {miles ? (
+            <label className="r g8 fs13">
+              <input type="checkbox" className="cbx" checked={hold} onChange={(e) => setHold(e.currentTarget.checked)} />
+              <span>Hold imported miles for review before the return is approved</span>
+            </label>
+          ) : kind !== "drivers" ? (
             <label className="r g8 fs13">
               <input type="checkbox" className="cbx" checked={reminders} onChange={(e) => setReminders(e.currentTarget.checked)} />
               <span>List registrations and inspections due within 60 days when the import is done</span>
@@ -242,7 +252,42 @@ export function ImportFlow({ kind, flow, onBack, onClose }: { kind: ImportKind; 
     );
   }
 
-  const r = (imp.result ?? {}) as { created?: number; updated?: number; skipped?: number; failed?: { row: number; message: string }[]; due_soon?: { unit: string; what: string; on: string }[] };
+  const r = (imp.result ?? {}) as { created?: number; updated?: number; skipped?: number; failed?: { row: number; message: string }[]; due_soon?: { unit: string; what: string; on: string }[]; held?: boolean; odometer_rows?: number[]; skipped_rows?: { row: number; message: string }[]; trucks?: string[]; quarters?: string[] };
+  if (miles) {
+    const created = r.created ?? 0;
+    const used = r.odometer_rows ?? [];
+    const quarters = (r.quarters ?? []).map((q) => `Q${q.slice(5)} ${q.slice(0, 4)}`);
+    const trucks = r.trucks ?? [];
+    const lines = [
+      { t: "Added", n: created - used.length, k: "ok" },
+      ...used.map((row) => ({ t: `Updated · row ${row}, odometer used`, n: 1, k: "info" })),
+      ...(r.skipped_rows ?? []).map((x) => ({ t: `Skipped · row ${x.row}, ${x.message.charAt(0).toLowerCase()}${x.message.slice(1)}`, n: 1, k: "bad" })),
+      ...(r.failed ?? []).map((x) => ({ t: `Refused · row ${x.row}, ${x.message}`, n: 1, k: "bad" })),
+    ];
+    return (
+      <ModalFrame title={title} sub={imp.filename} icon="M4 3h16v18H4zM4 9h16M4 15h16M10 3v18" steps={STEPS} step={3} onClose={close}
+        right={[{ l: "View mileage", go: () => { close(); set({ ...goTo("fuel"), ftab: 1 }); } }, { l: "Done", cls: "pri", go: close }]}>
+        <div className="mbody">
+          <div className="c g10" style={{ alignItems: "center", textAlign: "center", padding: "16px 0 8px" }}>
+            <span className="donei"><Icon className="s24 b" d={OK} /></span>
+            <h3 style={{ fontSize: "18px", lineHeight: "24px", fontWeight: "600" }}>{`${plural(created, "trip row")} imported`}</h3>
+            <p className="fs13 mu" style={{ maxWidth: "460px" }}>
+              {`Miles are added to ${trucks.length > 3 ? plural(trucks.length, "truck") : trucks.join(", ") || "the trucks"} by state and marked as imported on the ${quarters.join(" and ") || "quarter’s"} return.${r.held ? " They’re held for review until someone releases them on the Mileage tab." : ""}`}
+            </p>
+          </div>
+          <div className="card oh" style={{ boxShadow: "none", marginTop: "12px" }}>
+            {lines.map((x) => (
+              <div key={x.t} className="wl">
+                <span className="dot" data-k={x.k}></span>
+                <span className="f1 fs13"><span>{x.t}</span></span>
+                <span className="mono fs13 w6"><span>{x.n}</span></span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </ModalFrame>
+    );
+  }
   const rows = [
     { t: "Added", n: r.created ?? 0, k: "ok" },
     { t: "Updated", n: r.updated ?? 0, k: "info" },

@@ -43,6 +43,8 @@ export type Lists = {
 const STATES: Opt[] = US_STATES.map(([code, name]) => ({ v: code, l: name, ab: code }));
 const TYPES: Opt[] = Object.entries(TRAILER_TYPES).filter(([v]) => v !== "other").map(([v, l]) => ({ v, l }));
 const EQUIPMENT: Opt[] = Object.entries(TRAILER_TYPES).map(([v, l]) => ({ v, l }));
+/** How a purchase was paid, as the review and the form offer it. */
+export const PAID_WITH: Opt[] = [{ v: "fuel_card", l: "Fuel card" }, { v: "cash", l: "Cash" }, { v: "company_card", l: "Company card" }];
 
 /** The read value for a key, across the reads (the first that has one). */
 export function readOf(reads: Read[], key: string): (ReadField & { readId: string }) | undefined {
@@ -161,6 +163,19 @@ export function reviewFields(kind: string, reads: Read[], lists: Lists): RField[
       { key: "vehicle_id", label: "Truck", input: "combo", value: recordOf(reads, "vehicle"), read: readOf(reads, "truck_plate"), readKey: "truck_plate", options: lists.trucks, half: true },
       { key: "trailer_id", label: "Trailer", input: "combo", value: "", read: readOf(reads, "trailer_plate"), readKey: "trailer_plate", options: lists.trailers, half: true },
       field(reads, "inspector", "Inspector", "text"),
+    ];
+  }
+  if (kind === "fuel") {
+    return [
+      field(reads, "vendor", "Station", "text", { required: true }),
+      field(reads, "state", "State", "combo", { options: STATES, required: true }),
+      field(reads, "purchased_on", "Date", "date", { half: true, required: true }),
+      field(reads, "gallons", "Gallons", "money", { half: true, mono: true, required: true }),
+      field(reads, "price_per_gallon", "Price per gallon", "money", { half: true, mono: true }),
+      field(reads, "total", "Total", "money", { half: true, mono: true, required: true }),
+      field(reads, "paid_with", "Paid with", "seg", { options: PAID_WITH }),
+      { key: "vehicle_id", label: "Truck", input: "combo", value: suggest.vehicle_id ?? recordOf(reads, "vehicle"), read: readOf(reads, "unit_number"), readKey: "unit_number", options: lists.trucks, half: true, required: true },
+      { key: "driver_id", label: "Driver", input: "combo", value: suggest.driver_id ?? "", options: lists.drivers, half: true, note: suggest.driver_id ? undefined : suggest.driver_name ? `${suggest.driver_name} is seated in this truck.` : undefined },
     ];
   }
   return [];
