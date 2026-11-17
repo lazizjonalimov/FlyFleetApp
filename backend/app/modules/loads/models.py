@@ -14,6 +14,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
@@ -82,6 +83,8 @@ class Load(Base, IdMixin, TenantScoped, TimestampMixin):
         Index("ix_loads_org_pickup", "organization_id", "pickup_at"),
         Index("ix_loads_org_delivery", "organization_id", "delivery_at"),
         Index("ix_loads_org_billing", "organization_id", "billing_status", "status"),
+        Index("ix_loads_org_dispatch_team", "organization_id", "dispatch_team_id",
+              postgresql_where=text("dispatch_team_id IS NOT NULL")),
         CheckConstraint("status IN " + str(STATUSES), name="status_valid"),
         CheckConstraint("billing_status IN " + str(BILLING), name="billing_valid"),
         CheckConstraint("equipment_type IN " + EQUIPMENT_SQL, name="equipment_valid"),

@@ -1,5 +1,6 @@
 """Imports every model so Base.metadata is complete (used by Alembic and tests)."""
 from app.core.db import Base  # noqa: F401
+from app.modules.access.models import Invitation, OrgRole, PermissionOverride  # noqa: F401
 from app.modules.customers.models import Customer, CustomerAddress, CustomerContact  # noqa: F401
 from app.modules.dispatch.models import DispatchAssignment  # noqa: F401
 from app.modules.documents.models import Document, DocumentLink  # noqa: F401

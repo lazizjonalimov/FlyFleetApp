@@ -6,7 +6,6 @@ from zoneinfo import available_timezones
 from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.crud import ListParams
-from app.core.permissions import Role
 
 
 def _valid_timezone(value: str) -> str:
@@ -177,16 +176,20 @@ class OrganizationPatch(BaseModel):
 
 
 # ---------------------------------------------------------------- team
+RoleKey = Annotated[str, Field(min_length=2, max_length=40, pattern=r"^[a-z][a-z0-9_]{1,39}$",
+                               description="A role key: one of FlyFleet's roles, or one of the company's custom roles")]
+
+
 class MemberCreate(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=120)
     # Needed for a new sign-in. Ignored when the person already has one: they keep their own password.
     password: Password | None = None
-    role: Role
+    role: RoleKey
 
 
 class MemberPatch(BaseModel):
-    role: Role | None = None
+    role: RoleKey | None = None
     active: bool | None = None
 
 
@@ -196,29 +199,6 @@ class MemberOut(BaseModel):
     full_name: str
     role: str
     active: bool
-
-
-class PermissionOut(BaseModel):
-    key: str
-    label: str
-
-
-class PermissionGroupOut(BaseModel):
-    name: str
-    permissions: list[PermissionOut]
-
-
-class RoleOut(BaseModel):
-    key: str
-    label: str
-    description: str
-    assignable: bool
-    permissions: list[str]
-
-
-class RoleMatrixOut(BaseModel):
-    roles: list[RoleOut]
-    groups: list[PermissionGroupOut]
 
 
 # ---------------------------------------------------------------- terminals
@@ -285,15 +265,20 @@ class AuditOut(BaseModel):
     id: uuid.UUID
     actor_user_id: uuid.UUID | None
     actor_name: str | None = None
+    actor_role: str | None = Field(default=None, description="The actor's role in the company, by name")
     action: str
     entity_type: str
     entity_id: uuid.UUID | None
+    entity_label: str | None = Field(default=None, description="The record as people know it: a load number, a name")
+    source: str = Field(default="Web", description="Web, Driver app or FlyFleet")
     data: dict | None
     request_id: str | None
     created_at: datetime
 
 
 class AuditListParams(ListParams):
+    group: Literal["all", "security", "permissions", "operations", "finance", "support"] = "all"
+    format: Literal["json", "csv"] = "json"
     actor_user_id: uuid.UUID | None = None
     action: str | None = Field(default=None, max_length=60)
     entity_type: str | None = Field(default=None, max_length=60)

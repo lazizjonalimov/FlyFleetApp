@@ -69,6 +69,17 @@ def ensure_exists(db: Session, model, value: uuid.UUID | None, field: str, label
         raise Invalid(f"{label} not found", field=field)
 
 
+def _plain(value):
+    """A value as the audit log keeps it: dates, numbers and ids as text."""
+    if value is None or isinstance(value, bool | int | str):
+        return value
+    if isinstance(value, list | tuple):
+        return [_plain(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    return str(value)
+
+
 def _redactor(fields: tuple[str, ...]):
     def redact(data: dict) -> dict:
         return {k: ("[redacted]" if k in fields and v is not None else v) for k, v in data.items()}
@@ -152,10 +163,14 @@ def resource_router(
         changes = body.model_dump(exclude_unset=True)
         if before_save:
             before_save(db, p, changes, obj)
+        # What each changed field was before and is now, for the audit log's diff (sensitive values redacted).
+        before = {k: _plain(getattr(obj, k, None)) for k in changes}
         for k, v in changes.items():
             setattr(obj, k, v)
         db.flush()
-        audit(db, p, f"{entity}.updated", entity, obj.id, redact(body.model_dump(mode="json", exclude_unset=True)))
+        diff = {k: [before[k], _plain(getattr(obj, k, None))] for k in changes if before[k] != _plain(getattr(obj, k, None))}
+        audit(db, p, f"{entity}.updated", entity, obj.id,
+              {"changes": {k: (["[redacted]", "[redacted]"] if k in audit_redact else v) for k, v in diff.items()}})
         db.commit()
         return show(db, obj, p)
 

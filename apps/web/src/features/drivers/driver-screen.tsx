@@ -13,6 +13,7 @@ import type { Cell } from "@/features/console/view";
 import { useUpload, viewDocument } from "@/features/documents/use-upload";
 import { DRIVER_TYPES, loadLabel, loadTone, monthYear, PAY_TYPES } from "@/features/fleet/labels";
 import { useOpenConversation } from "@/features/messages/use-message";
+import { InviteDrivers } from "./invite-drivers";
 import { api, unwrap } from "@/lib/api/client";
 import { formatDate, formatDateTime, todayIn, toLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
@@ -255,7 +256,7 @@ export function DriverScreen() {
               </dl>
             </div>
           </section>
-          <ChannelsCard driverId={d.id} phone={d.phone} linked={!!d.user_id} onEdit={can("drivers.manage") ? editDriver : undefined} />
+          <ChannelsCard driverId={d.id} name={d.full_name} email={d.email} phone={d.phone} linked={!!d.user_id} onEdit={can("drivers.manage") ? editDriver : undefined} />
           {can("drivers.sensitive.read") ? (
             <section className="card oh">
               <div className="ch">
@@ -301,8 +302,9 @@ export function DriverScreen() {
 }
 
 /** How messages and alerts reach the driver: Telegram, the driver app, and SMS when the others fail. */
-function ChannelsCard({ driverId, phone, linked, onEdit }: { driverId: string; phone: string | null; linked: boolean; onEdit?: () => void }) {
+function ChannelsCard({ driverId, name, email, phone, linked, onEdit }: { driverId: string; name: string; email: string | null; phone: string | null; linked: boolean; onEdit?: () => void }) {
   const { me, can, set } = useConsole();
+  const [inviting, setInviting] = useState(false);
   const channels = useQuery({ queryKey: [me.organization.id, "drivers", driverId, "channels"], queryFn: () => unwrap(api.GET("/api/v1/drivers/{driver_id}/channels", { params: { path: { driver_id: driverId } } })) });
   const of = (key: string) => channels.data?.channels.find((c) => c.key === key);
   const app = of("app");
@@ -310,7 +312,7 @@ function ChannelsCard({ driverId, phone, linked, onEdit }: { driverId: string; p
     { n: "Telegram", d: "Not linked · Telegram isn’t connected for the company yet", ic: I.send, k: "mu", act: can("organization.manage") ? ["Set up", () => set(goTo("settings")), "Set up Telegram in Integrations"] : undefined },
     app?.connected
       ? { n: "Driver app", d: "Signed in · messages, alerts and load updates arrive in the app", ic: I.mobile, k: "brand", act: can("messages.read") && channels.data?.conversation_id ? ["Open chat", () => set({ ...goTo("messages"), conv: channels.data!.conversation_id }), "Open the conversation"] : undefined }
-      : { n: "Driver app", d: linked ? "Their sign-in is turned off" : "Not signed up yet", ic: I.mobile, k: "mu", act: can("users.manage") ? ["Invite", () => set(goTo("team")), "Invite to the driver app"] : undefined },
+      : { n: "Driver app", d: linked ? "Their sign-in is turned off" : "Not signed up yet", ic: I.mobile, k: "mu", act: can("users.manage") && !linked ? ["Invite", () => setInviting(true), "Invite to the driver app"] : undefined },
     { n: "SMS fallback", d: phone ? `${phone} · no SMS provider connected yet` : "No phone number on file", ic: I.phone, k: "mu", act: onEdit ? ["Edit", onEdit, "Edit the phone number"] : undefined },
   ];
   return (
@@ -324,6 +326,7 @@ function ChannelsCard({ driverId, phone, linked, onEdit }: { driverId: string; p
         </div>
       ))}
       <p className="note" style={{ padding: "10px 16px 12px" }}><Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />FlyFleet keeps the message history. Telegram and SMS only deliver it.</p>
+      {inviting ? <InviteDrivers drivers={[{ id: driverId, full_name: name, email, user_id: null }]} onClose={() => setInviting(false)} /> : null}
     </section>
   );
 }

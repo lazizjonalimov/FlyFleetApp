@@ -12,8 +12,9 @@ from app.core.crud import like, resource_router
 from app.core.deps import Principal, get_db, get_principal, require
 from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.core.pagination import Page, envelope, paginate, parse_sort
-from app.core.permissions import ASSIGNABLE, PERMISSION_GROUPS, ROLE_LABELS, ROLE_PERMISSIONS, Role
+from app.core.permissions import Role
 from app.core.security import hash_password
+from app.modules.access import service as access
 from app.modules.organizations import schemas as s
 from app.modules.organizations.models import (
     AuditLog,
@@ -59,11 +60,6 @@ def _member_out(m: Membership, u: User) -> s.MemberOut:
     return s.MemberOut(user_id=u.id, email=u.email, full_name=u.full_name, role=m.role, active=m.active)
 
 
-def _check_grant(p: Principal, role: Role) -> None:
-    if role is Role.CUSTOMER:
-        raise Forbidden("Customer access is granted through the customer portal, not the team screen")
-    if role is Role.OWNER and p.role != Role.OWNER.value:
-        raise Forbidden("Only an owner can grant the owner role")
 
 
 @team_router.get("/members", response_model=list[s.MemberOut])
@@ -75,7 +71,7 @@ def list_members(p: Principal = Depends(require("users.manage")), db: Session = 
 
 @team_router.post("/members", response_model=s.MemberOut, status_code=201)
 def add_member(body: s.MemberCreate, p: Principal = Depends(require("users.manage")), db: Session = Depends(get_db)):
-    _check_grant(p, body.role)
+    access.check_assignable(db, p, body.role)
     existing = db.execute(text("SELECT id, full_name FROM auth_lookup_user(:e)"), {"e": body.email}).first()
     if existing:
         # A person with a FlyFleet sign-in already. They keep their own password; only access is added.
@@ -90,9 +86,9 @@ def add_member(body: s.MemberCreate, p: Principal = Depends(require("users.manag
         uid = db.execute(text("SELECT auth_create_user(:e, :n, :h)"),
                          {"e": body.email, "n": body.full_name, "h": hash_password(body.password)}).scalar_one()
         name = body.full_name
-    m = Membership(organization_id=p.org_id, user_id=uid, role=body.role.value)
+    m = Membership(organization_id=p.org_id, user_id=uid, role=body.role)
     db.add(m)
-    audit(db, p, "member.added", "user", uid, {"role": body.role.value, "email": body.email.lower(),
+    audit(db, p, "member.added", "user", uid, {"role": body.role, "email": body.email.lower(),
                                                 "existing_account": existing is not None})
     db.commit()
     return s.MemberOut(user_id=uid, email=body.email.lower(), full_name=name, role=m.role, active=True)
@@ -108,33 +104,25 @@ def update_member(user_id: uuid.UUID, body: s.MemberPatch, p: Principal = Depend
     u = db.get(User, user_id)
     is_owner_row = m.role == Role.OWNER.value
     if body.role:
-        _check_grant(p, body.role)
+        access.check_assignable(db, p, body.role)
     if is_owner_row and p.role != Role.OWNER.value and (body.role or body.active is False):
         raise Forbidden("Only an owner can change or deactivate an owner")
-    demoting = (body.role is not None and body.role is not Role.OWNER) or body.active is False
+    demoting = (body.role is not None and body.role != Role.OWNER.value) or body.active is False
     if is_owner_row and m.active and demoting:
         owners = db.scalar(select(func.count()).select_from(Membership).where(
             Membership.organization_id == p.org_id, Membership.role == Role.OWNER.value, Membership.active.is_(True)))
         if owners <= 1:
             raise Conflict("A company must keep at least one active owner", code="LAST_OWNER")
-    if body.role:
-        m.role = body.role.value
-    if body.active is not None:
+    changes = {}
+    if body.role and body.role != m.role:
+        changes["role"] = [access.label_of(db, m.role), access.label_of(db, body.role)]
+        m.role = body.role
+    if body.active is not None and body.active != m.active:
+        changes["access"] = ["active" if m.active else "removed", "active" if body.active else "removed"]
         m.active = body.active
-    audit(db, p, "member.updated", "user", user_id, body.model_dump(mode="json", exclude_unset=True))
+    audit(db, p, "member.updated", "user", user_id, {"changes": changes})
     db.commit()
     return _member_out(m, u)
-
-
-@team_router.get("/roles", response_model=s.RoleMatrixOut)
-def role_matrix(p: Principal = Depends(get_principal)):
-    """What each role can do. Roles are fixed for now; this is the readable matrix behind them."""
-    return s.RoleMatrixOut(
-        roles=[s.RoleOut(key=r.value, label=ROLE_LABELS[r][0], description=ROLE_LABELS[r][1],
-                         assignable=r in ASSIGNABLE, permissions=sorted(ROLE_PERMISSIONS[r]))
-               for r in Role if r is not Role.CUSTOMER],
-        groups=[s.PermissionGroupOut(name=name, permissions=[s.PermissionOut(key=k, label=v) for k, v in perms.items()])
-                for name, perms in PERMISSION_GROUPS.items()])
 
 
 # ---------------------------------------------------------------- terminals
@@ -200,10 +188,56 @@ def delete_saved_view(view_id: uuid.UUID, p: Principal = Depends(get_principal),
 audit_router = APIRouter(tags=["audit"])
 
 
-@audit_router.get("/audit-logs", response_model=Page[s.AuditOut])
+# The audit log's tabs, by what an action is about.
+AUDIT_GROUPS: dict[str, tuple[str, ...]] = {
+    "security": ("user.", "member.", "invitation.", "organization.", "access.", "audit.", "owner.sensitive_viewed",
+                 "report.exported", "incidents.exported", "ifta.return_exported", "document.downloaded"),
+    "permissions": ("role.", "permission.", "dispatch_team.", "member.updated", "member.added", "invitation.accepted"),
+    "operations": ("load.", "dispatch.", "incident.", "geofence.", "positions.", "message.", "task.", "vehicle.",
+                   "inspection.", "work_order.", "import.", "equipment."),
+    "finance": ("invoice.", "payment.", "settlement.", "owner_settlement.", "expense.", "ifta.", "ifta_return."),
+    "support": ("support.",),
+}
+
+
+def _entity_labels(db: Session, entries: list[AuditLog]) -> dict[tuple[str, uuid.UUID], str]:
+    """Names people know records by, for a page of audit entries, one query per kind of record."""
+    from app.modules.access.models import OrgRole
+    from app.modules.customers.models import Customer
+    from app.modules.documents.models import Document
+    from app.modules.drivers.models import Driver
+    from app.modules.equipment.models import Trailer, Vehicle
+    from app.modules.finance.models import Invoice
+    from app.modules.loads.models import Load
+    from app.modules.tasks.models import Task
+    from app.modules.teams.models import DispatchTeam
+    from app.modules.tracking.models import Incident
+    kinds = {
+        "load": (Load, lambda r: r.load_number), "invoice": (Invoice, lambda r: r.invoice_number or "Draft invoice"),
+        "driver": (Driver, lambda r: f"{r.first_name} {r.last_name}"), "vehicle": (Vehicle, lambda r: r.unit_number),
+        "trailer": (Trailer, lambda r: r.unit_number), "customer": (Customer, lambda r: r.name),
+        "document": (Document, lambda r: r.filename), "user": (User, lambda r: r.full_name),
+        "incident": (Incident, lambda r: r.number), "task": (Task, lambda r: r.title),
+        "dispatch_team": (DispatchTeam, lambda r: r.name), "role": (OrgRole, lambda r: r.name),
+    }
+    out: dict[tuple[str, uuid.UUID], str] = {}
+    for kind, (model, name) in kinds.items():
+        ids = {e.entity_id for e in entries if e.entity_type == kind and e.entity_id}
+        if ids:
+            for row in db.scalars(select(model).where(model.id.in_(ids))):
+                out[(kind, row.id)] = name(row)
+    return out
+
+
+@audit_router.get("/audit-logs", response_model=Page[s.AuditOut], responses={200: {"content": {"text/csv": {}}}})
 def audit_logs(params: Annotated[s.AuditListParams, Query()], p: Principal = Depends(require("audit.read")),
                db: Session = Depends(get_db)):
-    stmt = select(AuditLog, User.full_name).outerjoin(User, User.id == AuditLog.actor_user_id)
+    """What happened, by whom, to which record. Only ever added to."""
+    stmt = select(AuditLog, User.full_name, Membership.role).outerjoin(User, User.id == AuditLog.actor_user_id) \
+        .outerjoin(Membership, Membership.user_id == AuditLog.actor_user_id)
+    if params.group != "all":
+        stmt = stmt.where(or_(*[AuditLog.action.like(prefix.replace("_", "\\_") + ("%" if prefix.endswith(".") else ""))
+                                for prefix in AUDIT_GROUPS[params.group]]))
     if params.actor_user_id:
         stmt = stmt.where(AuditLog.actor_user_id == params.actor_user_id)
     if params.action:
@@ -217,10 +251,36 @@ def audit_logs(params: Annotated[s.AuditListParams, Query()], p: Principal = Dep
     if params.until:
         stmt = stmt.where(AuditLog.created_at < params.until)
     if params.q:
-        stmt = stmt.where(or_(AuditLog.action.ilike(like(params.q)), AuditLog.request_id == params.q))
-    rows, info = paginate(db, stmt, parse_sort(params.sort, {"created_at": AuditLog.created_at}, "-created_at"),
-                          AuditLog.id, cursor=params.cursor, limit=params.limit, count=params.count)
-    items = [s.AuditOut.model_validate(entry).model_copy(update={"actor_name": name}) for entry, name in rows]
+        stmt = stmt.where(or_(AuditLog.action.ilike(like(params.q)), AuditLog.request_id == params.q,
+                              User.full_name.ilike(like(params.q))))
+    sort = parse_sort(params.sort, {"created_at": AuditLog.created_at}, "-created_at")
+    if params.format == "csv":
+        rows = db.execute(stmt.order_by(AuditLog.created_at.desc(), AuditLog.id).limit(10_000)).all()
+    else:
+        rows, info = paginate(db, stmt, sort, AuditLog.id, cursor=params.cursor, limit=params.limit, count=params.count)
+    labels = _entity_labels(db, [entry for entry, _, _ in rows])
+    items = []
+    for entry, name, role in rows:
+        source = "FlyFleet" if entry.actor_user_id is None else "Driver app" if role == "driver" else "Web"
+        items.append(s.AuditOut.model_validate(entry).model_copy(update={
+            "actor_name": name, "actor_role": access.label_of(db, role) if role else None,
+            "entity_label": labels.get((entry.entity_type, entry.entity_id)), "source": source}))
+    if params.format == "csv":
+        import csv
+        import io
+
+        from fastapi import Response
+        out = io.StringIO()
+        w = csv.writer(out)
+        w.writerow(["Time", "Actor", "Role", "Action", "Entity", "Record", "Source", "Request ID"])
+        for e in items:
+            w.writerow([e.created_at.isoformat(), e.actor_name or "FlyFleet", e.actor_role or "", e.action,
+                        e.entity_type, e.entity_label or (str(e.entity_id) if e.entity_id else ""), e.source,
+                        e.request_id or ""])
+        audit(db, p, "audit.exported", "organization", p.org_id, {"group": params.group, "rows": len(items)})
+        db.commit()
+        return Response(content="\ufeff" + out.getvalue(), media_type="text/csv", headers={
+            "Content-Disposition": f'attachment; filename="audit-log-{p.today()}.csv"', "Cache-Control": "private, no-store"})
     return envelope(items, info)
 
 

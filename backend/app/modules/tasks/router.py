@@ -146,6 +146,6 @@ def teammates(p: Principal = Depends(require("tasks.assign", "messages.send", "i
               db: Session = Depends(get_db)):
     """The people on the team, to give a task or an alert to, or to add to a conversation."""
     rows = db.execute(select(User.id, User.full_name, Membership.role).join(Membership, Membership.user_id == User.id)
-                      .where(Membership.active.is_(True), Membership.role.in_(service.STAFF_ROLES))
+                      .where(Membership.active.is_(True), Membership.role.notin_(service.APP_ROLES))
                       .order_by(User.full_name)).all()
     return [Teammate(id=i, name=n, role=r) for i, n, r in rows]

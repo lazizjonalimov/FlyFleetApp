@@ -2,9 +2,12 @@
 import re
 import secrets
 import uuid
+from datetime import UTC, datetime
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import text, update
+from pydantic import BaseModel, Field
+from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,8 +15,8 @@ from app.core.audit import audit
 from app.core.config import get_settings
 from app.core.db import new_session
 from app.core.deps import Principal, get_db, get_principal
-from app.core.errors import AppError, Conflict, Forbidden, Invalid, Unauthorized
-from app.core.permissions import Role
+from app.core.errors import AppError, Conflict, Forbidden, Invalid, NotFound, Unauthorized
+from app.core.permissions import ROLE_LABELS, Role
 from app.core.ratelimit import FailureLimiter
 from app.core.security import create_token, hash_password, verify_password
 from app.modules.organizations import schemas as s
@@ -179,3 +182,118 @@ def change_password(body: s.PasswordChangeIn, p: Principal = Depends(get_princip
     db.commit()
     org = s.OrgRef(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role, status=p.org_status)
     return s.SessionOut(access_token=create_token(p.user_id, p.org_id, user.token_version), organization=org)
+
+
+# ---------------------------------------------------------------- joining by invitation
+class InvitationPreview(BaseModel):
+    organization_name: str
+    email: str
+    full_name: str
+    role_label: str
+    invited_by_name: str | None
+    expires_at: datetime
+    state: Literal["open", "expired", "used", "revoked"]
+    existing_account: bool = Field(description="The email already has a FlyFleet sign-in: join with its password")
+
+
+class AcceptInvitationIn(BaseModel):
+    token: str = Field(min_length=20, max_length=200)
+    full_name: str | None = Field(default=None, max_length=120)
+    password: str = Field(min_length=1, max_length=200)
+
+
+def _invitation(db: Session, token: str):
+    from app.modules.access.service import token_hash
+    return db.execute(text("SELECT * FROM auth_lookup_invitation(:h)"), {"h": token_hash(token)}).first()
+
+
+def _state(row) -> str:
+    if row.revoked_at:
+        return "revoked"
+    if row.accepted_at:
+        return "used"
+    return "expired" if row.expires_at <= datetime.now(UTC) else "open"
+
+
+@router.get("/invitations/{token}", response_model=InvitationPreview)
+def preview_invitation(token: str):
+    """What an invitation link is for, before signing up with it. Says nothing beyond what the link holds."""
+    db = new_session()
+    try:
+        row = _invitation(db, token)
+        existing = bool(row and db.execute(text("SELECT 1 FROM auth_lookup_user(:e)"), {"e": row.email}).first())
+    finally:
+        db.close()
+    if row is None:
+        raise NotFound("This invitation link isn't valid")
+    try:
+        role_label = ROLE_LABELS[Role(row.role)][0]
+    except ValueError:
+        role_label = row.custom_role_name or "Team member"
+    return InvitationPreview(organization_name=row.organization_name, email=row.email, full_name=row.full_name,
+                             role_label=role_label, invited_by_name=row.invited_by_name,
+                             expires_at=row.expires_at, state=_state(row), existing_account=existing)
+
+
+@router.post("/accept-invitation", response_model=s.SessionOut)
+def accept_invitation(body: AcceptInvitationIn, request: Request):
+    """Join the company the invitation is for: with a new sign-in, or with the one the email already has."""
+    key = f"invite|{request.client.host if request.client else '?'}|{body.token[:12]}"
+    _limiter.check(key)
+    db = new_session()
+    try:
+        row = _invitation(db, body.token)
+        if row is None:
+            raise NotFound("This invitation link isn't valid")
+        state = _state(row)
+        if state != "open":
+            raise Conflict({"used": "This invitation has already been used. Sign in instead.",
+                            "revoked": "This invitation was withdrawn. Ask for a new one.",
+                            "expired": "This invitation has expired. Ask for a new one."}[state], code="INVITATION_CLOSED")
+        user = db.execute(text("SELECT * FROM auth_lookup_user(:e)"), {"e": row.email}).first()
+        if user is not None:
+            if not (user.active and verify_password(body.password, user.password_hash)):
+                _limiter.fail(key)
+                raise Unauthorized("That isn't the password of the FlyFleet sign-in for this email")
+            user_id, version = user.id, user.token_version
+        else:
+            if len(body.password) < 10:
+                raise Invalid("Use at least 10 characters", field="password")
+            name = (body.full_name or row.full_name).strip() or row.full_name
+            user_id = db.execute(text("SELECT auth_create_user(:e, :n, :h)"),
+                                 {"e": row.email, "n": name, "h": hash_password(body.password)}).scalar_one()
+            version = 0
+        db.commit()
+    finally:
+        db.close()
+    _limiter.reset(key)
+
+    org_id = row.organization_id
+    db = new_session(org_id=org_id, user_id=user_id)
+    try:
+        from app.modules.access.models import Invitation, OrgRole
+        from app.modules.drivers.models import Driver
+        try:
+            Role(row.role)
+        except ValueError:
+            if not db.scalar(select(OrgRole.id).where(OrgRole.key == row.role)):
+                raise Conflict("The role this invitation gives no longer exists. Ask for a new invitation.",
+                               code="INVITATION_CLOSED") from None
+        if not db.scalar(select(Membership.id).where(Membership.user_id == user_id)):
+            db.add(Membership(organization_id=org_id, user_id=user_id, role=row.role))
+        invitation = db.get(Invitation, row.id)
+        invitation.accepted_at, invitation.accepted_user_id = datetime.now(UTC), user_id
+        if row.driver_id:
+            driver = db.get(Driver, row.driver_id)
+            if driver is not None and driver.user_id is None:
+                db.flush()
+                driver.user_id = user_id
+        db.add(AuditLog(organization_id=org_id, actor_user_id=user_id, action="invitation.accepted",
+                        entity_type="invitation", entity_id=row.id, data={"email": row.email, "role": row.role}))
+        db.execute(update(User).where(User.id == user_id).values(last_organization_id=org_id))
+        db.commit()
+        orgs = user_organizations(db, user_id)
+    finally:
+        db.close()
+    chosen = next(o for o in orgs if o.id == org_id)
+    return s.SessionOut(access_token=create_token(user_id, org_id, version), organization=chosen, organizations=orgs)

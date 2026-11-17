@@ -22,12 +22,12 @@ the signed-in person deciding what they see. It reads and writes everything thro
 | Directory | Customers, Drivers and the driver profile with the qualification file |
 | Safety and fleet | Compliance matrix, Inspections, Documents and document review, Trucks, Trailers and the unit record, Maintenance board with work orders |
 | Finance and analytics | Invoices with receivables aging, driver pay and owner settlement statements, Fuel & IFTA (purchases with their checks, scanned receipts, miles by truck and state, the quarterly return through filing, tax rates), Reports with CSV export, the fuel report among them |
-| Administration | Team & access (members, roles and the permission matrix, dispatch teams with their dispatchers and trucks, truck coverage, what a team sees and the preview as its dispatcher), company settings, Audit log |
+| Administration | Team & access (members; roles edited on a module-by-action grid, custom roles, one person's exceptions, change history and an access review; invitations by link; dispatch teams with their dispatchers and trucks, truck coverage and a preview as the team's dispatcher), company settings, Integrations (each provider's state and figures, inbound events), Audit log (by kind, with details and export) |
 | Everywhere | Search (⌘K), notifications, Create and edit forms for drivers, trucks, trailers, customers, inspections, invoices, payments, statements, fuel and work orders |
 | Outside the console | Sign-up, sign-in, choosing and switching company |
 
-Screens of the design that have nothing behind them in the API yet show an empty state that says so:
-integrations and Ask FlyFleet.
+Screens of the design that have nothing behind them in the API yet show an empty state that says so: Ask
+FlyFleet and the platform operator's area.
 
 How it is built: [apps/web/README.md](apps/web/README.md).
 
@@ -36,7 +36,7 @@ How it is built: [apps/web/README.md](apps/web/README.md).
 | Area | Included |
 | --- | --- |
 | Account and companies | Sign-up, one profile with up to 10 active companies, add a company by copying team, terminals, customers, drivers and equipment from another, archive (read-only) and restore, one-click switch |
-| Team and access | Nine roles with a published permission matrix, per-company membership, immediate effect of role changes, password change with session revocation, audit log |
+| Team and access | Template roles a company can change for itself and custom roles made from them, laid out by module and action; one person's allowances and denials (a denial always wins); full-access roles and team management can't be handed out or changed; permissions resolved on every request, so changes apply at once; invitations by a link that sets up the sign-in (or adds the company to an existing one) and can be renewed or withdrawn, including drivers to the driver app; an access review with export; password change with session revocation; audit log by kind with export |
 | Dispatch teams | Teams of dispatchers and trucks (one team at a time for each); a team's dispatchers see only its trucks and the loads, drivers, positions and alerts tied to them, in lists, records, the dispatch board, search, the map, reports and counts, and can assign loads only to its trucks; unassigned loads tagged for the team or the shared queue; what a dispatcher on no team sees; a read-only preview of a team's view for those who manage the team; every change in the audit log |
 | Directory | Customers with contacts and addresses, drivers with qualification files and pay settings, trucks, trailers, terminals. Licence numbers are encrypted and masked by role |
 | Loads | Drafts, multi-stop routes, freight items, accessorial charges, notes, check calls, one enforced lifecycle with an immutable history, optimistic concurrency |
@@ -218,8 +218,10 @@ docs/                Architecture, decisions, roadmap, the implementation audit
 
 ## Known limitations
 
-- **Some screens of the design have no API yet** (integrations, the assistant panel). They show an empty state
-  saying so, never sample data.
+- **Some screens of the design have no API yet** (the assistant panel, the platform operator's area). They show
+  an empty state saying so, never sample data.
+- **Invitations are links, not emails.** No email provider is connected, so whoever invites copies the link and
+  sends it. A link works once, for a week.
 - **No telematics provider or messaging channel is connected yet.** Positions come in through the API
   (`POST /api/v1/positions` for an integration, `POST /api/v1/driver/positions` for the driver app). Alerts
   reach people in the app, and drivers in the driver app's inbox (`GET /api/v1/driver/messages`); Telegram,

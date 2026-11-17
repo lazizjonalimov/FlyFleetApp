@@ -157,3 +157,71 @@ def permissions_for(role: str) -> set[str]:
 
 def has_permission(role: str, permission: str) -> bool:
     return permission in permissions_for(role)
+
+
+# ---------------------------------------------------------------- roles a company can change
+# Roles FlyFleet keeps as they are: full access, and the roles of the driver app and the owner portal.
+LOCKED_ROLES = {Role.OWNER, Role.ADMIN, Role.DRIVER, Role.CUSTOMER, Role.OWNER_PORTAL}
+# Roles that never reach the console, so they are never given to staff or to a custom role.
+APP_ROLES = {Role.DRIVER.value, Role.CUSTOMER.value, Role.OWNER_PORTAL.value}
+# Only full-access roles hold these: no edited, custom or overridden role is given them.
+NOT_GRANTABLE = {"users.manage"}
+
+ACTIONS = ("View", "Create", "Edit", "Assign", "Approve", "Delete", "Export")
+
+# The role editor's grid: each module, the actions it has and the permission each action is. An action a module
+# doesn't have shows as a dash. Every permission a role can be given appears exactly once.
+MATRIX: list[tuple[str, list[dict]]] = [
+    ("Overview", [
+        {"key": "dashboard", "label": "Dashboard", "cells": {"View": "dashboard.read"}},
+        {"key": "tasks", "label": "My tasks", "cells": {"View": "tasks.read", "Assign": "tasks.assign"}},
+        {"key": "reports", "label": "Reports", "cells": {"View": "reports.read", "Export": "reports.export"}},
+    ]),
+    ("Operations", [
+        {"key": "dispatch", "label": "Dispatch board", "cells": {"View": "dispatch.read", "Assign": "dispatch.assign"}},
+        {"key": "loads", "label": "Loads", "cells": {"View": "loads.read", "Create": "loads.create",
+                                                    "Edit": "loads.update", "Approve": "loads.close",
+                                                    "Delete": "loads.cancel"}},
+        {"key": "rates", "label": "Load rates & revenue", "sensitive": True, "note": "rates, pay, margin",
+         "cells": {"View": "loads.rates.read"}},
+        {"key": "messages", "label": "Messages", "cells": {"View": "messages.read", "Create": "messages.send"}},
+    ]),
+    ("Fleet tracking", [
+        {"key": "tracking", "label": "Live fleet & trip history", "note": "create: positions from integrations",
+         "cells": {"View": "tracking.read", "Create": "tracking.ingest"}},
+        {"key": "alerts", "label": "Fleet alerts", "cells": {"View": "incidents.read", "Assign": "incidents.manage"}},
+        {"key": "policies", "label": "Alert policies & geofences", "cells": {"Edit": "alert_policies.manage"}},
+    ]),
+    ("Directory", [
+        {"key": "customers", "label": "Customers", "cells": {"View": "customers.read", "Edit": "customers.manage"}},
+        {"key": "drivers", "label": "Drivers", "cells": {"View": "drivers.read", "Edit": "drivers.manage"}},
+        {"key": "driver_ids", "label": "Driver sensitive IDs", "sensitive": True, "note": "license #, birth date",
+         "cells": {"View": "drivers.sensitive.read"}},
+        {"key": "owners", "label": "Owners", "cells": {"View": "owners.read", "Edit": "owners.manage"}},
+        {"key": "owner_tax", "label": "Owner tax IDs and bank", "sensitive": True, "note": "EIN or SSN, payout bank",
+         "cells": {"View": "owners.sensitive.read"}},
+    ]),
+    ("Safety & fleet", [
+        {"key": "safety", "label": "Compliance & inspections", "cells": {"View": "safety.read", "Edit": "safety.manage"}},
+        {"key": "documents", "label": "Documents", "cells": {"View": "documents.read", "Create": "documents.upload",
+                                                            "Delete": "documents.delete"}},
+        {"key": "equipment", "label": "Trucks & trailers", "cells": {"View": "equipment.read", "Edit": "equipment.manage"}},
+        {"key": "maintenance", "label": "Maintenance", "cells": {"View": "maintenance.read",
+                                                                "Edit": "maintenance.manage"}},
+    ]),
+    ("Finance", [
+        {"key": "invoices", "label": "Invoices", "cells": {"View": "invoices.read", "Create": "invoices.create"}},
+        {"key": "payments", "label": "Payments", "cells": {"View": "payments.read", "Create": "payments.record"}},
+        {"key": "expenses", "label": "Expenses, fuel & IFTA", "cells": {"View": "expenses.read",
+                                                                       "Edit": "expenses.manage"}},
+        {"key": "settlements", "label": "Driver statements & settlements", "cells": {"View": "settlements.read",
+                                                                                     "Approve": "settlements.manage"}},
+    ]),
+    ("Administration", [
+        {"key": "team", "label": "Team & access", "locked": True, "note": "Owner and administrators only",
+         "cells": {"Edit": "users.manage"}},
+        {"key": "settings", "label": "Organization settings", "cells": {"Edit": "organization.manage"}},
+        {"key": "audit", "label": "Audit log", "cells": {"View": "audit.read"}},
+    ]),
+]
+GRANTABLE: set[str] = {perm for _, rows in MATRIX for row in rows for perm in row["cells"].values()} - NOT_GRANTABLE

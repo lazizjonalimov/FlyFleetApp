@@ -1,6 +1,64 @@
 {
   "components": {
     "schemas": {
+      "AcceptInvitationIn": {
+        "properties": {
+          "full_name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Name"
+          },
+          "password": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ],
+        "title": "AcceptInvitationIn",
+        "type": "object"
+      },
+      "AccessChange": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "what": {
+            "title": "What",
+            "type": "string"
+          },
+          "who": {
+            "title": "Who",
+            "type": "string"
+          }
+        },
+        "required": [
+          "who",
+          "what",
+          "at"
+        ],
+        "title": "AccessChange",
+        "type": "object"
+      },
       "ActionIn": {
         "properties": {
           "action": {
@@ -1488,6 +1546,18 @@
             ],
             "title": "Actor Name"
           },
+          "actor_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The actor's role in the company, by name",
+            "title": "Actor Role"
+          },
           "actor_user_id": {
             "anyOf": [
               {
@@ -1529,6 +1599,18 @@
             ],
             "title": "Entity Id"
           },
+          "entity_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The record as people know it: a load number, a name",
+            "title": "Entity Label"
+          },
           "entity_type": {
             "title": "Entity Type",
             "type": "string"
@@ -1548,6 +1630,12 @@
               }
             ],
             "title": "Request Id"
+          },
+          "source": {
+            "default": "Web",
+            "description": "Web, Driver app or FlyFleet",
+            "title": "Source",
+            "type": "string"
           }
         },
         "required": [
@@ -8160,6 +8248,40 @@
         "title": "ImportOut",
         "type": "object"
       },
+      "InboundEvent": {
+        "properties": {
+          "event": {
+            "title": "Event",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "result": {
+            "title": "Result",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "provider",
+          "received_at",
+          "key",
+          "result"
+        ],
+        "title": "InboundEvent",
+        "type": "object"
+      },
       "InboxReadOut": {
         "properties": {
           "read": {
@@ -8956,6 +9078,325 @@
           "defects"
         ],
         "title": "InspectionOut",
+        "type": "object"
+      },
+      "Integration": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/IntegrationFact"
+            },
+            "title": "Facts",
+            "type": "array"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "connected",
+              "receiving",
+              "enabled",
+              "built_in",
+              "off",
+              "not_connected"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "state_label": {
+            "title": "State Label",
+            "type": "string"
+          },
+          "tag": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "category",
+          "tag",
+          "state",
+          "state_label",
+          "facts"
+        ],
+        "title": "Integration",
+        "type": "object"
+      },
+      "IntegrationFact": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "value"
+        ],
+        "title": "IntegrationFact",
+        "type": "object"
+      },
+      "IntegrationsOut": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/InboundEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "integrations": {
+            "items": {
+              "$ref": "#/components/schemas/Integration"
+            },
+            "title": "Integrations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "integrations",
+          "events"
+        ],
+        "title": "IntegrationsOut",
+        "type": "object"
+      },
+      "InvitationIn": {
+        "properties": {
+          "driver_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Invite this driver to the driver app",
+            "title": "Driver Id"
+          },
+          "email": {
+            "format": "email",
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Full Name",
+            "type": "string"
+          },
+          "role": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "full_name",
+          "role"
+        ],
+        "title": "InvitationIn",
+        "type": "object"
+      },
+      "InvitationLink": {
+        "properties": {
+          "invitation": {
+            "$ref": "#/components/schemas/InvitationOut"
+          },
+          "path": {
+            "description": "The link to share, on the web app's own address. It is shown only once.",
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation",
+          "path"
+        ],
+        "title": "InvitationLink",
+        "type": "object"
+      },
+      "InvitationOut": {
+        "properties": {
+          "accepted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "driver_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Id"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invited_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By Name"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "role_label": {
+            "title": "Role Label",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "expired",
+              "accepted"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "full_name",
+          "role",
+          "role_label",
+          "driver_id",
+          "state",
+          "invited_by_name",
+          "created_at",
+          "expires_at",
+          "accepted_at"
+        ],
+        "title": "InvitationOut",
+        "type": "object"
+      },
+      "InvitationPreview": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "existing_account": {
+            "description": "The email already has a FlyFleet sign-in: join with its password",
+            "title": "Existing Account",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "invited_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invited By Name"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "role_label": {
+            "title": "Role Label",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "expired",
+              "used",
+              "revoked"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_name",
+          "email",
+          "full_name",
+          "role_label",
+          "invited_by_name",
+          "expires_at",
+          "state",
+          "existing_account"
+        ],
+        "title": "InvitationPreview",
         "type": "object"
       },
       "InvoiceCreate": {
@@ -11532,6 +11973,107 @@
         "title": "MappingIn",
         "type": "object"
       },
+      "Matrix": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixGroup"
+            },
+            "title": "Groups",
+            "type": "array"
+          }
+        },
+        "required": [
+          "actions",
+          "groups"
+        ],
+        "title": "Matrix",
+        "type": "object"
+      },
+      "MatrixGroup": {
+        "properties": {
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/MatrixModule"
+            },
+            "title": "Modules",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "modules"
+        ],
+        "title": "MatrixGroup",
+        "type": "object"
+      },
+      "MatrixModule": {
+        "properties": {
+          "cells": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "description": "For each action, the permission it is, or null for none",
+            "title": "Cells",
+            "type": "object"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "locked": {
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "sensitive": {
+            "title": "Sensitive",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "sensitive",
+          "locked",
+          "note",
+          "cells"
+        ],
+        "title": "MatrixModule",
+        "type": "object"
+      },
       "MeAccount": {
         "properties": {
           "id": {
@@ -11759,7 +12301,12 @@
             "title": "Password"
           },
           "role": {
-            "$ref": "#/components/schemas/Role"
+            "description": "A role key: one of FlyFleet's roles, or one of the company's custom roles",
+            "maxLength": 40,
+            "minLength": 2,
+            "pattern": "^[a-z][a-z0-9_]{1,39}$",
+            "title": "Role",
+            "type": "string"
           }
         },
         "required": [
@@ -11820,12 +12367,17 @@
           "role": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/Role"
+                "description": "A role key: one of FlyFleet's roles, or one of the company's custom roles",
+                "maxLength": 40,
+                "minLength": 2,
+                "pattern": "^[a-z][a-z0-9_]{1,39}$",
+                "type": "string"
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Role"
           }
         },
         "title": "MemberPatch",
@@ -12867,6 +13419,109 @@
           "delivery_at"
         ],
         "title": "OtherLoad",
+        "type": "object"
+      },
+      "OverrideIn": {
+        "properties": {
+          "effect": {
+            "enum": [
+              "allow",
+              "deny"
+            ],
+            "title": "Effect",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "permission": {
+            "maxLength": 60,
+            "title": "Permission",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "permission",
+          "effect"
+        ],
+        "title": "OverrideIn",
+        "type": "object"
+      },
+      "OverrideOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "effect": {
+            "enum": [
+              "allow",
+              "deny"
+            ],
+            "title": "Effect",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "permission": {
+            "title": "Permission",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "name",
+          "permission",
+          "label",
+          "effect",
+          "note",
+          "created_at"
+        ],
+        "title": "OverrideOut",
         "type": "object"
       },
       "Overview": {
@@ -19753,6 +20408,79 @@
         "title": "ReviewIn",
         "type": "object"
       },
+      "ReviewRow": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "exceptions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Exceptions",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "permissions": {
+            "title": "Permissions",
+            "type": "integer"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "role_label": {
+            "title": "Role Label",
+            "type": "string"
+          },
+          "sensitive": {
+            "description": "Sensitive access they hold: rates, driver IDs, owner tax and bank",
+            "items": {
+              "type": "string"
+            },
+            "title": "Sensitive",
+            "type": "array"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Team"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "email",
+          "role",
+          "role_label",
+          "active",
+          "permissions",
+          "sensitive",
+          "exceptions",
+          "team"
+        ],
+        "title": "ReviewRow",
+        "type": "object"
+      },
       "Risk": {
         "properties": {
           "code": {
@@ -19771,29 +20499,71 @@
         "title": "Risk",
         "type": "object"
       },
-      "Role": {
-        "enum": [
-          "owner",
-          "admin",
-          "dispatcher",
-          "safety_manager",
-          "fleet_manager",
-          "accountant",
-          "viewer",
-          "driver",
-          "customer",
-          "owner_portal"
+      "RoleCreate": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "from_key": {
+            "description": "The role whose permissions it starts with",
+            "maxLength": 40,
+            "title": "From Key",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "from_key"
         ],
-        "title": "Role",
-        "type": "string"
+        "title": "RoleCreate",
+        "type": "object"
       },
       "RoleMatrixOut": {
         "properties": {
+          "grantable": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Grantable",
+            "type": "array"
+          },
           "groups": {
             "items": {
               "$ref": "#/components/schemas/PermissionGroupOut"
             },
             "title": "Groups",
+            "type": "array"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AccessChange"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "matrix": {
+            "$ref": "#/components/schemas/Matrix"
+          },
+          "overrides": {
+            "items": {
+              "$ref": "#/components/schemas/OverrideOut"
+            },
+            "title": "Overrides",
             "type": "array"
           },
           "roles": {
@@ -19806,7 +20576,11 @@
         },
         "required": [
           "roles",
-          "groups"
+          "matrix",
+          "groups",
+          "grantable",
+          "overrides",
+          "history"
         ],
         "title": "RoleMatrixOut",
         "type": "object"
@@ -19815,6 +20589,15 @@
         "properties": {
           "assignable": {
             "title": "Assignable",
+            "type": "boolean"
+          },
+          "changed": {
+            "description": "A template role this company has changed",
+            "title": "Changed",
+            "type": "boolean"
+          },
+          "custom": {
+            "title": "Custom",
             "type": "boolean"
           },
           "description": {
@@ -19829,22 +20612,129 @@
             "title": "Label",
             "type": "string"
           },
+          "locked": {
+            "description": "FlyFleet's own: full access, the driver app or the owner portal",
+            "title": "Locked",
+            "type": "boolean"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
           "permissions": {
             "items": {
               "type": "string"
             },
             "title": "Permissions",
             "type": "array"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By Name"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
           }
         },
         "required": [
           "key",
           "label",
           "description",
+          "locked",
+          "custom",
+          "template",
           "assignable",
-          "permissions"
+          "permissions",
+          "changed",
+          "members",
+          "updated_at",
+          "updated_by_name",
+          "version"
         ],
         "title": "RoleOut",
+        "type": "object"
+      },
+      "RoleSave": {
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Permissions",
+            "type": "array"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "permissions"
+        ],
+        "title": "RoleSave",
         "type": "object"
       },
       "RowIssue": {
@@ -28126,6 +29016,104 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/access-review": {
+      "get": {
+        "description": "Who can do what: each person's role, their exceptions and the sensitive access they end up with.",
+        "operationId": "access_review_api_v1_access_review_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewRow"
+                  },
+                  "title": "Response Access Review Api V1 Access Review Get",
+                  "type": "array"
+                }
+              },
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Access Review",
+        "tags": [
+          "team"
+        ]
+      }
+    },
     "/api/v1/account/companies": {
       "get": {
         "operationId": "list_companies_api_v1_account_companies_get",
@@ -28914,6 +29902,7 @@
     },
     "/api/v1/audit-logs": {
       "get": {
+        "description": "What happened, by whom, to which record. Only ever added to.",
         "operationId": "audit_logs_api_v1_audit_logs_get",
         "parameters": [
           {
@@ -28993,6 +29982,38 @@
               "description": "Also return the total number of matching records",
               "title": "Count",
               "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "all",
+                "security",
+                "permissions",
+                "operations",
+                "finance",
+                "support"
+              ],
+              "title": "Group",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "title": "Format",
+              "type": "string"
             }
           },
           {
@@ -29105,7 +30126,8 @@
                 "schema": {
                   "$ref": "#/components/schemas/Page_AuditOut_"
                 }
-              }
+              },
+              "text/csv": {}
             },
             "description": "Successful Response"
           },
@@ -29168,6 +30190,171 @@
         "summary": "Audit Logs",
         "tags": [
           "audit"
+        ]
+      }
+    },
+    "/api/v1/auth/accept-invitation": {
+      "post": {
+        "description": "Join the company the invitation is for: with a new sign-in, or with the one the email already has.",
+        "operationId": "accept_invitation_api_v1_auth_accept_invitation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Accept Invitation",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/invitations/{token}": {
+      "get": {
+        "description": "What an invitation link is for, before signing up with it. Says nothing beyond what the link holds.",
+        "operationId": "preview_invitation_api_v1_auth_invitations__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Preview Invitation",
+        "tags": [
+          "auth"
         ]
       }
     },
@@ -41326,6 +42513,418 @@
         ]
       }
     },
+    "/api/v1/integrations": {
+      "get": {
+        "operationId": "integrations_api_v1_integrations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Integrations",
+        "tags": [
+          "integrations"
+        ]
+      }
+    },
+    "/api/v1/invitations": {
+      "get": {
+        "description": "Invitations waiting to be used, expired ones, and those used in the last two weeks.",
+        "operationId": "list_invitations_api_v1_invitations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationOut"
+                  },
+                  "title": "Response List Invitations Api V1 Invitations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Invitations",
+        "tags": [
+          "team"
+        ]
+      },
+      "post": {
+        "description": "An invitation to join with a role. FlyFleet doesn't send email yet: share the link the answer gives.",
+        "operationId": "create_invitation_api_v1_invitations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationLink"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Invitation",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/api/v1/invitations/{invitation_id}": {
+      "delete": {
+        "operationId": "revoke_invitation_api_v1_invitations__invitation_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revoke Invitation",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/api/v1/invitations/{invitation_id}/renew": {
+      "post": {
+        "description": "A fresh link, valid for another week. The old link stops working.",
+        "operationId": "renew_invitation_api_v1_invitations__invitation_id__renew_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invitation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Invitation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationLink"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Renew Invitation",
+        "tags": [
+          "team"
+        ]
+      }
+    },
     "/api/v1/invoices": {
       "get": {
         "operationId": "list_invoices_api_v1_invoices_get",
@@ -50203,6 +51802,181 @@
         ]
       }
     },
+    "/api/v1/permission-overrides": {
+      "post": {
+        "description": "Allow or deny one permission for one person, whatever their role says. A denial wins.",
+        "operationId": "add_override_api_v1_permission_overrides_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Override",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/api/v1/permission-overrides/{override_id}": {
+      "delete": {
+        "operationId": "remove_override_api_v1_permission_overrides__override_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "override_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Override Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Override",
+        "tags": [
+          "team"
+        ]
+      }
+    },
     "/api/v1/persons": {
       "get": {
         "operationId": "search_api_v1_persons_get",
@@ -52200,7 +53974,7 @@
     },
     "/api/v1/roles": {
       "get": {
-        "description": "What each role can do. Roles are fixed for now; this is the readable matrix behind them.",
+        "description": "The company's roles and what each may do, laid out by module and action. Those who manage the team also\nget the exceptions people have and the latest changes.",
         "operationId": "role_matrix_api_v1_roles_get",
         "responses": {
           "200": {
@@ -52270,6 +54044,362 @@
           }
         ],
         "summary": "Role Matrix",
+        "tags": [
+          "team"
+        ]
+      },
+      "post": {
+        "operationId": "create_role_api_v1_roles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Role",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/api/v1/roles/{key}": {
+      "delete": {
+        "description": "A custom role nobody has.",
+        "operationId": "delete_role_api_v1_roles__key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Role",
+        "tags": [
+          "team"
+        ]
+      },
+      "put": {
+        "description": "Change what a role may do. Takes effect on the next request of everyone who has it.",
+        "operationId": "save_role_api_v1_roles__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Role",
+        "tags": [
+          "team"
+        ]
+      }
+    },
+    "/api/v1/roles/{key}/reset": {
+      "post": {
+        "description": "A template role back to FlyFleet's definition.",
+        "operationId": "reset_role_api_v1_roles__key__reset_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleMatrixOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Role",
         "tags": [
           "team"
         ]

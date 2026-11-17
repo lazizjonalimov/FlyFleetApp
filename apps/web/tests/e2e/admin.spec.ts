@@ -4,7 +4,8 @@ import { live, nav, open, signIn, signUp, unique } from "./helpers";
 test("a member added with a role sees only what the role allows", async ({ page, browser }) => {
   const account = await signUp(page);
   await open(page, account, "settings/team");
-  await page.getByRole("button", { name: "Add member" }).click();
+  await page.getByRole("button", { name: "Invite member" }).click();
+  await page.getByRole("dialog", { name: "Invite member" }).getByRole("button", { name: "Set a temporary password instead" }).click();
   const dialog = page.getByRole("dialog", { name: "Add member" });
   const email = `${unique("safety")}@example.com`;
   await dialog.getByLabel("Name *").fill("Sid Safety");
@@ -27,7 +28,8 @@ test("a member added with a role sees only what the role allows", async ({ page,
 test("company settings are saved", async ({ page }) => {
   const account = await signUp(page);
   await open(page, account, "settings/integrations");
-  await expect(page.locator(".main")).toContainText("No integrations connected");
+  await expect(page.locator(".icard", { hasText: "Loads, messages, alerts and phone GPS" })).toContainText("Connected");
+  await expect(page.locator(".icard", { hasText: "Driver alerts and messaging" })).toContainText("Not connected");
   await page.getByRole("button", { name: "Organization", exact: true }).click();
   await page.getByLabel("MC number").fill("MC-445566");
   await page.getByRole("button", { name: "Save" }).click();

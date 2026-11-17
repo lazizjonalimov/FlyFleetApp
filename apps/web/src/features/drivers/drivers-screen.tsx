@@ -9,6 +9,7 @@ import { useSoon } from "@/features/console/use-action";
 import { carrierName, monthYear, PAY_TYPES } from "@/features/fleet/labels";
 import { ListScreen } from "@/features/lists/list-screen";
 import { BulkMessage } from "@/features/messages/bulk-message";
+import { InviteDrivers } from "./invite-drivers";
 import { useList, type ListQuery } from "@/features/lists/use-list";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
@@ -42,6 +43,7 @@ export function DriversScreen() {
   const { me, can, I, set } = useConsole();
   const soon = useSoon();
   const [bulk, setBulk] = useState<Driver[] | null>(null);
+  const [inviting, setInviting] = useState<Driver[] | null>(null);
   const org = me.organization;
   const carrier = carrierName(org.name);
   const today = todayIn(org.timezone);
@@ -122,7 +124,7 @@ export function DriversScreen() {
     bulk: [
       ...(can("messages.send") ? [{ label: "Message", go: (rows: Driver[]) => setBulk(rows) }] : []),
       { label: "Request documents", go: soon("Requesting documents from drivers") },
-      { label: "Invite to app", go: soon("Inviting drivers to the app") },
+      ...(can("users.manage") ? [{ label: "Invite to app", go: (rows: Driver[]) => setInviting(rows) }] : []),
       "export" as const,
     ],
     open,
@@ -153,7 +155,7 @@ export function DriversScreen() {
       { label: "", width: "28px", cell: () => cell.more() },
     ],
     actions: [
-      ...(add ? [{ l: "Import", cls: "", ic: I.upload, go: () => set({ ...addOf("driver"), mstep: "import" }) }, { l: "Invite to app", cls: "", ic: I.mobile, go: soon("Inviting drivers to the app") }] : []),
+      ...(add ? [{ l: "Import", cls: "", ic: I.upload, go: () => set({ ...addOf("driver"), mstep: "import" }) }, ...(can("users.manage") ? [{ l: "Invite to app", cls: "", ic: I.mobile, go: () => setInviting([]) }] : [])] : []),
       ...(add ? [{ l: "Add driver", cls: "pri", ic: I.plus, go: add }] : []),
     ],
     empty: {
@@ -167,6 +169,7 @@ export function DriversScreen() {
     <>
       <ListScreen list={list} />
       {bulk ? <BulkMessage drivers={bulk} onClose={() => setBulk(null)} /> : null}
+      {inviting ? <InviteDrivers drivers={inviting.length ? inviting : undefined} onClose={() => setInviting(null)} /> : null}
     </>
   );
 }

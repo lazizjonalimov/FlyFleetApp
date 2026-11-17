@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/access-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Access Review
+         * @description Who can do what: each person's role, their exceptions and the sensitive access they end up with.
+         */
+        get: operations["access_review_api_v1_access_review_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/account/companies": {
         parameters: {
             query?: never;
@@ -139,8 +159,51 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Audit Logs */
+        /**
+         * Audit Logs
+         * @description What happened, by whom, to which record. Only ever added to.
+         */
         get: operations["audit_logs_api_v1_audit_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/accept-invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Invitation
+         * @description Join the company the invitation is for: with a new sign-in, or with the one the email already has.
+         */
+        post: operations["accept_invitation_api_v1_auth_accept_invitation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Invitation
+         * @description What an invitation link is for, before signing up with it. Says nothing beyond what the link holds.
+         */
+        get: operations["preview_invitation_api_v1_auth_invitations__token__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1898,6 +1961,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Integrations */
+        get: operations["integrations_api_v1_integrations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Invitations
+         * @description Invitations waiting to be used, expired ones, and those used in the last two weeks.
+         */
+        get: operations["list_invitations_api_v1_invitations_get"];
+        put?: never;
+        /**
+         * Create Invitation
+         * @description An invitation to join with a role. FlyFleet doesn't send email yet: share the link the answer gives.
+         */
+        post: operations["create_invitation_api_v1_invitations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{invitation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke Invitation */
+        delete: operations["revoke_invitation_api_v1_invitations__invitation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations/{invitation_id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew Invitation
+         * @description A fresh link, valid for another week. The old link stops working.
+         */
+        post: operations["renew_invitation_api_v1_invitations__invitation_id__renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices": {
         parameters: {
             query?: never;
@@ -2982,6 +3123,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/permission-overrides": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Override
+         * @description Allow or deny one permission for one person, whatever their role says. A denial wins.
+         */
+        post: operations["add_override_api_v1_permission_overrides_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permission-overrides/{override_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Override */
+        delete: operations["remove_override_api_v1_permission_overrides__override_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/persons": {
         parameters: {
             query?: never;
@@ -3312,11 +3490,57 @@ export interface paths {
         };
         /**
          * Role Matrix
-         * @description What each role can do. Roles are fixed for now; this is the readable matrix behind them.
+         * @description The company's roles and what each may do, laid out by module and action. Those who manage the team also
+         *     get the exceptions people have and the latest changes.
          */
         get: operations["role_matrix_api_v1_roles_get"];
         put?: never;
+        /** Create Role */
+        post: operations["create_role_api_v1_roles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Role
+         * @description Change what a role may do. Takes effect on the next request of everyone who has it.
+         */
+        put: operations["save_role_api_v1_roles__key__put"];
         post?: never;
+        /**
+         * Delete Role
+         * @description A custom role nobody has.
+         */
+        delete: operations["delete_role_api_v1_roles__key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{key}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset Role
+         * @description A template role back to FlyFleet's definition.
+         */
+        post: operations["reset_role_api_v1_roles__key__reset_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3972,6 +4196,27 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AcceptInvitationIn */
+        AcceptInvitationIn: {
+            /** Full Name */
+            full_name?: string | null;
+            /** Password */
+            password: string;
+            /** Token */
+            token: string;
+        };
+        /** AccessChange */
+        AccessChange: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** What */
+            what: string;
+            /** Who */
+            who: string;
+        };
         /** ActionIn */
         ActionIn: {
             /**
@@ -4391,6 +4636,11 @@ export interface components {
             action: string;
             /** Actor Name */
             actor_name?: string | null;
+            /**
+             * Actor Role
+             * @description The actor's role in the company, by name
+             */
+            actor_role?: string | null;
             /** Actor User Id */
             actor_user_id: string | null;
             /**
@@ -4404,6 +4654,11 @@ export interface components {
             } | null;
             /** Entity Id */
             entity_id: string | null;
+            /**
+             * Entity Label
+             * @description The record as people know it: a load number, a name
+             */
+            entity_label?: string | null;
             /** Entity Type */
             entity_type: string;
             /**
@@ -4413,6 +4668,12 @@ export interface components {
             id: string;
             /** Request Id */
             request_id: string | null;
+            /**
+             * Source
+             * @description Web, Driver app or FlyFleet
+             * @default Web
+             */
+            source: string;
         };
         /**
          * BoardSummary
@@ -6419,6 +6680,22 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** InboundEvent */
+        InboundEvent: {
+            /** Event */
+            event: string;
+            /** Key */
+            key: string;
+            /** Provider */
+            provider: string;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /** Result */
+            result: string;
+        };
         /** InboxReadOut */
         InboxReadOut: {
             /** Read */
@@ -6650,6 +6927,131 @@ export interface components {
              */
             result: "pass" | "defects" | "out_of_service";
             unit: components["schemas"]["UnitRef"];
+        };
+        /** Integration */
+        Integration: {
+            /** Category */
+            category: string;
+            /** Facts */
+            facts: components["schemas"]["IntegrationFact"][];
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "connected" | "receiving" | "enabled" | "built_in" | "off" | "not_connected";
+            /** State Label */
+            state_label: string;
+            /** Tag */
+            tag: string | null;
+        };
+        /** IntegrationFact */
+        IntegrationFact: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
+        /** IntegrationsOut */
+        IntegrationsOut: {
+            /** Events */
+            events: components["schemas"]["InboundEvent"][];
+            /** Integrations */
+            integrations: components["schemas"]["Integration"][];
+        };
+        /** InvitationIn */
+        InvitationIn: {
+            /**
+             * Driver Id
+             * @description Invite this driver to the driver app
+             */
+            driver_id?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Role */
+            role: string;
+        };
+        /** InvitationLink */
+        InvitationLink: {
+            invitation: components["schemas"]["InvitationOut"];
+            /**
+             * Path
+             * @description The link to share, on the web app's own address. It is shown only once.
+             */
+            path: string;
+        };
+        /** InvitationOut */
+        InvitationOut: {
+            /** Accepted At */
+            accepted_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Driver Id */
+            driver_id: string | null;
+            /** Email */
+            email: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invited By Name */
+            invited_by_name: string | null;
+            /** Role */
+            role: string;
+            /** Role Label */
+            role_label: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "pending" | "expired" | "accepted";
+        };
+        /** InvitationPreview */
+        InvitationPreview: {
+            /** Email */
+            email: string;
+            /**
+             * Existing Account
+             * @description The email already has a FlyFleet sign-in: join with its password
+             */
+            existing_account: boolean;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Full Name */
+            full_name: string;
+            /** Invited By Name */
+            invited_by_name: string | null;
+            /** Organization Name */
+            organization_name: string;
+            /** Role Label */
+            role_label: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "expired" | "used" | "revoked";
         };
         /** InvoiceCreate */
         InvoiceCreate: {
@@ -7413,6 +7815,40 @@ export interface components {
                 [key: string]: string | null;
             };
         };
+        /** Matrix */
+        Matrix: {
+            /** Actions */
+            actions: string[];
+            /** Groups */
+            groups: components["schemas"]["MatrixGroup"][];
+        };
+        /** MatrixGroup */
+        MatrixGroup: {
+            /** Modules */
+            modules: components["schemas"]["MatrixModule"][];
+            /** Name */
+            name: string;
+        };
+        /** MatrixModule */
+        MatrixModule: {
+            /**
+             * Cells
+             * @description For each action, the permission it is, or null for none
+             */
+            cells: {
+                [key: string]: string | null;
+            };
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Locked */
+            locked: boolean;
+            /** Note */
+            note: string | null;
+            /** Sensitive */
+            sensitive: boolean;
+        };
         /** MeAccount */
         MeAccount: {
             /**
@@ -7503,7 +7939,11 @@ export interface components {
             full_name: string;
             /** Password */
             password?: string | null;
-            role: components["schemas"]["Role"];
+            /**
+             * Role
+             * @description A role key: one of FlyFleet's roles, or one of the company's custom roles
+             */
+            role: string;
         };
         /** MemberOut */
         MemberOut: {
@@ -7525,7 +7965,8 @@ export interface components {
         MemberPatch: {
             /** Active */
             active?: boolean | null;
-            role?: components["schemas"]["Role"] | null;
+            /** Role */
+            role?: string | null;
         };
         /** MessageAttachment */
         MessageAttachment: {
@@ -7850,6 +8291,54 @@ export interface components {
             pickup_at: string | null;
             /** Status */
             status: string;
+        };
+        /** OverrideIn */
+        OverrideIn: {
+            /**
+             * Effect
+             * @enum {string}
+             */
+            effect: "allow" | "deny";
+            /** Note */
+            note?: string | null;
+            /** Permission */
+            permission: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** OverrideOut */
+        OverrideOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Effect
+             * @enum {string}
+             */
+            effect: "allow" | "deny";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string | null;
+            /** Permission */
+            permission: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** Overview */
         Overview: {
@@ -9963,6 +10452,35 @@ export interface components {
             /** Note */
             note?: string | null;
         };
+        /** ReviewRow */
+        ReviewRow: {
+            /** Active */
+            active: boolean;
+            /** Email */
+            email: string;
+            /** Exceptions */
+            exceptions: string[];
+            /** Name */
+            name: string;
+            /** Permissions */
+            permissions: number;
+            /** Role */
+            role: string;
+            /** Role Label */
+            role_label: string;
+            /**
+             * Sensitive
+             * @description Sensitive access they hold: rates, driver IDs, owner tax and bank
+             */
+            sensitive: string[];
+            /** Team */
+            team: string | null;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
         /** Risk */
         Risk: {
             /** Code */
@@ -9970,15 +10488,29 @@ export interface components {
             /** Message */
             message: string;
         };
-        /**
-         * Role
-         * @enum {string}
-         */
-        Role: "owner" | "admin" | "dispatcher" | "safety_manager" | "fleet_manager" | "accountant" | "viewer" | "driver" | "customer" | "owner_portal";
+        /** RoleCreate */
+        RoleCreate: {
+            /** Description */
+            description?: string | null;
+            /**
+             * From Key
+             * @description The role whose permissions it starts with
+             */
+            from_key: string;
+            /** Name */
+            name: string;
+        };
         /** RoleMatrixOut */
         RoleMatrixOut: {
+            /** Grantable */
+            grantable: string[];
             /** Groups */
             groups: components["schemas"]["PermissionGroupOut"][];
+            /** History */
+            history: components["schemas"]["AccessChange"][];
+            matrix: components["schemas"]["Matrix"];
+            /** Overrides */
+            overrides: components["schemas"]["OverrideOut"][];
             /** Roles */
             roles: components["schemas"]["RoleOut"][];
         };
@@ -9986,14 +10518,47 @@ export interface components {
         RoleOut: {
             /** Assignable */
             assignable: boolean;
+            /**
+             * Changed
+             * @description A template role this company has changed
+             */
+            changed: boolean;
+            /** Custom */
+            custom: boolean;
             /** Description */
             description: string;
             /** Key */
             key: string;
             /** Label */
             label: string;
+            /**
+             * Locked
+             * @description FlyFleet's own: full access, the driver app or the owner portal
+             */
+            locked: boolean;
+            /** Members */
+            members: number;
             /** Permissions */
             permissions: string[];
+            /** Template */
+            template: string | null;
+            /** Updated At */
+            updated_at: string | null;
+            /** Updated By Name */
+            updated_by_name: string | null;
+            /** Version */
+            version: number;
+        };
+        /** RoleSave */
+        RoleSave: {
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Permissions */
+            permissions: string[];
+            /** Version */
+            version?: number | null;
         };
         /** RowIssue */
         RowIssue: {
@@ -12472,6 +13037,74 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    access_review_api_v1_access_review_get: {
+        parameters: {
+            query?: {
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewRow"][];
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_companies_api_v1_account_companies_get: {
         parameters: {
             query?: never;
@@ -13095,6 +13728,8 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
+                group?: "all" | "security" | "permissions" | "operations" | "finance" | "support";
+                format?: "json" | "csv";
                 actor_user_id?: string | null;
                 action?: string | null;
                 entity_type?: string | null;
@@ -13115,6 +13750,143 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Page_AuditOut_"];
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    accept_invitation_api_v1_auth_accept_invitation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_invitation_api_v1_auth_invitations__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
                 };
             };
             /** @description Unauthorized */
@@ -21361,6 +22133,337 @@ export interface operations {
             };
         };
     };
+    integrations_api_v1_integrations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntegrationsOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_invitations_api_v1_invitations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_invitation_api_v1_invitations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationLink"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    revoke_invitation_api_v1_invitations__invitation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    renew_invitation_api_v1_invitations__invitation_id__renew_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationLink"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_invoices_api_v1_invoices_get: {
         parameters: {
             query?: {
@@ -26919,6 +28022,142 @@ export interface operations {
             };
         };
     };
+    add_override_api_v1_permission_overrides_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_override_api_v1_permission_overrides__override_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                override_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     search_api_v1_persons_get: {
         parameters: {
             query: {
@@ -28161,6 +29400,280 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_role_api_v1_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    save_role_api_v1_roles__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_role_api_v1_roles__key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleMatrixOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reset_role_api_v1_roles__key__reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody?: never;

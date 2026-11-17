@@ -70,6 +70,10 @@ export type ListSpec<Item extends { id: string }> = {
   /** Wide tables scroll sideways with this many leading columns frozen. */
   frozen?: 1 | 2;
   open?: (item: Item) => void;
+  /** Export done by the server instead of page by page here (a file the server must also record). */
+  exportFile?: () => void;
+  /** What a row shows when opened in place, under itself (an audit entry's details), instead of `open`. */
+  expand?: (item: Item) => Row["x"];
   rowClass?: (item: Item) => string;
   /** Selection with these bulk actions. */
   bulk?: BulkAction<Item>[];
@@ -161,6 +165,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   const [menu, setMenu] = useState<string | null>(null);
   const [menuQ, setMenuQ] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const stored = useSyncExternalStore(subscribeColumns, () => readColumns(spec.key), () => "");
   let hiddenColumns: string[];
   try {
@@ -212,6 +217,11 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
     const row: Cell[] = columns.map((column) => column.cell(item));
     if (spec.bulk) row.unshift(cells.check(on, () => set({ lsel: on ? selected.filter((key) => key !== item.id) : [...selected, item.id] })));
     const open = spec.open;
+    if (spec.expand) {
+      const shown = expanded === item.id;
+      return { key: item.id, cls: [spec.rowClass?.(item), on || shown ? "sel" : ""].filter(Boolean).join(" "), cells: row,
+        open: () => setExpanded(shown ? null : item.id), x: shown ? spec.expand(item) : null };
+    }
     return { key: item.id, cls: [spec.rowClass?.(item), on ? "sel" : ""].filter(Boolean).join(" "), cells: row, open: open ? () => open(item) : noop };
   });
   const rows: Row[] = [...pinned, ...itemRows];
@@ -362,7 +372,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
     colsOpen: menu === "columns",
     toggleCols: () => (menu === "columns" ? closeMenus() : setMenu("columns")),
     closeMenus,
-    exportAll: () => void exportAll(),
+    exportAll: spec.exportFile ?? (() => void exportAll()),
     exporting,
     pages,
   };

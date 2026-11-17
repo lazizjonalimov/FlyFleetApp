@@ -7,6 +7,7 @@ import { Problem } from "@/components/feedback/dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useAlertPolicyPage } from "./alert-policy";
+import { IntegrationsPage } from "./integrations-page";
 import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
@@ -35,7 +36,7 @@ const SUB: Record<Page, string> = {
   numbering: "How loads and invoices are numbered",
   notifications: "Who is told what, and how",
   policy: "Rules that turn truck positions and records into incidents people act on",
-  integrations: "Telematics, fuel cards, accounting and messaging providers",
+  integrations: "Providers connected to the company · each behind an adapter",
   retention: "How long records and documents are kept",
   billing: "Your FlyFleet subscription",
 };
@@ -163,9 +164,7 @@ export function SettingsScreen() {
               <Skeleton />
             )
           ) : null}
-          {page === "integrations" ? (
-            <EmptyState icon={I.link} title="No integrations connected" text="Telematics, fuel cards, accounting and messaging providers aren’t available to connect yet. Everything in FlyFleet works without them: loads, check calls, fuel and documents are entered here." />
-          ) : null}
+          {page === "integrations" ? <IntegrationsPage /> : null}
           {page === "policy" ? policy.body : null}
           {page === "notifications" ? <EmptyState icon={I.bell} title="Notifications aren’t sent yet" text="What needs attention shows under the bell and on the dashboard for each role. Email and text notifications aren’t available yet." /> : null}
           {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}

@@ -36,7 +36,8 @@ def test_sensitive_values_never_reach_the_audit_log(org):
     org.patch(f"/drivers/{s['driver']['id']}", {"cdl_number": "X9988776", "pay_rate": "0.7000", "phone": "555-0101"}, 200)
     entries = org.items("/audit-logs", entity_type="driver", entity_id=s["driver"]["id"])
     assert [e["action"] for e in entries] == ["driver.updated", "driver.created"]
-    assert entries[0]["data"] == {"cdl_number": "[redacted]", "pay_rate": "[redacted]", "phone": "555-0101"}
+    assert entries[0]["data"] == {"changes": {"cdl_number": ["[redacted]", "[redacted]"],
+                                              "pay_rate": ["[redacted]", "[redacted]"], "phone": [None, "555-0101"]}}
     assert entries[1]["data"]["cdl_number"] == "[redacted]"
     assert "X9988776" not in org.get("/audit-logs").text and "D1234567" not in org.get("/audit-logs").text
 

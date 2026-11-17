@@ -78,8 +78,10 @@ def _event(db: Session, row: Incident, kind: str, at: datetime, text_: str, tone
 
 
 def _people(db: Session, role: str, row: Incident | None = None) -> list[tuple[uuid.UUID, str]]:
+    from app.modules.access.resolve import dispatcher_roles
+    held = dispatcher_roles(db) if role == "dispatcher" else {role}
     stmt = (select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
-            .where(Membership.role == role, Membership.active.is_(True)).order_by(User.full_name))
+            .where(Membership.role.in_(held), Membership.active.is_(True)).order_by(User.full_name))
     if role == "dispatcher" and row is not None:
         # The dispatchers who can see it: the team that holds the truck (or the load), else those on no team.
         from app.modules.teams.models import DispatchTeamMember, DispatchTeamVehicle

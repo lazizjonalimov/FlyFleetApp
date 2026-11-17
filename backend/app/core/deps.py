@@ -15,6 +15,7 @@ from app.core.errors import Conflict, Forbidden, NotFound, Unauthorized
 from app.core.permissions import has_permission, permissions_for
 from app.core.scope import Scope, load_scope
 from app.core.security import decode_token
+from app.modules.access.resolve import resolve, role_permissions
 from app.modules.organizations.models import Account, Membership, Organization, User
 
 bearer = HTTPBearer(auto_error=False)
@@ -42,17 +43,20 @@ class Principal:
     scope: Scope | None = None
     # An administrator seeing the console as a dispatch team's dispatcher would. Nothing can be changed.
     preview: bool = False
+    # What this person may do in this company: their role as the company has it, with their own exceptions.
+    # None falls back to the role's template (for principals made outside a request).
+    granted: frozenset[str] | None = None
 
     def today(self) -> date:
         """The current date where this company operates (not the server's date)."""
         return datetime.now(ZoneInfo(self.timezone)).date()
 
     def can(self, permission: str) -> bool:
-        return has_permission(self.role, permission)
+        return permission in self.granted if self.granted is not None else has_permission(self.role, permission)
 
     @property
     def permissions(self) -> set[str]:
-        return permissions_for(self.role)
+        return set(self.granted) if self.granted is not None else permissions_for(self.role)
 
 
 def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> Principal:
@@ -78,12 +82,13 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
             .where(Membership.user_id == user_id, Membership.organization_id == org_id,
                    Membership.active.is_(True), User.active.is_(True))
         ).first()
-        role, scope, preview = (row.role, None, False) if row else (None, None, False)
+        role, scope, preview, granted = (row.role, None, False, None) if row else (None, None, False, None)
         if row is not None and row.token_version == version:
+            granted = resolve(db, user_id, row.role)
             preview_team = request.headers.get("x-preview-team")
             if preview_team:
                 # Someone who manages the team sees what a team's dispatcher would, without acting as them.
-                if not has_permission(row.role, "users.manage"):
+                if "users.manage" not in granted:
                     raise Forbidden("Only someone who manages the team can preview a dispatch team")
                 if request.method not in ("GET", "HEAD"):
                     raise Forbidden("Nothing can be changed in a preview. Exit the preview to make changes.",
@@ -93,7 +98,9 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
                 except ValueError as e:
                     raise NotFound("Dispatch team not found") from e
                 role, scope, preview = "dispatcher", load_scope(db, team_id=team_id), True
-            elif row.role == "dispatcher":
+                granted = frozenset(role_permissions(db, "dispatcher"))
+            elif "dispatch.assign" in granted and "users.manage" not in granted:
+                # Whoever dispatches (a dispatcher, or a custom role that assigns loads) works their team's trucks.
                 scope = load_scope(db, user_id=user_id, without_team=row.dispatchers_without_team)
     finally:
         db.close()
@@ -112,7 +119,7 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         user_id=user_id, org_id=org_id, role=role, full_name=row.full_name, email=row.email,
         timezone=row.timezone, currency=row.base_currency, org_name=row.name, org_slug=row.slug,
         org_status=row.status, account_id=row.account_id, is_account_owner=row.owner_user_id == user_id,
-        scope=scope, preview=preview)
+        scope=scope, preview=preview, granted=granted)
 
 
 def get_db(p: Principal = Depends(get_principal)) -> Iterator[Session]:

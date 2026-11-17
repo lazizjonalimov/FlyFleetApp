@@ -12,6 +12,7 @@ from app.core import scope as team_scope
 from app.core.audit import audit
 from app.core.deps import Principal
 from app.core.errors import Conflict, Invalid, NotFound
+from app.modules.access.resolve import dispatcher_roles
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Vehicle
 from app.modules.fleet.models import UnitAssignment
@@ -53,7 +54,8 @@ def _check_version(team: DispatchTeam, version: int | None) -> None:
 
 def _dispatchers(db: Session, ids: list[uuid.UUID]) -> dict[uuid.UUID, str]:
     found = dict(db.execute(select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
-                            .where(User.id.in_(ids), Membership.active.is_(True), Membership.role == "dispatcher")).all())
+                            .where(User.id.in_(ids), Membership.active.is_(True),
+                                   Membership.role.in_(dispatcher_roles(db)))).all())
     if set(ids) - set(found):
         raise Invalid("Only dispatchers on the team can be put on a dispatch team", field="user_ids")
     return found
@@ -221,7 +223,7 @@ def overview(db: Session, p: Principal) -> dict[str, Any]:
         if driver_ids else {}
     seated = {v: " & ".join(drivers[x] for x in (a, b) if x in drivers) for v, a, b in seats}
     dispatchers = db.execute(select(User.id, User.full_name).join(Membership, Membership.user_id == User.id)
-                             .where(Membership.active.is_(True), Membership.role == "dispatcher")
+                             .where(Membership.active.is_(True), Membership.role.in_(dispatcher_roles(db)))
                              .order_by(User.full_name)).all()
     team_of = {m.user_id: m.team_id for m in members}
     names = _names(db, [t.created_by for t in teams if t.created_by])

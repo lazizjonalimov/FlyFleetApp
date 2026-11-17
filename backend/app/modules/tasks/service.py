@@ -40,7 +40,8 @@ ALERT_TASK: dict[str, tuple[str, str]] = {
 # Who looks after an alert nobody owns yet.
 ALERT_WHO = {"documents": "safety_manager", "out_of_service": "fleet_manager"}
 ACKNOWLEDGE_CLOSES = ("speeding", "yard_speed")
-STAFF_ROLES = ("owner", "admin", "dispatcher", "safety_manager", "fleet_manager", "accountant", "viewer")
+# Everyone on the team except the driver app's and the portals' sign-ins.
+APP_ROLES = ("driver", "customer", "owner_portal")
 
 
 def _tz(p: Principal) -> ZoneInfo:
@@ -197,7 +198,7 @@ def refresh(db: Session, p: Principal) -> None:
 # ---------------------------------------------------------------- tasks people give
 def _member(db: Session, user_id: uuid.UUID) -> str:
     name = db.scalar(select(User.full_name).join(Membership, Membership.user_id == User.id)
-                     .where(User.id == user_id, Membership.active.is_(True), Membership.role.in_(STAFF_ROLES)))
+                     .where(User.id == user_id, Membership.active.is_(True), Membership.role.notin_(APP_ROLES)))
     if name is None:
         raise Invalid("Choose someone on the team", field="assignee_user_id")
     return name

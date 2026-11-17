@@ -10,6 +10,7 @@ from app.core.crypto import validate_encryption_keys
 from app.core.db import assert_restricted_role, get_engine, new_session
 from app.core.errors import ErrorResponse, install_error_handlers
 from app.core.middleware import RequestContext
+from app.modules.access.router import router as access_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dispatch.driver_router import router as driver_router
 from app.modules.dispatch.router import router as dispatch_router
@@ -21,6 +22,7 @@ from app.modules.finance.router import router as finance_router
 from app.modules.fleet.summary import router as fleet_summary_router
 from app.modules.ifta.router import router as ifta_router
 from app.modules.intake.router import router as intake_router
+from app.modules.integrations.router import router as integrations_router
 from app.modules.loads.router import router as loads_router
 from app.modules.maintenance.router import router as maintenance_router
 from app.modules.messaging.router import router as messaging_router
@@ -74,12 +76,12 @@ def create_app() -> FastAPI:
 
     errors = {code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422)}
     v1 = APIRouter(prefix="/api/v1", responses=errors)
-    for router in (auth_router, account_router, organization_router, customers_router, fleet_summary_router,
+    for router in (auth_router, account_router, organization_router, access_router, customers_router, fleet_summary_router,
                    drivers_router, people_router,
                    owners_router, ownership_router, owner_portal_router,
                    equipment_router, loads_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
-                   ifta_router, tracking_router, messaging_router, tasks_router, teams_router,
+                   ifta_router, tracking_router, messaging_router, tasks_router, teams_router, integrations_router,
                    settlements_router, reports_router):
         v1.include_router(router)
     app.include_router(v1)
