@@ -8,6 +8,7 @@ from app.modules.equipment.models import Trailer, Vehicle  # noqa: F401
 from app.modules.expenses.models import Expense  # noqa: F401
 from app.modules.finance.models import Invoice, InvoiceLine, Payment, PaymentAllocation  # noqa: F401
 from app.modules.fleet.models import UnitAssignment  # noqa: F401
+from app.modules.ifta.models import IftaRate, IftaReturn, IftaTrip, IftaTripMiles  # noqa: F401
 from app.modules.intake.models import DocumentRead, Import  # noqa: F401
 from app.modules.loads.models import (  # noqa: F401
     Load,

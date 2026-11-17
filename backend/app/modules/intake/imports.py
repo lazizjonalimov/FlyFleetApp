@@ -89,13 +89,25 @@ FIELDS: dict[str, list[Col]] = {
         Col("tracker", "Tracker", "text", ("tracker", "tracker id", "gps", "gps id")),
     ],
 }
+FIELDS["mileage"] = [
+    Col("unit_number", "Truck", "text", ("truck", "unit", "unit #", "truck #", "vehicle", "tractor", "unit number")),
+    Col("trip_date", "Date", "date", ("date", "trip date", "day", "start date")),
+    Col("jurisdiction", "State", "state", ("state", "jurisdiction", "st", "province", "juris")),
+    Col("miles", "Miles", "money", ("miles", "distance", "total miles", "state miles")),
+    Col("odometer_start", "Odometer start", "int", ("odometer start", "start odometer", "odo start", "begin odometer",
+                                                    "odometer begin")),
+    Col("odometer_end", "Odometer end", "int", ("odometer end", "end odometer", "odo end", "odometer stop")),
+    Col("note", "Note", "text", ("note", "notes", "comment", "trip")),
+]
 # The fields a file must cover to be worth importing, in the order the screen names them.
 NEEDED = {"drivers": ("name", "phone", "cdl_number", "cdl_state", "cdl_class", "cdl_expiry"),
           "trucks": ("unit_number", "vin", "plate", "plate_state"),
-          "trailers": ("unit_number", "type", "vin", "plate")}
+          "trailers": ("unit_number", "type", "vin", "plate"),
+          "mileage": ("unit_number", "trip_date", "jurisdiction", "miles")}
 NEEDED_LABEL = {"name": "name", "phone": "phone", "cdl_number": "CDL number", "cdl_state": "state",
                 "cdl_class": "class", "cdl_expiry": "expiry", "unit_number": "unit number", "vin": "VIN",
-                "plate": "plate", "plate_state": "plate state", "type": "type"}
+                "plate": "plate", "plate_state": "plate state", "type": "type", "trip_date": "date",
+                "jurisdiction": "state", "miles": "miles"}
 
 
 def _key(text: str) -> str:
@@ -281,6 +293,8 @@ def check(db: Session, p: Principal, imp: Import) -> tuple[list[RowIssue], set[i
     first_keys: dict[tuple[str, str], int] = {}
     a, b = _existing(db, imp.kind)
     this_year = p.today().year
+    if imp.kind == "mileage":
+        return _check_mileage(db, p, imp)
     for index, row in enumerate(imp.rows):
         n = index + 2  # the header is row 1
         v = _values(imp, row)
@@ -334,6 +348,55 @@ def check(db: Session, p: Principal, imp: Import) -> tuple[list[RowIssue], set[i
     return issues, blocked, existing
 
 
+def _check_mileage(db: Session, p: Principal, imp: Import) -> tuple[list[RowIssue], set[int], dict[int, object]]:
+    """Each row is a truck's miles in one state on a day: the truck must exist, the state must be one, and when the
+    odometer readings are there they must agree with the miles (or a person chooses which to trust)."""
+    from app.core.states import code_of
+    from app.modules.ifta.service import get_return, label, quarter_of
+    issues: list[RowIssue] = []
+    blocked: set[int] = set()
+    looked: dict[int, object] = {}
+    units = {u.unit_number.upper(): u for u in db.scalars(select(Vehicle))}
+    today = p.today()
+    for index, row in enumerate(imp.rows):
+        n = index + 2
+        v = _values(imp, row)
+        unit = (v.get("unit_number") or "").strip()
+        title = f"{unit or 'No truck'} · {v.get('trip_date', 'no date')}"
+        problem = None
+        when = normalize("date", v.get("trip_date")) if v.get("trip_date") else None
+        miles = normalize("money", v.get("miles")) if v.get("miles") else None
+        if not unit:
+            problem = "No truck"
+        elif unit.upper() not in units:
+            problem = f"No truck {unit} in FlyFleet"
+        elif not when:
+            problem = f"Date “{v.get('trip_date', '')}” isn't a date"
+        elif date.fromisoformat(when) > today:
+            problem = "The date is in the future"
+        elif not v.get("jurisdiction") or not code_of(v["jurisdiction"]):
+            problem = f"“{v.get('jurisdiction', '')}” isn't a US state or Canadian province"
+        elif miles is None:
+            problem = f"Miles “{v.get('miles', '')}” isn't a number"
+        else:
+            r = get_return(db, quarter_of(date.fromisoformat(when)))
+            if r is not None and r.status in ("approved", "filed", "paid"):
+                problem = f"The {label(r.quarter)} return is {r.status}"
+        if problem:
+            blocked.add(n)
+            issues.append(RowIssue(row=n, title=title, message=problem, tone="bad", actions=[], decision=None))
+            continue
+        start, end = normalize("int", v.get("odometer_start")), normalize("int", v.get("odometer_end"))
+        if start and end:
+            driven = int(end) - int(start)
+            if abs(driven - float(miles)) > max(2, driven * 0.02):
+                looked[n] = driven
+                issues.append(RowIssue(row=n, title=title, message=f"Miles ({float(miles):,.0f}) don't match the odometer "
+                                       f"({driven:,})", tone="warn", actions=["odometer", "miles"],
+                                       decision=imp.decisions.get(str(n))))
+    return issues, blocked, looked
+
+
 def view(db: Session, p: Principal, imp: Import) -> ImportOut:
     cols = columns(imp)
     mapped = {c.field for c in cols if c.field}
@@ -351,7 +414,7 @@ def view(db: Session, p: Principal, imp: Import) -> ImportOut:
 
 def create(db: Session, p: Principal, kind: str, filename: str, data: bytes) -> Import:
     if kind not in FIELDS:
-        raise Invalid("Choose drivers, trucks or trailers", field="kind")
+        raise Invalid("Choose drivers, trucks, trailers or mileage", field="kind")
     headers, rows, sheet = parse(filename, data)
     imp = Import(organization_id=p.org_id, kind=kind, filename=filename[:255], sheet=sheet, headers=headers,
                  rows=rows, mapping=suggest(kind, headers), created_by=p.user_id)
@@ -377,7 +440,8 @@ def set_mapping(imp: Import, mapping: dict[str, str | None], decisions: dict[str
                               field="mapping")
             clean[header] = key
     imp.mapping = clean
-    imp.decisions = {k: v for k, v in decisions.items() if v in ("update", "skip")}
+    allowed = ("odometer", "miles", "skip") if imp.kind == "mileage" else ("update", "skip")
+    imp.decisions = {k: v for k, v in decisions.items() if v in allowed}
 
 
 # ---------------------------------------------------------------- saving
@@ -407,8 +471,51 @@ def _record(imp: Import, v: dict[str, str]) -> dict:
     return data
 
 
-def commit(db: Session, p: Principal, imp: Import, reminders: bool) -> dict:
+def _commit_mileage(db: Session, p: Principal, imp: Import, hold: bool) -> dict:
+    from decimal import Decimal
+
+    from app.modules.ifta.service import add_trip
+    issues, blocked, looked = _check_mileage(db, p, imp)
+    units = {u.unit_number.upper(): u for u in db.scalars(select(Vehicle))}
+    created, skipped, failed = 0, 0, []
+    for index, row in enumerate(imp.rows):
+        n = index + 2
+        if n in blocked:
+            skipped += 1
+            continue
+        v = _values(imp, row)
+        miles = Decimal(normalize("money", v["miles"]))
+        if n in looked:
+            choice = imp.decisions.get(str(n))
+            if choice == "odometer":
+                miles = Decimal(looked[n])
+            elif choice != "miles":
+                skipped += 1
+                continue
+        start, end = normalize("int", v.get("odometer_start")), normalize("int", v.get("odometer_end"))
+        try:
+            add_trip(db, p, vehicle_id=units[v["unit_number"].strip().upper()].id,
+                     trip_date=date.fromisoformat(normalize("date", v["trip_date"])), miles=[(v["jurisdiction"], miles)],
+                     source="import", odometer_start=int(start) if start and n not in looked else None,
+                     odometer_end=int(end) if end and n not in looked else None, held=hold, note=v.get("note"),
+                     import_id=imp.id)
+            created += 1
+        except (Invalid, Conflict) as e:
+            failed.append({"row": n, "message": e.message})
+    imp.status = "committed"
+    imp.committed_at = datetime.now(UTC)
+    imp.result = {"created": created, "updated": 0, "skipped": skipped, "failed": failed, "due_soon": [], "held": hold}
+    audit(db, p, "import.committed", "import", imp.id, {"kind": "mileage", "created": created, "skipped": skipped,
+                                                        "held": hold})
+    return imp.result
+
+
+def commit(db: Session, p: Principal, imp: Import, reminders: bool, hold: bool = True) -> dict:
     """Create the ready rows and update the ones chosen for it, through each record's own rules."""
+    if imp.kind == "mileage":
+        if imp.status != "mapping":
+            raise Conflict("This import is finished", code="IMPORT_DONE")
+        return _commit_mileage(db, p, imp, hold)
     from app.modules.drivers.router import DriverCreate, DriverUpdate
     from app.modules.drivers.router import _before_save as driver_save
     from app.modules.equipment.router import (
@@ -476,5 +583,5 @@ def commit(db: Session, p: Principal, imp: Import, reminders: bool) -> dict:
 
 
 def counts(db: Session, kind: str) -> int:
-    model = {"drivers": Driver, "trucks": Vehicle, "trailers": Trailer}[kind]
+    model = {"drivers": Driver, "trucks": Vehicle, "trailers": Trailer, "mileage": Vehicle}[kind]
     return db.scalar(select(func.count()).select_from(model)) or 0

@@ -18,12 +18,13 @@ from app.modules.intake.models import Import
 router = APIRouter(tags=["intake"])
 
 ReadKind = Literal["cdl", "registration", "rate_confirmation", "pod", "inspection_report", "fuel_receipt"]
-ImportKind = Literal["drivers", "trucks", "trailers"]
+ImportKind = Literal["drivers", "trucks", "trailers", "mileage"]
 # What the record made from each kind of document needs.
 NEEDS = {"cdl": ("drivers.manage",), "registration": ("equipment.manage",), "rate_confirmation": ("loads.create",),
          "pod": ("loads.update",), "inspection_report": ("safety.manage", "maintenance.manage"),
          "fuel_receipt": ("expenses.manage",)}
-IMPORT_NEEDS = {"drivers": ("drivers.manage",), "trucks": ("equipment.manage",), "trailers": ("equipment.manage",)}
+IMPORT_NEEDS = {"drivers": ("drivers.manage",), "trucks": ("equipment.manage",), "trailers": ("equipment.manage",),
+                "mileage": ("expenses.manage",)}
 
 
 class ReadIn(BaseModel):
@@ -45,11 +46,13 @@ class ReaderOut(BaseModel):
 
 class MappingIn(BaseModel):
     mapping: dict[str, str | None]
-    decisions: dict[str, Literal["update", "skip"]] = Field(default_factory=dict)
+    decisions: dict[str, Literal["update", "skip", "odometer", "miles"]] = Field(default_factory=dict)
 
 
 class CommitIn(BaseModel):
     reminders: bool = True
+    # Mileage: imported miles wait for someone to release them before the return can be approved.
+    hold: bool = True
 
 
 def _can(p: Principal, permissions: tuple[str, ...]) -> None:
@@ -149,6 +152,6 @@ def commit_import(import_id: uuid.UUID, body: CommitIn, p: Principal = Depends(r
                   db: Session = Depends(get_db)):
     imp = get_or_404(db, Import, import_id, "Import")
     _can(p, IMPORT_NEEDS[imp.kind])
-    imports.commit(db, p, imp, body.reminders)
+    imports.commit(db, p, imp, body.reminders, body.hold)
     db.commit()
     return imports.view(db, p, imp)

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base, IdMixin, TenantScoped
 
 READ_KINDS = ("cdl", "registration", "rate_confirmation", "pod", "inspection_report", "fuel_receipt")
-IMPORT_KINDS = ("drivers", "trucks", "trailers")
+IMPORT_KINDS = ("drivers", "trucks", "trailers", "mileage")
 
 
 class DocumentRead(Base, IdMixin, TenantScoped):

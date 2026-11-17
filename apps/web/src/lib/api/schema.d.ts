@@ -973,6 +973,261 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ifta/mileage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Miles by truck and state, MPG per truck, and the gaps to review */
+        get: operations["mileage_api_v1_ifta_mileage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The quarter at a glance: miles, fuel, MPG, tax and status */
+        get: operations["overview_api_v1_ifta_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/purchases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuel bought in the quarter, newest first, with each one's check */
+        get: operations["purchases_api_v1_ifta_purchases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The quarter's diesel rates for the states the trucks ran in */
+        get: operations["rates_api_v1_ifta_rates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/rates/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring the quarter's rates in from the tax matrix as a CSV: jurisdiction, rate and surcharge */
+        post: operations["import_rates_api_v1_ifta_rates_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/rates/{quarter}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Enter or correct the quarter's rates */
+        put: operations["put_rates_api_v1_ifta_rates__quarter__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/receipts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scanned fuel receipts, newest first */
+        get: operations["receipts_api_v1_ifta_receipts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fuel cost per mile by week, and MPG by truck against the fleet */
+        get: operations["report_api_v1_ifta_report_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns by quarter, newest first */
+        get: operations["returns_api_v1_ifta_returns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/returns/{quarter}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A quarter's return: by state, with its status */
+        get: operations["get_return_api_v1_ifta_returns__quarter__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/returns/{quarter}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move the return on: review, approve (fixes its lines), file, record payment, or reopen */
+        post: operations["act_api_v1_ifta_returns__quarter__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/returns/{quarter}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The return as CSV: one row per truck, state and trip */
+        get: operations["export_api_v1_ifta_returns__quarter__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/trips": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A trip entered by hand: miles by state for a truck without GPS, marked manual on the return */
+        post: operations["add_trip_api_v1_ifta_trips_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/trips/{trip_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a trip's miles */
+        delete: operations["remove_api_v1_ifta_trips__trip_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ifta/trips/{trip_id}/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count held imported miles on the return */
+        post: operations["release_api_v1_ifta_trips__trip_id__release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/imports": {
         parameters: {
             query?: never;
@@ -3095,6 +3350,24 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActionIn */
+        ActionIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "review" | "approve" | "reopen" | "file" | "pay";
+            /** Filed On */
+            filed_on?: string | null;
+            /** Note */
+            note?: string | null;
+            /** Paid On */
+            paid_on?: string | null;
+            /** Reference */
+            reference?: string | null;
+            /** Version */
+            version: number;
+        };
         /** AddressCreate */
         AddressCreate: {
             /** Address */
@@ -3541,6 +3814,16 @@ export interface components {
             /** Unassigned */
             unassigned: number;
         };
+        /** Body_import_rates_api_v1_ifta_rates_import_post */
+        Body_import_rates_api_v1_ifta_rates_import_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
+            /** Quarter */
+            quarter: string;
+        };
         /** Body_start_import_api_v1_imports_post */
         Body_start_import_api_v1_imports_post: {
             /**
@@ -3552,7 +3835,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "drivers" | "trucks" | "trailers";
+            kind: "drivers" | "trucks" | "trailers" | "mileage";
         };
         /** Candidate */
         Candidate: {
@@ -3713,6 +3996,11 @@ export interface components {
         };
         /** CommitIn */
         CommitIn: {
+            /**
+             * Hold
+             * @default true
+             */
+            hold: boolean;
             /**
              * Reminders
              * @default true
@@ -5050,6 +5338,25 @@ export interface components {
             /** Owner */
             owner: string;
         };
+        /** FuelReport */
+        FuelReport: {
+            /** Amount */
+            amount: string;
+            /** Fleet Mpg */
+            fleet_mpg: string | null;
+            /** Gallons */
+            gallons: string;
+            /** Miles */
+            miles: string;
+            /** Net Tax */
+            net_tax: string;
+            /** Quarter */
+            quarter: string;
+            /** Trucks */
+            trucks: components["schemas"]["TruckMpg"][];
+            /** Weeks */
+            weeks: components["schemas"]["Week"][];
+        };
         /**
          * FuelSummary
          * @description Fuel bought in a date range: by state (for fuel-tax returns) and by truck, with miles per gallon.
@@ -5079,6 +5386,24 @@ export interface components {
             price_per_gallon: string | null;
             /** Purchases */
             purchases: number;
+        };
+        /** Gap */
+        Gap: {
+            /** Detail */
+            detail: string;
+            /** Kind */
+            kind: string;
+            /** Title */
+            title: string;
+            /** Trip Id */
+            trip_id?: string | null;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** ImportOut */
         ImportOut: {
@@ -5821,7 +6146,7 @@ export interface components {
         MappingIn: {
             /** Decisions */
             decisions?: {
-                [key: string]: "update" | "skip";
+                [key: string]: "update" | "skip" | "odometer" | "miles";
             };
             /** Mapping */
             mapping: {
@@ -5928,6 +6253,49 @@ export interface components {
             generated_at: string;
             /** Request Id */
             request_id?: string | null;
+        };
+        /** Mileage */
+        Mileage: {
+            /** Gaps */
+            gaps: components["schemas"]["Gap"][];
+            /** Quarter */
+            quarter: string;
+            /** Rows */
+            rows: components["schemas"]["MileageRow"][];
+            /** States */
+            states: string[];
+            /** Total */
+            total: string;
+            /** Totals */
+            totals: {
+                [key: string]: string;
+            };
+        };
+        /** MileageRow */
+        MileageRow: {
+            /** Driver */
+            driver: string | null;
+            /** Gallons */
+            gallons: string;
+            /** Held */
+            held: number;
+            /** Miles */
+            miles: {
+                [key: string]: string;
+            };
+            /** Mpg */
+            mpg: string | null;
+            /** Sources */
+            sources: string[];
+            /** Total */
+            total: string;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** MonthOut */
         MonthOut: {
@@ -6104,6 +6472,54 @@ export interface components {
             pickup_at: string | null;
             /** Status */
             status: string;
+        };
+        /** Overview */
+        Overview: {
+            /** Amount */
+            amount: string;
+            /** Base */
+            base: string | null;
+            /** Base Net */
+            base_net: string | null;
+            /** Days Left */
+            days_left: number;
+            /**
+             * Due On
+             * Format: date
+             */
+            due_on: string;
+            /** Gallons */
+            gallons: string;
+            /** Held Trips */
+            held_trips: number;
+            /** Label */
+            label: string;
+            /** Mileage Trucks */
+            mileage_trucks: number;
+            /** Miles */
+            miles: string;
+            /** Missing Rates */
+            missing_rates: string[];
+            /** Mpg */
+            mpg: string | null;
+            /** Net Tax */
+            net_tax: string;
+            /** Purchases */
+            purchases: number;
+            /** Quarter */
+            quarter: string;
+            /** Rates */
+            rates: number;
+            /** Sources */
+            sources: string[];
+            /** States */
+            states: number;
+            /** States Due */
+            states_due: number;
+            /** Status */
+            status: string;
+            /** Trucks */
+            trucks: number;
         };
         /** OwnerActivity */
         OwnerActivity: {
@@ -7473,6 +7889,63 @@ export interface components {
             /** Value */
             value: unknown;
         };
+        /** Purchase */
+        Purchase: {
+            /** Amount */
+            amount: string;
+            /** Category */
+            category: string;
+            /** Check */
+            check: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Driver */
+            driver: string | null;
+            /** Gallons */
+            gallons: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incurred On
+             * Format: date
+             */
+            incurred_on: string;
+            /** Jurisdiction */
+            jurisdiction: string | null;
+            /** Load Id */
+            load_id: string | null;
+            /** Paid With */
+            paid_with: string | null;
+            /** Price Per Gallon */
+            price_per_gallon: string | null;
+            /** Reference */
+            reference: string | null;
+            /** Tone */
+            tone: string;
+            /** Unit Number */
+            unit_number: string | null;
+            /** Vehicle Id */
+            vehicle_id: string | null;
+            /** Vendor */
+            vendor: string | null;
+        };
+        /** Purchases */
+        Purchases: {
+            /** Flagged */
+            flagged: number;
+            /** Items */
+            items: components["schemas"]["Purchase"][];
+            /** Receipts */
+            receipts: number;
+            /** Total */
+            total: number;
+        };
         /** QualificationCreate */
         QualificationCreate: {
             /** Expires On */
@@ -7541,6 +8014,42 @@ export interface components {
             required?: boolean | null;
             /** Type */
             type?: ("mvr" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other") | null;
+        };
+        /** RateIn */
+        RateIn: {
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Rate */
+            rate: number | string;
+            /**
+             * Surcharge
+             * @default 0
+             */
+            surcharge: number | string;
+        };
+        /** RateRow */
+        RateRow: {
+            /** Change */
+            change: string | null;
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Miles */
+            miles: string;
+            /** Name */
+            name: string;
+            /** Rate */
+            rate: string | null;
+            /** Source */
+            source: string | null;
+            /** Surcharge */
+            surcharge: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** RatesIn */
+        RatesIn: {
+            /** Rates */
+            rates: components["schemas"]["RateIn"][];
         };
         /** ReadIn */
         ReadIn: {
@@ -7653,6 +8162,27 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Receipt */
+        Receipt: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Expense Id */
+            expense_id: string | null;
+            /** Filename */
+            filename: string;
+            /** Status */
+            status: string;
+            /** Tone */
+            tone: string;
+        };
         /**
          * Receivables
          * @description What customers owe right now.
@@ -7730,6 +8260,104 @@ export interface components {
             kind: "text" | "number" | "money" | "percent";
             /** Label */
             label: string;
+        };
+        /** ReturnLine */
+        ReturnLine: {
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Name */
+            name: string;
+            /** Net Gallons */
+            net_gallons: string;
+            /** Rate */
+            rate: string | null;
+            /** Surcharge */
+            surcharge: string | null;
+            /** Tax */
+            tax: string | null;
+            /** Tax Paid Gallons */
+            tax_paid_gallons: string;
+            /** Taxable Gallons */
+            taxable_gallons: string;
+            /** Taxable Miles */
+            taxable_miles: string;
+            /** Total Miles */
+            total_miles: string;
+        };
+        /** ReturnOut */
+        ReturnOut: {
+            /** Allowed Actions */
+            allowed_actions: string[];
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By Name */
+            approved_by_name?: string | null;
+            /** Base */
+            base: string | null;
+            /**
+             * Due On
+             * Format: date
+             */
+            due_on: string;
+            /** Estimate */
+            estimate: boolean;
+            /** Filed On */
+            filed_on: string | null;
+            /** Filed Reference */
+            filed_reference: string | null;
+            /** Held Trips */
+            held_trips: number;
+            /** Label */
+            label: string;
+            /** Lines */
+            lines: components["schemas"]["ReturnLine"][];
+            /** Missing Rates */
+            missing_rates: string[];
+            /** Mpg */
+            mpg: string | null;
+            /** Net Tax */
+            net_tax: string;
+            /** Paid On */
+            paid_on: string | null;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Quarter */
+            quarter: string;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Reviewed By Name */
+            reviewed_by_name?: string | null;
+            /** Status */
+            status: string;
+            /** Total Gallons */
+            total_gallons: string;
+            /** Total Miles */
+            total_miles: string;
+            /** Version */
+            version: number;
+        };
+        /** ReturnRow */
+        ReturnRow: {
+            /** Filed On */
+            filed_on: string | null;
+            /** Label */
+            label: string;
+            /** Net Tax */
+            net_tax: string | null;
+            /** Paid On */
+            paid_on: string | null;
+            /** Quarter */
+            quarter: string;
+            /** Status */
+            status: string;
         };
         /** ReturnToServiceIn */
         ReturnToServiceIn: {
@@ -8267,6 +8895,13 @@ export interface components {
              */
             timezone: string;
         };
+        /** StateMiles */
+        StateMiles: {
+            /** Jurisdiction */
+            jurisdiction: string;
+            /** Miles */
+            miles: number | string;
+        };
         /** StatementsSummary */
         StatementsSummary: {
             /** Driver Pay */
@@ -8796,6 +9431,55 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** TripIn */
+        TripIn: {
+            /** Load Id */
+            load_id?: string | null;
+            /** Miles */
+            miles: components["schemas"]["StateMiles"][];
+            /** Note */
+            note?: string | null;
+            /** Odometer End */
+            odometer_end?: number | null;
+            /** Odometer Start */
+            odometer_start?: number | null;
+            /**
+             * Trip Date
+             * Format: date
+             */
+            trip_date: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
+        /** TripOut */
+        TripOut: {
+            /** Held */
+            held: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Miles */
+            miles: {
+                [key: string]: string;
+            };
+            /** Source */
+            source: string;
+            /**
+             * Trip Date
+             * Format: date
+             */
+            trip_date: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
         /** TruckFuel */
         TruckFuel: {
             /** Amount */
@@ -8810,6 +9494,15 @@ export interface components {
             /** Mpg */
             mpg: string | null;
             vehicle: components["schemas"]["Ref"];
+        };
+        /** TruckMpg */
+        TruckMpg: {
+            /** Driver */
+            driver: string | null;
+            /** Mpg */
+            mpg: string | null;
+            /** Unit Number */
+            unit_number: string;
         };
         /** TruckSummary */
         TruckSummary: {
@@ -9330,6 +10023,26 @@ export interface components {
         VoidIn: {
             /** Reason */
             reason: string;
+        };
+        /** Week */
+        Week: {
+            /** Amount */
+            amount: string;
+            /** Cost Per Mile */
+            cost_per_mile: string | null;
+            /** Gallons */
+            gallons: string;
+            /** Miles */
+            miles: string;
+            /** Mpg */
+            mpg: string | null;
+            /** Price Per Gallon */
+            price_per_gallon: string | null;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
         };
         /** WeekOnTime */
         WeekOnTime: {
@@ -14366,6 +15079,1020 @@ export interface operations {
             };
         };
     };
+    mileage_api_v1_ifta_mileage_get: {
+        parameters: {
+            query?: {
+                quarter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Mileage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    overview_api_v1_ifta_overview_get: {
+        parameters: {
+            query?: {
+                quarter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    purchases_api_v1_ifta_purchases_get: {
+        parameters: {
+            query?: {
+                quarter?: string | null;
+                show?: "all" | "flagged" | "receipts";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Purchases"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    rates_api_v1_ifta_rates_get: {
+        parameters: {
+            query?: {
+                quarter?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateRow"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    import_rates_api_v1_ifta_rates_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_import_rates_api_v1_ifta_rates_import_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateRow"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    put_rates_api_v1_ifta_rates__quarter__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quarter: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateRow"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    receipts_api_v1_ifta_receipts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Receipt"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    report_api_v1_ifta_report_get: {
+        parameters: {
+            query?: {
+                weeks?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FuelReport"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    returns_api_v1_ifta_returns_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnRow"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_return_api_v1_ifta_returns__quarter__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quarter: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    act_api_v1_ifta_returns__quarter__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quarter: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_api_v1_ifta_returns__quarter__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                quarter: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_trip_api_v1_ifta_trips_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TripIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_api_v1_ifta_trips__trip_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    release_api_v1_ifta_trips__trip_id__release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                trip_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TripOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     start_import_api_v1_imports_post: {
         parameters: {
             query?: never;
@@ -14438,7 +16165,7 @@ export interface operations {
     template_api_v1_imports_template_get: {
         parameters: {
             query: {
-                kind: "drivers" | "trucks" | "trailers";
+                kind: "drivers" | "trucks" | "trailers" | "mileage";
                 format?: "csv" | "xlsx";
             };
             header?: never;
