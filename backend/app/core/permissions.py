@@ -49,6 +49,13 @@ PERMISSION_GROUPS: dict[str, dict[str, str]] = {
         "dispatch.read": "See the dispatch board",
         "dispatch.assign": "Assign, reassign and dispatch loads",
     },
+    "Fleet tracking": {
+        "tracking.read": "See live truck locations and trails",
+        "tracking.ingest": "Send truck positions (telematics and other integrations)",
+        "incidents.read": "See fleet alerts",
+        "incidents.manage": "Acknowledge, assign and resolve fleet alerts",
+        "alert_policies.manage": "Change fleet alert policies and geofences",
+    },
     "Directory": {
         "customers.read": "See customers",
         "customers.manage": "Create, edit and archive customers",
@@ -99,7 +106,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "dispatch.read", "dispatch.assign",
         "customers.read", "customers.manage", "drivers.read", "equipment.read", "owners.read",
         "safety.read", "maintenance.read", "documents.read", "documents.upload",
-        "invoices.read",
+        "invoices.read", "tracking.read", "incidents.read", "incidents.manage",
     },
     Role.SAFETY_MANAGER: {
         "dashboard.read", "reports.read",
@@ -107,6 +114,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "drivers.read", "drivers.manage", "drivers.sensitive.read", "equipment.read", "owners.read",
         "safety.read", "safety.manage", "maintenance.read",
         "documents.read", "documents.upload", "documents.delete",
+        "tracking.read", "incidents.read", "incidents.manage", "alert_policies.manage",
     },
     Role.FLEET_MANAGER: {
         "dashboard.read", "reports.read",
@@ -114,6 +122,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "equipment.read", "equipment.manage", "owners.read", "safety.read", "safety.manage",
         "maintenance.read", "maintenance.manage",
         "documents.read", "documents.upload", "expenses.read", "expenses.manage",
+        "tracking.read", "incidents.read", "incidents.manage",
     },
     Role.ACCOUNTANT: {
         "dashboard.read", "reports.read", "reports.export",

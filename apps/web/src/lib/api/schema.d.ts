@@ -63,6 +63,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/alert-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fleet alert policies, and the channels that reach people */
+        get: operations["list_policies_api_v1_alert_policies_get"];
+        put?: never;
+        /** A new policy, as version 1 */
+        post: operations["add_policy_api_v1_alert_policies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alert-policies/{policy_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save a policy as its next version */
+        put: operations["save_policy_api_v1_alert_policies__policy_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alert-policies/{policy_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What the rule (as saved, or as edited) would have done over recent days of real positions */
+        post: operations["preview_policy_api_v1_alert_policies__policy_id__preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alert-policies/{policy_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every saved version, newest first */
+        get: operations["policy_versions_api_v1_alert_policies__policy_id__versions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -752,6 +821,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/driver/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The driver app's GPS, for the truck the driver is in: their load's truck, or their seat */
+        post: operations["driver_positions_api_v1_driver_positions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/drivers": {
         parameters: {
             query?: never;
@@ -968,6 +1054,75 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fleet/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every truck: where it last was, how fresh that is, its load and alert */
+        get: operations["live_api_v1_fleet_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fleet/vehicles/{vehicle_id}/track": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A truck's trail and speed over a period (two hours by default), with its open alert */
+        get: operations["track_api_v1_fleet_vehicles__vehicle_id__track_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geofences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Places with a circle around them */
+        get: operations["geofences_api_v1_geofences_get"];
+        put?: never;
+        /** Draw a circle around a place */
+        post: operations["add_geofence_api_v1_geofences_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/geofences/{geofence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop using a geofence */
+        delete: operations["remove_geofence_api_v1_geofences__geofence_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1325,6 +1480,74 @@ export interface paths {
         put?: never;
         /** Save the rows that are ready; rows with problems are left out */
         post: operations["commit_import_api_v1_imports__import_id__commit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fleet alerts: one incident per episode */
+        get: operations["list_incidents_api_v1_incidents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open incidents by tab */
+        get: operations["incident_counts_api_v1_incidents_counts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{incident_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An incident with its trail */
+        get: operations["get_incident_api_v1_incidents__incident_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/incidents/{incident_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge, resolve, reopen, give to someone, or add a note */
+        post: operations["incident_action_api_v1_incidents__incident_id__actions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2670,6 +2893,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Truck positions from telematics or another integration */
+        post: operations["positions_api_v1_positions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/preferences": {
         parameters: {
             query?: never;
@@ -3902,6 +4142,15 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** ChannelOut */
+        ChannelOut: {
+            /** Connected */
+            connected: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
         /** ChargeIn */
         ChargeIn: {
             /**
@@ -4718,6 +4967,11 @@ export interface components {
             /** Weight Lbs */
             weight_lbs: number | null;
         };
+        /** DriverPositionsIn */
+        DriverPositionsIn: {
+            /** Samples */
+            samples: components["schemas"]["DriverSampleIn"][];
+        };
         /** DriverRead */
         DriverRead: {
             /** Cdl Class */
@@ -4822,6 +5076,24 @@ export interface components {
             pay_by: string;
             /** Status */
             status?: string | null;
+        };
+        /** DriverSampleIn */
+        DriverSampleIn: {
+            /** Accuracy M */
+            accuracy_m?: number | null;
+            /** Heading */
+            heading?: number | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Speed Mph */
+            speed_mph?: number | null;
         };
         /** DriverSummary */
         DriverSummary: {
@@ -4952,6 +5224,28 @@ export interface components {
             trailers: components["schemas"]["Candidate"][];
             /** Vehicles */
             vehicles: components["schemas"]["Candidate"][];
+        };
+        /** Episode */
+        Episode: {
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** Peak */
+            peak: number;
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /** Unit Number */
+            unit_number?: string | null;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** ErrorBody */
         ErrorBody: {
@@ -5317,6 +5611,46 @@ export interface components {
             /** Type */
             type: string;
         };
+        /** Fence */
+        Fence: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Name */
+            name: string;
+            /** Radius M */
+            radius_m: number;
+        };
+        /** FenceIn */
+        FenceIn: {
+            /** Customer Id */
+            customer_id?: string | null;
+            /**
+             * Kind
+             * @default customer
+             * @enum {string}
+             */
+            kind: "customer" | "yard" | "shop" | "other";
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Name */
+            name: string;
+            /**
+             * Radius M
+             * @default 400
+             */
+            radius_m: number;
+        };
         /** FieldOption */
         FieldOption: {
             /** Key */
@@ -5359,6 +5693,27 @@ export interface components {
             trucks_on_load: number;
             /** Trucks Unavailable */
             trucks_unavailable: number;
+        };
+        /** FleetLoad */
+        FleetLoad: {
+            /** Id */
+            id: string | null;
+            /** Load Number */
+            load_number: string | null;
+        };
+        /** FleetPerson */
+        FleetPerson: {
+            /** Id */
+            id: string | null;
+            /** Name */
+            name: string | null;
+        };
+        /** FleetUnit */
+        FleetUnit: {
+            /** Id */
+            id: string | null;
+            /** Unit Number */
+            unit_number: string | null;
         };
         /** FuelMonth */
         FuelMonth: {
@@ -5501,6 +5856,153 @@ export interface components {
             sheet: string | null;
             /** Status */
             status: string;
+        };
+        /** IncidentActionIn */
+        IncidentActionIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "acknowledge" | "resolve" | "reopen" | "assign" | "note";
+            /** Note */
+            note?: string | null;
+            /** Owner Id */
+            owner_id?: string | null;
+            /** Version */
+            version?: number | null;
+        };
+        /** IncidentCounts */
+        IncidentCounts: {
+            /** Documents */
+            documents: number;
+            /** Equipment */
+            equipment: number;
+            /** High */
+            high: number;
+            /** Late */
+            late: number;
+            /** Open */
+            open: number;
+            /** Speeding */
+            speeding: number;
+        };
+        /** IncidentEventOut */
+        IncidentEventOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Kind */
+            kind: string;
+            /** Text */
+            text: string;
+            /** Tone */
+            tone: string;
+        };
+        /** IncidentOut */
+        IncidentOut: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Acknowledged By Name */
+            acknowledged_by_name: string | null;
+            /** Cleared At */
+            cleared_at: string | null;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Detail */
+            detail: string | null;
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+            driver: components["schemas"]["FleetPerson"] | null;
+            /** Events */
+            events: components["schemas"]["IncidentEventOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
+            load: components["schemas"]["FleetLoad"] | null;
+            /** Number */
+            number: string;
+            owner: components["schemas"]["FleetPerson"] | null;
+            /** Peak */
+            peak: number | null;
+            pending: components["schemas"]["Pending"] | null;
+            policy: components["schemas"]["PolicyRef"] | null;
+            /** Resolution */
+            resolution: string | null;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Resolved By Name */
+            resolved_by_name: string | null;
+            /** Severity */
+            severity: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+            vehicle: components["schemas"]["FleetUnit"] | null;
+            /** Version */
+            version: number;
+        };
+        /** IncidentRow */
+        IncidentRow: {
+            /** Detail */
+            detail: string | null;
+            /**
+             * Detected At
+             * Format: date-time
+             */
+            detected_at: string;
+            driver: components["schemas"]["FleetPerson"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            load: components["schemas"]["FleetLoad"] | null;
+            /** Number */
+            number: string;
+            owner: components["schemas"]["FleetPerson"] | null;
+            /** Severity */
+            severity: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+            vehicle: components["schemas"]["FleetUnit"] | null;
+            /** Version */
+            version: number;
+        };
+        /** IngestOut */
+        IngestOut: {
+            /** Duplicates */
+            duplicates: number;
+            /** Incidents */
+            incidents: number;
+            /** Kept */
+            kept: number;
+            /** Received */
+            received: number;
         };
         /** InspectionCreate */
         InspectionCreate: {
@@ -5841,6 +6343,105 @@ export interface components {
             /** Label */
             label: string | null;
         };
+        /** LiveCounts */
+        LiveCounts: {
+            /** Alerts */
+            alerts: number;
+            /** All */
+            all: number;
+            /** Moving */
+            moving: number;
+            /** Stale */
+            stale: number;
+            /** Stopped */
+            stopped: number;
+        };
+        /** LiveIncident */
+        LiveIncident: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Number */
+            number: string;
+            /** Severity */
+            severity: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+        };
+        /** LiveLoad */
+        LiveLoad: {
+            /** Appointment */
+            appointment: string | null;
+            /** Customer */
+            customer: string;
+            /** Eta */
+            eta: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lane */
+            lane: string;
+            /** Late By Minutes */
+            late_by_minutes: number;
+            /** Load Number */
+            load_number: string;
+            /** Next Stop */
+            next_stop: string | null;
+            /** Status */
+            status: string;
+        };
+        /** LiveOut */
+        LiveOut: {
+            counts: components["schemas"]["LiveCounts"];
+            /** Geofences */
+            geofences: components["schemas"]["Fence"][];
+            /**
+             * Now
+             * Format: date-time
+             */
+            now: string;
+            /** Reporting */
+            reporting: number;
+            /** Sources */
+            sources: string[];
+            /** Vehicles */
+            vehicles: components["schemas"]["LiveVehicle"][];
+        };
+        /** LivePosition */
+        LivePosition: {
+            /** Accuracy M */
+            accuracy_m: number | null;
+            /** Heading */
+            heading: number | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /**
+             * Received At
+             * Format: date-time
+             */
+            received_at: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Source */
+            source: string;
+            /** Speed Mph */
+            speed_mph: number | null;
+        };
         /** LiveUnit */
         LiveUnit: {
             /** Driver Name */
@@ -5862,6 +6463,33 @@ export interface components {
             unit_id: string;
             /** Unit Number */
             unit_number: string;
+        };
+        /** LiveVehicle */
+        LiveVehicle: {
+            driver: components["schemas"]["FleetPerson"] | null;
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "live" | "delayed" | "stale" | "none";
+            incident: components["schemas"]["LiveIncident"] | null;
+            /** Line */
+            line: string;
+            load: components["schemas"]["LiveLoad"] | null;
+            /** Moving */
+            moving: boolean;
+            /** Place */
+            place: string | null;
+            position: components["schemas"]["LivePosition"] | null;
+            /** Status */
+            status: string;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** LoadCreate */
         LoadCreate: {
@@ -7473,6 +8101,13 @@ export interface components {
             meta: components["schemas"]["Meta"];
             page: components["schemas"]["PageInfo"];
         };
+        /** Page[IncidentRow] */
+        Page_IncidentRow_: {
+            /** Items */
+            items: components["schemas"]["IncidentRow"][];
+            meta: components["schemas"]["Meta"];
+            page: components["schemas"]["PageInfo"];
+        };
         /** Page[InspectionOut] */
         Page_InspectionOut_: {
             /** Items */
@@ -7744,6 +8379,16 @@ export interface components {
             /** Unapplied */
             unapplied: string;
         };
+        /** Pending */
+        Pending: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Text */
+            text: string;
+        };
         /** PermissionGroupOut */
         PermissionGroupOut: {
             /** Name */
@@ -7861,6 +8506,97 @@ export interface components {
             /** Status */
             status?: string | null;
         };
+        /** PoliciesOut */
+        PoliciesOut: {
+            /** Channels */
+            channels: components["schemas"]["ChannelOut"][];
+            /** Has Yard */
+            has_yard: boolean;
+            /** Policies */
+            policies: components["schemas"]["PolicyOut"][];
+        };
+        /** PolicyIn */
+        PolicyIn: {
+            /** Applies To */
+            applies_to?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "speeding" | "yard_speed" | "dwell" | "gps_stale";
+            /** Message */
+            message?: string | null;
+            /** Name */
+            name: string;
+            /** Note */
+            note?: string | null;
+            /** Recipients */
+            recipients: components["schemas"]["Recipient"][];
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Version */
+            version?: number | null;
+        };
+        /** PolicyOut */
+        PolicyOut: {
+            /** Applies To */
+            applies_to: {
+                [key: string]: unknown;
+            };
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Message */
+            message: string | null;
+            /** Name */
+            name: string;
+            /** Open Incidents */
+            open_incidents: number;
+            /** Recipients */
+            recipients: {
+                [key: string]: unknown;
+            }[];
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Updated By Name */
+            updated_by_name: string | null;
+            /** Version */
+            version: number;
+        };
+        /** PolicyRef */
+        PolicyRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+        };
         /** PortalHome */
         PortalHome: {
             /** Company */
@@ -7944,10 +8680,51 @@ export interface components {
              */
             user_id: string;
         };
+        /** PositionsIn */
+        PositionsIn: {
+            /** Samples */
+            samples: components["schemas"]["SampleIn"][];
+            /**
+             * Source
+             * @default telematics
+             * @enum {string}
+             */
+            source: "telematics" | "manual";
+        };
         /** PreferenceIn */
         PreferenceIn: {
             /** Value */
             value: unknown;
+        };
+        /** PreviewIn */
+        PreviewIn: {
+            /**
+             * Days
+             * @default 7
+             */
+            days: number;
+            /** Settings */
+            settings?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** PreviewOut */
+        PreviewOut: {
+            /** Above */
+            above: number;
+            /** Days */
+            days: number;
+            /** Episodes */
+            episodes: components["schemas"]["Episode"][];
+            /** Incidents */
+            incidents: number;
+            /** Kind */
+            kind: string;
+            /** Samples */
+            samples: number;
+            trace: components["schemas"]["Trace"] | null;
+            /** Trucks */
+            trucks: number;
         };
         /** Purchase */
         Purchase: {
@@ -8269,6 +9046,24 @@ export interface components {
             /** Ready To Invoice Loads */
             ready_to_invoice_loads: number;
         };
+        /** Recipient */
+        Recipient: {
+            /** After Minutes */
+            after_minutes?: number | null;
+            /** Channels */
+            channels: ("in_app" | "push" | "app_push" | "telegram" | "sms" | "email")[];
+            /**
+             * When
+             * @default immediately
+             * @enum {string}
+             */
+            when: "immediately" | "unacknowledged";
+            /**
+             * Who
+             * @enum {string}
+             */
+            who: "driver" | "dispatcher_on_duty" | "safety_manager" | "fleet_manager";
+        };
         /** Ref */
         Ref: {
             /**
@@ -8530,6 +9325,31 @@ export interface components {
             missing: number;
             /** Units Blocked */
             units_blocked: number;
+        };
+        /** SampleIn */
+        SampleIn: {
+            /** Accuracy M */
+            accuracy_m?: number | null;
+            /** Heading */
+            heading?: number | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Odometer Mi */
+            odometer_mi?: number | null;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Speed Mph */
+            speed_mph?: number | null;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** SavedViewCreate */
         SavedViewCreate: {
@@ -9228,6 +10048,77 @@ export interface components {
             postal_code?: string | null;
             /** State */
             state?: string | null;
+        };
+        /** Trace */
+        Trace: {
+            /**
+             * End
+             * Format: date-time
+             */
+            end: string;
+            /** Points */
+            points: components["schemas"]["TracePoint"][];
+            /**
+             * Start
+             * Format: date-time
+             */
+            start: string;
+            /** Unit Number */
+            unit_number?: string | null;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
+        /** TracePoint */
+        TracePoint: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Mph */
+            mph: number;
+        };
+        /** TrackOut */
+        TrackOut: {
+            incident: components["schemas"]["IncidentOut"] | null;
+            /** Miles */
+            miles: number;
+            /** Points */
+            points: components["schemas"]["TrackPoint"][];
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+            /**
+             * Until
+             * Format: date-time
+             */
+            until: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
+        /** TrackPoint */
+        TrackPoint: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Heading */
+            heading: number | null;
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Mph */
+            mph: number | null;
         };
         /** TrackingIn */
         TrackingIn: {
@@ -10119,6 +11010,34 @@ export interface components {
             /** Year */
             year?: number | null;
         };
+        /** VersionOut */
+        VersionOut: {
+            /** Enabled */
+            enabled: boolean;
+            /** Message */
+            message: string | null;
+            /** Name */
+            name: string;
+            /** Note */
+            note: string | null;
+            /** Recipients */
+            recipients: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Saved At
+             * Format: date-time
+             */
+            saved_at: string;
+            /** Saved By Name */
+            saved_by_name: string | null;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Version */
+            version: number;
+        };
         /** Versioned */
         Versioned: {
             /** Version */
@@ -10606,6 +11525,349 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_policies_api_v1_alert_policies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoliciesOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_policy_api_v1_alert_policies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    save_policy_api_v1_alert_policies__policy_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_policy_api_v1_alert_policies__policy_id__preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    policy_versions_api_v1_alert_policies__policy_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                policy_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"][];
                 };
             };
             /** @description Unauthorized */
@@ -13791,6 +15053,75 @@ export interface operations {
             };
         };
     };
+    driver_positions_api_v1_driver_positions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverPositionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list__api_v1_drivers_get: {
         parameters: {
             query?: {
@@ -15136,6 +16467,340 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Receivables"];
                 };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    live_api_v1_fleet_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LiveOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    track_api_v1_fleet_vehicles__vehicle_id__track_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                until?: string | null;
+            };
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    geofences_api_v1_geofences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fence"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_geofence_api_v1_geofences_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FenceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fence"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_geofence_api_v1_geofences__geofence_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                geofence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unauthorized */
             401: {
@@ -16635,6 +18300,286 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImportOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_incidents_api_v1_incidents_get: {
+        parameters: {
+            query?: {
+                group?: "open" | "speeding" | "late" | "documents" | "equipment" | "resolved";
+                kind?: string[];
+                owner_id?: string[];
+                vehicle_id?: string | null;
+                load_id?: string | null;
+                q?: string | null;
+                cursor?: string | null;
+                limit?: number;
+                count?: boolean;
+                format?: "json" | "csv";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_IncidentRow_"];
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    incident_counts_api_v1_incidents_counts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentCounts"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_incident_api_v1_incidents__incident_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    incident_action_api_v1_incidents__incident_id__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentActionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentOut"];
                 };
             };
             /** @description Unauthorized */
@@ -23222,6 +25167,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OwnerMaintenance"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    positions_api_v1_positions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PositionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestOut"];
                 };
             };
             /** @description Unauthorized */

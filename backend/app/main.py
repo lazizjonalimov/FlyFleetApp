@@ -34,6 +34,7 @@ from app.modules.reports.router import router as reports_router
 from app.modules.safety.router import router as safety_router
 from app.modules.settlements.owner_router import router as owner_settlements_router
 from app.modules.settlements.router import router as settlements_router
+from app.modules.tracking.router import router as tracking_router
 
 DESCRIPTION = """
 The FlyFleet transportation management API.
@@ -75,7 +76,7 @@ def create_app() -> FastAPI:
                    owners_router, ownership_router, owner_portal_router,
                    equipment_router, loads_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
-                   ifta_router,
+                   ifta_router, tracking_router,
                    settlements_router, reports_router):
         v1.include_router(router)
     app.include_router(v1)
