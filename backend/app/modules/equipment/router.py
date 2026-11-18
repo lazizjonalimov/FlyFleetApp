@@ -357,6 +357,7 @@ def _guards(kind: Literal["vehicle", "trailer"], what: str):
         if unit is not None and data.get("status") == "active" and unit.status in maintenance.OFF_ROAD:
             # Back on the road only when the work orders and defects that took it off are dealt with.
             maintenance.return_blockers(db, kind, unit.id)
+            maintenance.signed_off(db, p, kind, unit.id)
 
     def before_delete(db: Session, p: Principal, unit) -> None:
         busy = current_loads(db, kind, [unit.id]).get(unit.id)

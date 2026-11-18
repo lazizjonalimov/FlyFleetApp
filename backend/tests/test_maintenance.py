@@ -41,7 +41,7 @@ def test_a_work_order_carries_its_costs_through_its_life(org):
     assert wo["unit"] == {"type": "vehicle", "id": s["truck"]["id"], "name": f"Truck {s['truck']['unit_number']}", "status": "active"}
     assert [x["amount"] for x in wo["lines"]] == ["91.00", "180.00"] and wo["total_cost"] == "271.00"
     assert wo["currency"] == "USD" and wo["created_by_name"] == "Olive Owner"
-    assert set(wo["allowed_actions"]) == {"start", "complete", "cancel"} and wo["editable"] is True
+    assert set(wo["allowed_actions"]) == {"start", "wait_parts", "complete", "cancel"} and wo["editable"] is True
     # A work order that doesn't say so leaves the unit on the road.
     assert org.get(f"/vehicles/{s['truck']['id']}").json()["status"] == "active"
 
@@ -69,7 +69,7 @@ def test_a_work_order_carries_its_costs_through_its_life(org):
         .json()["error"]["field_errors"] == {"title": "This field can't be empty"}
 
     started = move(org, current, "start")
-    assert started["status"] == "in_progress" and started["started_at"] and set(started["allowed_actions"]) == {"complete", "cancel"}
+    assert started["status"] == "in_progress" and started["started_at"] and set(started["allowed_actions"]) == {"wait_parts", "complete", "cancel"}
     done = move(org, started, "complete", notes="Pads and rotors replaced")
     assert done["status"] == "completed" and done["resolution"] == "Pads and rotors replaced"
     assert done["completed_by_name"] == "Olive Owner" and done["completed_at"] and done["allowed_actions"] == []
@@ -274,8 +274,11 @@ def test_paperwork_summary_alerts_and_search(org):
     assert [d["id"] for d in org.items("/documents", entity_type="work_order", entity_id=late["id"])] == [doc["id"]]
 
     summary = org.get("/maintenance/summary").json()
-    assert summary == {"open_work_orders": 2, "urgent_open": 1, "overdue": 1, "units_out_of_service": 1,
-                       "currency": "USD", "spend_this_month": "0.00"}
+    assert {k: summary[k] for k in ("open_work_orders", "urgent_open", "high_open", "overdue", "units_out_of_service",
+                                    "currency", "spend_this_month", "completed_this_month")} == {
+        "open_work_orders": 2, "urgent_open": 1, "high_open": 1, "overdue": 1, "units_out_of_service": 1,
+        "currency": "USD", "spend_this_month": "0.00", "completed_this_month": 0}
+    assert summary["longest_off_road"]["unit"].startswith(("Truck ", "Trailer "))
     alerts = {e["code"]: e for e in org.get("/dashboard/exceptions").json()}
     assert alerts["WORK_ORDERS_URGENT"]["count"] == 1 and alerts["WORK_ORDERS_URGENT"]["severity"] == "high"
     assert alerts["WORK_ORDERS_URGENT"]["params"] == {"priority": "urgent", "open": "true"}
@@ -307,3 +310,34 @@ def test_a_retried_request_opens_one_work_order_and_a_double_click_moves_it_once
                                                    {"action": "start", "version": wo["version"]}), range(2)))
     assert sorted(r.status_code for r in results) == [200, 409]
     assert next(r for r in results if r.status_code == 409).json()["error"]["code"] in ("VERSION_CONFLICT", "CONCURRENT_UPDATE")
+
+
+def test_a_repair_can_wait_for_parts_and_is_signed_off_when_the_unit_goes_back(org):
+    s = seed(org)
+    wo = work_order(org, s["truck"], out_of_service=True, priority="high")
+    assert org.get("/maintenance/summary").json()["high_open"] == 1
+    org.error("POST", f"/maintenance/work-orders/{wo['id']}/transitions", 422, "VALIDATION_ERROR",
+              json={"action": "wait_parts", "version": wo["version"], "parts_eta": "2020-01-01"})
+    eta = str((datetime.now(UTC) + timedelta(days=4)).date())
+    waiting = org.post(f"/maintenance/work-orders/{wo['id']}/transitions",
+                       {"action": "wait_parts", "version": wo["version"], "parts_eta": eta}, 200).json()
+    assert (waiting["status"], waiting["parts_eta"]) == ("waiting_parts", eta) and waiting["started_at"]
+    assert set(waiting["allowed_actions"]) == {"resume", "complete", "cancel"}
+    listed = org.items("/maintenance/work-orders", open="true")
+    assert [w["status"] for w in listed] == ["waiting_parts"] and listed[0]["reported_by_name"] == "Olive Owner"
+    # Still a repair that holds the truck: it can't go back on the road while waiting.
+    assert back_on_the_road(org, s["truck"], expect=409).json()["error"]["code"] == "OPEN_WORK_ORDERS"
+    resumed = move(org, waiting, "resume")
+    assert (resumed["status"], resumed["parts_eta"]) == ("in_progress", None)
+    done = move(org, resumed, "complete", notes="Turbo actuator replaced")
+    assert done["returned_at"] is None
+    summary = org.get("/maintenance/summary").json()
+    assert summary["longest_off_road"]["unit"] == f"Truck {s['truck']['unit_number']}"
+    assert summary["completed_this_month"] == 1
+
+    back_on_the_road(org, s["truck"])
+    signed = org.get(f"/maintenance/work-orders/{wo['id']}").json()
+    assert signed["returned_at"] and signed["returned_by_name"] == "Olive Owner"
+    after = org.get("/maintenance/summary").json()
+    assert after["downtime_days"] is not None and after["downtime_days"] < 1 and after["downtime_days_before"] is None
+    assert after["longest_off_road"] is None

@@ -21,10 +21,12 @@ from app.modules.maintenance import schemas as s
 from app.modules.maintenance.models import Inspection, InspectionDefect, WorkOrder, WorkOrderLine
 from app.modules.organizations.models import Organization, User
 
-OPEN = ("open", "in_progress")
+OPEN = ("open", "in_progress", "waiting_parts")
 OFF_ROAD = ("in_maintenance", "out_of_service")
-TRANSITIONS = {"start": ("open",), "complete": OPEN, "cancel": OPEN}
-PAST = {"start": "started", "complete": "completed", "cancel": "cancelled"}
+TRANSITIONS = {"start": ("open",), "wait_parts": ("open", "in_progress"), "resume": ("waiting_parts",),
+               "complete": OPEN, "cancel": OPEN}
+PAST = {"start": "started", "wait_parts": "put on hold for parts", "resume": "resumed", "complete": "completed",
+        "cancel": "cancelled"}
 LINE_ORDER = (WorkOrderLine.created_at, WorkOrderLine.position)
 Unit = Vehicle | Trailer
 
@@ -165,6 +167,12 @@ def transition(db: Session, p: Principal, work_order_id: uuid.UUID, body: s.Work
     now = datetime.now(UTC)
     if body.action == "start":
         wo.status, wo.started_at = "in_progress", now
+    elif body.action == "wait_parts":
+        if body.parts_eta is not None and body.parts_eta < p.today():
+            raise Invalid("The parts can't be due in the past", field="parts_eta")
+        wo.status, wo.parts_eta, wo.started_at = "waiting_parts", body.parts_eta, wo.started_at or now
+    elif body.action == "resume":
+        wo.status, wo.parts_eta = "in_progress", None
     elif body.action == "complete":
         wo.status, wo.completed_at, wo.completed_by, wo.resolution = "completed", now, p.user_id, notes
         wo.started_at = wo.started_at or now
@@ -177,7 +185,9 @@ def transition(db: Session, p: Principal, work_order_id: uuid.UUID, body: s.Work
             raise Invalid("Say why it is cancelled", field="notes")
         wo.status, wo.resolution = "cancelled", notes
     wo.version += 1
-    audit(db, p, f"work_order.{PAST[body.action]}", "work_order", wo.id, {"notes": notes} if notes else None)
+    event = {"wait_parts": "waiting_parts", "resume": "resumed"}.get(body.action, PAST[body.action])
+    data = {k: v for k, v in (("notes", notes), ("parts_eta", str(body.parts_eta) if body.parts_eta else None)) if v}
+    audit(db, p, f"work_order.{event}", "work_order", wo.id, data or None)
     return wo
 
 
@@ -262,9 +272,18 @@ def return_to_service(db: Session, p: Principal, body: s.ReturnToServiceIn) -> U
         raise Conflict("This unit is not off the road")
     return_blockers(db, body.unit_type, unit.id)
     before, unit.status = unit.status, "active"
+    signed_off(db, p, body.unit_type, unit.id)
     audit(db, p, f"{body.unit_type}.returned_to_service", body.unit_type, unit.id,
           {"from": before, "notes": (body.notes or "").strip() or None})
     return unit
+
+
+def signed_off(db: Session, p: Principal, kind: str, unit_id: uuid.UUID) -> None:
+    """The finished repairs that kept the unit off the road now have who put it back, and when."""
+    column = WorkOrder.vehicle_id if kind == "vehicle" else WorkOrder.trailer_id
+    for wo in db.scalars(select(WorkOrder).where(column == unit_id, WorkOrder.status == "completed",
+                                                 WorkOrder.out_of_service.is_(True), WorkOrder.returned_at.is_(None))):
+        wo.returned_at, wo.returned_by = datetime.now(UTC), p.user_id
 
 
 # ---------------------------------------------------------------- reading
@@ -282,16 +301,20 @@ def units_by_id(db: Session, vehicle_ids, trailer_ids) -> dict[uuid.UUID, s.Unit
     return out
 
 
-def list_item(wo: WorkOrder, unit: s.UnitRef) -> dict:
+def list_item(wo: WorkOrder, unit: s.UnitRef, people: dict[uuid.UUID, str] | None = None) -> dict:
+    people = people or {}
     return dict(id=wo.id, number=wo.number, status=wo.status, priority=wo.priority, title=wo.title, unit=unit,
                 vendor=wo.vendor, scheduled_for=wo.scheduled_for, odometer=wo.odometer, out_of_service=wo.out_of_service,
+                started_at=wo.started_at, parts_eta=wo.parts_eta, reported_by_name=people.get(wo.created_by),
+                returned_at=wo.returned_at, returned_by_name=people.get(wo.returned_by),
                 total_cost=wo.total_cost, currency=wo.currency, created_at=wo.created_at, completed_at=wo.completed_at,
                 version=wo.version)
 
 
 def work_order_items(db: Session, rows: list[WorkOrder]) -> list[s.WorkOrderListItem]:
     units = units_by_id(db, [w.vehicle_id for w in rows], [w.trailer_id for w in rows])
-    return [s.WorkOrderListItem(**list_item(w, units[w.vehicle_id or w.trailer_id])) for w in rows]
+    people = names(db, [x for w in rows for x in (w.created_by, w.returned_by)])
+    return [s.WorkOrderListItem(**list_item(w, units[w.vehicle_id or w.trailer_id], people)) for w in rows]
 
 
 def work_order_detail(db: Session, p: Principal, work_order_id: uuid.UUID) -> s.WorkOrderDetail:
@@ -305,9 +328,9 @@ def work_order_detail(db: Session, p: Principal, work_order_id: uuid.UUID) -> s.
     sources = db.execute(
         select(InspectionDefect, Inspection.kind, Inspection.inspected_on)
         .join(Inspection, Inspection.id == InspectionDefect.inspection_id).where(InspectionDefect.work_order_id == wo.id))
-    people = names(db, [wo.created_by, wo.completed_by])
+    people = names(db, [wo.created_by, wo.completed_by, wo.returned_by])
     return s.WorkOrderDetail(
-        **list_item(wo, unit), description=wo.description, started_at=wo.started_at,
+        **{**list_item(wo, unit, people), "started_at": wo.started_at}, description=wo.description,
         resolution=wo.resolution, created_by_name=people.get(wo.created_by), completed_by_name=people.get(wo.completed_by),
         lines=[s.CostLineOut.model_validate(line) for line in lines],
         defects=[s.DefectSource(inspection_id=d.inspection_id, inspection_kind=kind, inspected_on=on, item=d.item,
@@ -345,13 +368,44 @@ def summary(db: Session, p: Principal) -> s.MaintenanceSummary:
 
     today = p.today()
     is_open = WorkOrder.status.in_(OPEN)
-    open_, urgent, overdue = db.execute(select(
+    open_, urgent, high, overdue = db.execute(select(
         func.count().filter(is_open), func.count().filter(is_open, WorkOrder.priority == "urgent"),
+        func.count().filter(is_open, WorkOrder.priority.in_(("high", "urgent"))),
         func.count().filter(is_open, WorkOrder.scheduled_for < today))).one()
     off_road = sum(db.scalar(select(func.count()).select_from(model).where(model.status.in_(OFF_ROAD)))
                    for model in (Vehicle, Trailer))
     start, end = day_bounds(p.timezone, today.replace(day=1), today)
-    spend = db.scalar(select(func.coalesce(func.sum(WorkOrder.total_cost), 0))
-                      .where(WorkOrder.status == "completed", WorkOrder.completed_at >= start, WorkOrder.completed_at < end))
-    return s.MaintenanceSummary(open_work_orders=open_, urgent_open=urgent, overdue=overdue, units_out_of_service=off_road,
-                                currency=p.currency, spend_this_month=spend)
+    spend, done = db.execute(select(func.coalesce(func.sum(WorkOrder.total_cost), 0), func.count())
+                             .where(WorkOrder.status == "completed", WorkOrder.completed_at >= start,
+                                    WorkOrder.completed_at < end)).one()
+    return s.MaintenanceSummary(open_work_orders=open_, urgent_open=urgent, high_open=high, overdue=overdue,
+                                units_out_of_service=off_road, longest_off_road=_longest_off_road(db),
+                                downtime_days=_downtime(db, 0), downtime_days_before=_downtime(db, 30),
+                                currency=p.currency, spend_this_month=spend, completed_this_month=done)
+
+
+def _longest_off_road(db: Session) -> s.OffRoad | None:
+    """The unit off the road longest: since the open work order that took it off, else just which one."""
+    oldest = None
+    for model in (Vehicle, Trailer):
+        column = WorkOrder.vehicle_id if model is Vehicle else WorkOrder.trailer_id
+        for unit, since in db.execute(
+                select(model, func.min(WorkOrder.created_at))
+                .outerjoin(WorkOrder, (column == model.id) & WorkOrder.status.in_(OPEN) & WorkOrder.out_of_service.is_(True))
+                .where(model.status.in_(OFF_ROAD)).group_by(model.id)):
+            if oldest is None or (since is not None and (oldest[1] is None or since < oldest[1])):
+                oldest = (unit_ref(unit).name, since)
+    return s.OffRoad(unit=oldest[0], since=oldest[1]) if oldest else None
+
+
+def _downtime(db: Session, days_back: int) -> float | None:
+    """Average days a unit spent off the road per repair, for repairs signed off in a 30-day window ending
+    `days_back` days ago."""
+    end = datetime.now(UTC) - timedelta(days=days_back)
+    start = end - timedelta(days=30)
+    spans = db.execute(select(WorkOrder.created_at, WorkOrder.returned_at)
+                       .where(WorkOrder.out_of_service.is_(True), WorkOrder.returned_at >= start,
+                              WorkOrder.returned_at < end)).all()
+    if not spans:
+        return None
+    return round(sum((back - off).total_seconds() for off, back in spans) / len(spans) / 86_400, 1)

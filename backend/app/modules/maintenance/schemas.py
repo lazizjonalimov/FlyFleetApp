@@ -10,7 +10,7 @@ from app.core.money import Money
 
 UnitType = Literal["vehicle", "trailer"]
 Priority = Literal["low", "normal", "high", "urgent"]
-WorkOrderStatus = Literal["open", "in_progress", "completed", "cancelled"]
+WorkOrderStatus = Literal["open", "in_progress", "waiting_parts", "completed", "cancelled"]
 LineKind = Literal["labor", "part", "other"]
 InspectionKind = Literal["pre_trip", "post_trip", "annual", "roadside", "other"]
 InspectionResult = Literal["pass", "defects", "out_of_service"]
@@ -83,9 +83,10 @@ class WorkOrderUpdate(BaseModel):
 
 
 class WorkOrderTransition(BaseModel):
-    action: Literal["start", "complete", "cancel"]
+    action: Literal["start", "wait_parts", "resume", "complete", "cancel"]
     version: int
     notes: str | None = Field(default=None, max_length=4000, description="What was done, or why it was cancelled")
+    parts_eta: date | None = Field(default=None, description="Waiting for parts: when they are due in")
 
 
 class WorkOrderListItem(BaseModel):
@@ -105,6 +106,12 @@ class WorkOrderListItem(BaseModel):
     created_at: datetime
     completed_at: datetime | None
     version: int
+    started_at: datetime | None = None
+    parts_eta: date | None = None
+    # Who opened it ("Reported by"), and who signed the unit back into service after it.
+    reported_by_name: str | None = None
+    returned_at: datetime | None = None
+    returned_by_name: str | None = None
 
 
 class DefectSource(BaseModel):
@@ -203,10 +210,22 @@ class ReturnToServiceIn(BaseModel):
     notes: str | None = Field(default=None, max_length=1000)
 
 
+class OffRoad(BaseModel):
+    unit: str
+    since: datetime | None
+
+
 class MaintenanceSummary(BaseModel):
     open_work_orders: int
     urgent_open: int
+    high_open: int = Field(description="Open work orders marked high or urgent")
     overdue: int
     units_out_of_service: int
+    # The unit off the road longest, and since when (from the work order that took it off).
+    longest_off_road: OffRoad | None
+    # Days off the road per repair that kept a unit off it, returned in the last 30 days and the 30 before.
+    downtime_days: float | None
+    downtime_days_before: float | None
     currency: str
     spend_this_month: Money
+    completed_this_month: int

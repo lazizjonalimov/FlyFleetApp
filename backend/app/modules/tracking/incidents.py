@@ -499,7 +499,7 @@ def sync(db: Session, p: Principal) -> None:
 
     # Out of service: a truck or trailer held out by an open repair, or set out of service.
     repairs = db.execute(select(WorkOrder).where(WorkOrder.out_of_service.is_(True),
-                                                 WorkOrder.status.in_(("open", "in_progress")))).scalars().all()
+                                                 WorkOrder.status.in_(("open", "in_progress", "waiting_parts")))).scalars().all()
     held = set()
     for wo in repairs:
         unit = wo.vehicle_id or wo.trailer_id

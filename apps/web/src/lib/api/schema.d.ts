@@ -8574,8 +8574,20 @@ export interface components {
         };
         /** MaintenanceSummary */
         MaintenanceSummary: {
+            /** Completed This Month */
+            completed_this_month: number;
             /** Currency */
             currency: string;
+            /** Downtime Days */
+            downtime_days: number | null;
+            /** Downtime Days Before */
+            downtime_days_before: number | null;
+            /**
+             * High Open
+             * @description Open work orders marked high or urgent
+             */
+            high_open: number;
+            longest_off_road: components["schemas"]["OffRoad"] | null;
             /** Open Work Orders */
             open_work_orders: number;
             /** Overdue */
@@ -8993,6 +9005,13 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** OffRoad */
+        OffRoad: {
+            /** Since */
+            since: string | null;
+            /** Unit */
+            unit: string;
         };
         /**
          * OrgRef
@@ -14023,13 +14042,21 @@ export interface components {
             odometer: number | null;
             /** Out Of Service */
             out_of_service: boolean;
+            /** Parts Eta */
+            parts_eta?: string | null;
             /**
              * Priority
              * @enum {string}
              */
             priority: "low" | "normal" | "high" | "urgent";
+            /** Reported By Name */
+            reported_by_name?: string | null;
             /** Resolution */
             resolution: string | null;
+            /** Returned At */
+            returned_at?: string | null;
+            /** Returned By Name */
+            returned_by_name?: string | null;
             /** Scheduled For */
             scheduled_for: string | null;
             /** Started At */
@@ -14038,7 +14065,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "open" | "in_progress" | "completed" | "cancelled";
+            status: "open" | "in_progress" | "waiting_parts" | "completed" | "cancelled";
             /** Title */
             title: string;
             /** Total Cost */
@@ -14071,18 +14098,28 @@ export interface components {
             odometer?: number | null;
             /** Out Of Service */
             out_of_service: boolean;
+            /** Parts Eta */
+            parts_eta?: string | null;
             /**
              * Priority
              * @enum {string}
              */
             priority: "low" | "normal" | "high" | "urgent";
+            /** Reported By Name */
+            reported_by_name?: string | null;
+            /** Returned At */
+            returned_at?: string | null;
+            /** Returned By Name */
+            returned_by_name?: string | null;
             /** Scheduled For */
             scheduled_for: string | null;
+            /** Started At */
+            started_at?: string | null;
             /**
              * Status
              * @enum {string}
              */
-            status: "open" | "in_progress" | "completed" | "cancelled";
+            status: "open" | "in_progress" | "waiting_parts" | "completed" | "cancelled";
             /** Title */
             title: string;
             /** Total Cost */
@@ -14143,12 +14180,17 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "start" | "complete" | "cancel";
+            action: "start" | "wait_parts" | "resume" | "complete" | "cancel";
             /**
              * Notes
              * @description What was done, or why it was cancelled
              */
             notes?: string | null;
+            /**
+             * Parts Eta
+             * @description Waiting for parts: when they are due in
+             */
+            parts_eta?: string | null;
             /** Version */
             version: number;
         };
@@ -26844,7 +26886,7 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                status?: ("open" | "in_progress" | "completed" | "cancelled") | null;
+                status?: ("open" | "in_progress" | "waiting_parts" | "completed" | "cancelled") | null;
                 /** @description Only work orders not yet completed or cancelled */
                 open?: boolean | null;
                 /** @description Open work orders scheduled for a day that has passed */

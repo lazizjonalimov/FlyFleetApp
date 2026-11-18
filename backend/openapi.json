@@ -13256,9 +13256,50 @@
       },
       "MaintenanceSummary": {
         "properties": {
+          "completed_this_month": {
+            "title": "Completed This Month",
+            "type": "integer"
+          },
           "currency": {
             "title": "Currency",
             "type": "string"
+          },
+          "downtime_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Downtime Days"
+          },
+          "downtime_days_before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Downtime Days Before"
+          },
+          "high_open": {
+            "description": "Open work orders marked high or urgent",
+            "title": "High Open",
+            "type": "integer"
+          },
+          "longest_off_road": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OffRoad"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "open_work_orders": {
             "title": "Open Work Orders",
@@ -13284,10 +13325,15 @@
         "required": [
           "open_work_orders",
           "urgent_open",
+          "high_open",
           "overdue",
           "units_out_of_service",
+          "longest_off_road",
+          "downtime_days",
+          "downtime_days_before",
           "currency",
-          "spend_this_month"
+          "spend_this_month",
+          "completed_this_month"
         ],
         "title": "MaintenanceSummary",
         "type": "object"
@@ -14397,6 +14443,32 @@
           "created_at"
         ],
         "title": "NoteOut",
+        "type": "object"
+      },
+      "OffRoad": {
+        "properties": {
+          "since": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unit",
+          "since"
+        ],
+        "title": "OffRoad",
         "type": "object"
       },
       "OrgRef": {
@@ -30758,6 +30830,18 @@
             "title": "Out Of Service",
             "type": "boolean"
           },
+          "parts_eta": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parts Eta"
+          },
           "priority": {
             "enum": [
               "low",
@@ -30767,6 +30851,17 @@
             ],
             "title": "Priority",
             "type": "string"
+          },
+          "reported_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported By Name"
           },
           "resolution": {
             "anyOf": [
@@ -30778,6 +30873,29 @@
               }
             ],
             "title": "Resolution"
+          },
+          "returned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned At"
+          },
+          "returned_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned By Name"
           },
           "scheduled_for": {
             "anyOf": [
@@ -30807,6 +30925,7 @@
             "enum": [
               "open",
               "in_progress",
+              "waiting_parts",
               "completed",
               "cancelled"
             ],
@@ -30856,8 +30975,8 @@
           "created_at",
           "completed_at",
           "version",
-          "description",
           "started_at",
+          "description",
           "resolution",
           "created_by_name",
           "completed_by_name",
@@ -30916,6 +31035,18 @@
             "title": "Out Of Service",
             "type": "boolean"
           },
+          "parts_eta": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parts Eta"
+          },
           "priority": {
             "enum": [
               "low",
@@ -30925,6 +31056,40 @@
             ],
             "title": "Priority",
             "type": "string"
+          },
+          "reported_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported By Name"
+          },
+          "returned_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned At"
+          },
+          "returned_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Returned By Name"
           },
           "scheduled_for": {
             "anyOf": [
@@ -30938,10 +31103,23 @@
             ],
             "title": "Scheduled For"
           },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
           "status": {
             "enum": [
               "open",
               "in_progress",
+              "waiting_parts",
               "completed",
               "cancelled"
             ],
@@ -31102,6 +31280,8 @@
           "action": {
             "enum": [
               "start",
+              "wait_parts",
+              "resume",
               "complete",
               "cancel"
             ],
@@ -31120,6 +31300,19 @@
             ],
             "description": "What was done, or why it was cancelled",
             "title": "Notes"
+          },
+          "parts_eta": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Waiting for parts: when they are due in",
+            "title": "Parts Eta"
           },
           "version": {
             "title": "Version",
@@ -50390,6 +50583,7 @@
                   "enum": [
                     "open",
                     "in_progress",
+                    "waiting_parts",
                     "completed",
                     "cancelled"
                   ],

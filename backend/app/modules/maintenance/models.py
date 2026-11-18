@@ -21,7 +21,7 @@ from sqlalchemy.types import Uuid
 
 from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 
-WORK_ORDER_STATUSES = ("open", "in_progress", "completed", "cancelled")
+WORK_ORDER_STATUSES = ("open", "in_progress", "waiting_parts", "completed", "cancelled")
 PRIORITIES = ("low", "normal", "high", "urgent")
 LINE_KINDS = ("labor", "part", "other")
 INSPECTION_KINDS = ("pre_trip", "post_trip", "annual", "roadside", "other")
@@ -52,6 +52,11 @@ class WorkOrder(Base, IdMixin, TenantScoped, TimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), default="USD", server_default="USD")
     created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     completed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Waiting for parts: when they are due in.
+    parts_eta: Mapped[date | None] = mapped_column(Date)
+    # A repair that kept the unit off the road is finished when someone signs the unit back into service.
+    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    returned_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
