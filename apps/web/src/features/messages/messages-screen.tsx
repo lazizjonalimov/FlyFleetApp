@@ -23,8 +23,8 @@ type Msg = Schema<"MessageOut">;
 type Tab = "all" | "unread" | "drivers" | "customers";
 
 const TABS: [Tab, string][] = [["all", "All"], ["unread", "Unread"], ["drivers", "Drivers"], ["customers", "Customers"]];
-const CHANNEL_ICON: Record<string, string> = { app: I.mobile, email: I.mail, team: I.team, none: I.mobile, telegram: I.send };
-const LABEL: Record<string, string> = { app: "App", telegram: "Telegram", sms: "SMS", email: "Email", in_app: "In app" };
+const CHANNEL_ICON: Record<string, string> = { app: I.mobile, email: I.mail, team: I.team, none: I.mobile, telegram: I.send, portal: I.globe };
+const LABEL: Record<string, string> = { app: "App", telegram: "Telegram", sms: "SMS", email: "Email", in_app: "In app", portal: "Shipment portal" };
 const RANK: Record<string, number> = { sent: 0, delivered: 1, read: 2 };
 const STATE_TAG: Record<string, [string, string]> = { open: ["Open", "bad"], notified: ["Notified", "warn"], acknowledged: ["Acknowledged", "ok"], resolved: ["Resolved", "mu"], watching: ["Watching", "mu"] };
 

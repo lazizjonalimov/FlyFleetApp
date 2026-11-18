@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { cell } from "@/components/data-table/cell";
 import { useConsole } from "@/features/console/console-provider";
 import { addOf } from "@/features/console/shell";
@@ -11,6 +12,7 @@ import type { Schema } from "@/lib/api/types";
 import { todayIn } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
 import { formatNumber, plural } from "@/lib/format/text";
+import { PortalAccessDialog } from "./portal-access-dialog";
 
 type Customer = Schema<"CustomerRead">;
 
@@ -20,6 +22,7 @@ const daysAgo = (today: string, days: number) => new Date(Date.parse(`${today}T0
 /** Customers: who the carrier hauls for, with what they have open and how much they shipped lately. */
 export function CustomersScreen() {
   const { me, can, I, set } = useConsole();
+  const [portal, setPortal] = useState<{ id: string; name: string } | null>(null);
   const org = me.organization;
   const today = todayIn(org.timezone);
   const reports = can("reports.read");
@@ -49,6 +52,7 @@ export function CustomersScreen() {
       { label: "Terms", width: "110px", cell: (c) => cell.text(terms(c.payment_terms_days)) },
       ...(reports ? [{ label: "Loads · 30 d", width: "96px", right: true, cell: (c: Customer) => cell.num(shipped.data ? formatNumber(loadsOf.get(c.name) ?? 0) : "—") }] : []),
       ...(reports && can("invoices.read") ? [{ label: "Open balance", width: "120px", right: true, cell: (c: Customer) => cell.money(aging.data ? formatMoney(owedBy.get(c.name) ?? 0, org.base_currency) : "—") }] : []),
+      { label: "", width: "28px", cell: (c: Customer) => cell.menu([["Shipment portal access", () => setPortal({ id: c.id, name: c.name })], ["Preview shipment portal", () => set({ screen: "customerportal", customerId: c.id })]]) },
     ],
     actions: can("customers.manage") ? [{ l: "New customer", cls: "pri", ic: I.plus, go: () => set(addOf("customer")) }] : [],
     kpis: shipped.data
@@ -65,5 +69,10 @@ export function CustomersScreen() {
       action: can("customers.manage") ? { label: "New customer", go: () => set(addOf("customer")) } : undefined,
     },
   });
-  return <ListScreen list={list} />;
+  return (
+    <>
+      <ListScreen list={list} />
+      {portal ? <PortalAccessDialog customer={portal} onClose={() => setPortal(null)} /> : null}
+    </>
+  );
 }

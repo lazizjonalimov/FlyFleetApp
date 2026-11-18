@@ -92,13 +92,18 @@ class Membership(Base, IdMixin, TenantScoped, TimestampMixin):
     active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # Owner portal sign-ins: the owner whose equipment they may see. Nothing else in the company is theirs.
     owner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Shipment portal sign-ins: the customer whose shipments, papers and invoices they may see.
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     __table_args__ = (
         UniqueConstraint("organization_id", "user_id"),
         UniqueConstraint("organization_id", "id"),
         ForeignKeyConstraint(["organization_id", "owner_id"], ["owners.organization_id", "owners.id"],
                              name="fk_memberships_owner", ondelete="CASCADE"),
         CheckConstraint(f"role IN {ROLES}", name="role_valid"),
+        ForeignKeyConstraint(["organization_id", "customer_id"], ["customers.organization_id", "customers.id"],
+                             name="fk_memberships_customer", ondelete="CASCADE"),
         CheckConstraint("(role = 'owner_portal') = (owner_id IS NOT NULL)", name="portal_needs_owner"),
+        CheckConstraint("(role = 'customer') = (customer_id IS NOT NULL)", name="portal_needs_customer"),
     )
 
 

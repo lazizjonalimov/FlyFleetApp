@@ -5,5 +5,5 @@ import { getMe } from "@/lib/auth/server";
 export default async function WorkspaceHome({ params }: PageProps<"/[orgSlug]">) {
   const { orgSlug } = await params;
   const me = await getMe();
-  redirect(`/${orgSlug}/${me?.organization.role === "owner_portal" ? "portal" : "dashboard"}`);
+  redirect(`/${orgSlug}/${me?.organization.role === "owner_portal" || me?.organization.role === "customer" ? "portal" : "dashboard"}`);
 }

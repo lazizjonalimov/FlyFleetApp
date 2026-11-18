@@ -39,7 +39,7 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
 ];
 
 /** The section a record's or sub-screen's address belongs to. */
-const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", stmt: "settlements", ostmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
+const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", customerportal: "customers", stmt: "settlements", ostmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
 
 /** The platform operator's area is not part of a company's workspace: no company role opens it. */
 const SECTIONS: Record<string, { label: string; anyOf: string[] }> = { platform: { label: "Organizations", anyOf: ["platform.support"] } };

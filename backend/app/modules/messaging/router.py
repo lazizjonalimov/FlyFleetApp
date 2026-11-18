@@ -19,7 +19,7 @@ READ = require("messages.read")
 SEND = require("messages.send")
 
 Kind = Literal["driver", "customer", "team"]
-ChannelKey = Literal["app", "telegram", "sms", "email", "in_app"]
+ChannelKey = Literal["app", "telegram", "sms", "email", "in_app", "portal"]
 
 
 class ChannelState(BaseModel):
@@ -36,7 +36,7 @@ class ConversationItem(BaseModel):
     name: str
     initials: str
     tone: Literal["late", "brand", "mu"]
-    channel: Literal["app", "email", "team", "none"]
+    channel: Literal["app", "email", "team", "portal", "none"]
     subtitle: str | None
     driver_id: uuid.UUID | None
     customer_id: uuid.UUID | None

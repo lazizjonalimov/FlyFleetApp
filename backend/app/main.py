@@ -12,6 +12,8 @@ from app.core.errors import ErrorResponse, install_error_handlers
 from app.core.middleware import RequestContext
 from app.modules.access.router import router as access_router
 from app.modules.assistant.router import router as assistant_router
+from app.modules.customers.portal import router as customer_portal_router
+from app.modules.customers.portal import staff_router as customer_portal_users_router
 from app.modules.customers.router import router as customers_router
 from app.modules.dispatch.driver_router import router as driver_router
 from app.modules.dispatch.router import router as dispatch_router
@@ -86,7 +88,8 @@ def create_app() -> FastAPI:
                    equipment_router, loads_router, load_places_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
                    ifta_router, tracking_router, messaging_router, tasks_router, teams_router, integrations_router,
-                   settlements_router, reports_router, report_catalog_router, assistant_router):
+                   settlements_router, reports_router, report_catalog_router, assistant_router,
+                   customer_portal_router, customer_portal_users_router):
         v1.include_router(router)
     app.include_router(v1)
 

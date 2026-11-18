@@ -28,7 +28,8 @@ from app.modules.loads.models import Load, LoadStop
 from app.modules.messaging.models import Conversation, ConversationRead, Message
 from app.modules.organizations.models import Membership, User
 
-LABEL = {"app": "App", "telegram": "Telegram", "sms": "SMS", "email": "Email", "in_app": "In app"}
+LABEL = {"app": "App", "telegram": "Telegram", "sms": "SMS", "email": "Email", "in_app": "In app",
+         "portal": "Shipment portal"}
 # What a dispatcher most often needs to say to a driver, one click away.
 QUICK_REPLIES = ["Call me when stopped", "Send a BOL photo", "Running late?"]
 EQUIPMENT = {"dry_van": "Dry van", "reefer": "Reefer", "flatbed": "Flatbed", "step_deck": "Step deck",
@@ -72,8 +73,14 @@ def driver_channels(db: Session, driver: Driver) -> list[dict[str, Any]]:
     ]
 
 
-def customer_channels(contact: CustomerContact | None) -> list[dict[str, Any]]:
-    return [{"key": "email", "label": "Email", "connected": False, "state": "not_connected",
+def customer_channels(db: Session, customer_id: uuid.UUID | None, contact: CustomerContact | None) -> list[dict[str, Any]]:
+    from app.modules.customers.portal import has_portal
+    portal = has_portal(db, customer_id)
+    return [{"key": "portal", "label": "Shipment portal", "connected": portal,
+             "state": "connected" if portal else "not_invited",
+             "detail": "Shown to the customer in their shipment portal" if portal
+             else "Nobody at the customer signs in to the shipment portal yet"},
+            {"key": "email", "label": "Email", "connected": False, "state": "not_connected",
              "detail": "Email isn't connected yet" + (f" · {contact.email}" if contact and contact.email else "")}]
 
 
@@ -85,7 +92,7 @@ def channels_of(db: Session, conv: Conversation) -> list[dict[str, Any]]:
     if conv.kind == "driver":
         return driver_channels(db, db.get(Driver, conv.driver_id))
     if conv.kind == "customer":
-        return customer_channels(db.get(CustomerContact, conv.contact_id) if conv.contact_id else None)
+        return customer_channels(db, conv.customer_id, db.get(CustomerContact, conv.contact_id) if conv.contact_id else None)
     return TEAM_CHANNELS
 
 
@@ -492,7 +499,8 @@ def summary(db: Session, p: Principal, conv: Conversation, last: Message | None,
     elif conv.kind == "customer":
         customer = db.get(Customer, conv.customer_id)
         contact = db.get(CustomerContact, conv.contact_id) if conv.contact_id else None
-        name, tone, channel = customer.name, "mu", "email"
+        from app.modules.customers.portal import has_portal
+        name, tone, channel = customer.name, "mu", "portal" if has_portal(db, conv.customer_id) else "email"
         sub = contact.name if contact else None
     else:
         name, tone, channel = conv.title or "Team", "mu", "team"

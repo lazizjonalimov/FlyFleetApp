@@ -99,7 +99,7 @@ export function NewConversation({ onClose, onOpen, driverId }: { onClose: () => 
           <div className="fld">
             <span className="lbl"><span>Contact</span></span>
             <Combobox f={contactField} />
-            <span className="fs12 mu">Messages to customers go by email, which needs connecting in Integrations before anything is sent.</span>
+            <span className="fs12 mu">Messages to a customer show in their shipment portal once someone there signs in to it; email needs connecting in Integrations.</span>
           </div>
         </>
       ) : null}

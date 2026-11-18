@@ -513,6 +513,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/customers/{customer_id}/portal-users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Portal Users */
+        get: operations["list_portal_users_api_v1_customers__customer_id__portal_users_get"];
+        put?: never;
+        /**
+         * Add Portal User
+         * @description Give someone at the customer a sign-in to the shipment portal. An existing FlyFleet sign-in keeps its
+         *     password; a new one gets the temporary password given here.
+         */
+        post: operations["add_portal_user_api_v1_customers__customer_id__portal_users_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/customers/{customer_id}/portal-users/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Portal User */
+        delete: operations["remove_portal_user_api_v1_customers__customer_id__portal_users__user_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/customers/{item_id}": {
         parameters: {
             query?: never;
@@ -3534,6 +3573,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/portal/customer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_v1_portal_customer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Documents
+         * @description Every bill of lading and approved proof of delivery on the customer's shipments, newest first.
+         */
+        get: operations["documents_api_v1_portal_customer_documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/documents/{document_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download */
+        get: operations["download_api_v1_portal_customer_documents__document_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Invoices
+         * @description The customer's issued invoices: what is owed, what is late, what is paid.
+         */
+        get: operations["invoices_api_v1_portal_customer_invoices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Messages
+         * @description What the customer and the carrier's dispatch have written each other, oldest first.
+         */
+        get: operations["messages_api_v1_portal_customer_messages_get"];
+        put?: never;
+        /**
+         * Write
+         * @description Write to the carrier's dispatch. It arrives in their Messages, from the customer.
+         */
+        post: operations["write_api_v1_portal_customer_messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/shipments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Shipments
+         * @description The customer's shipments, searchable by their PO or the load number.
+         */
+        get: operations["shipments_api_v1_portal_customer_shipments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/portal/customer/shipments/{load_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shipment */
+        get: operations["shipment_api_v1_portal_customer_shipments__load_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/portal/owner": {
         parameters: {
             query?: never;
@@ -6023,7 +6197,7 @@ export interface components {
              * Channel
              * @enum {string}
              */
-            channel: "app" | "email" | "team" | "none";
+            channel: "app" | "email" | "team" | "portal" | "none";
             /** Customer Id */
             customer_id: string | null;
             /** Driver Id */
@@ -6197,6 +6371,153 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** CustomerDocument */
+        CustomerDocument: {
+            /** At */
+            at?: string | null;
+            /** Available */
+            available: boolean;
+            /** Filename */
+            filename: string | null;
+            /** Id */
+            id: string | null;
+            /** Label */
+            label: string;
+            /** Load Number */
+            load_number?: string | null;
+            /**
+             * Note
+             * @description Why it can't be had yet
+             */
+            note: string | null;
+            /** Type */
+            type: string;
+        };
+        /** CustomerInvoice */
+        CustomerInvoice: {
+            /** Balance */
+            balance: string;
+            /** Currency */
+            currency: string;
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Invoice Number */
+            invoice_number: string;
+            /**
+             * Issue Date
+             * Format: date
+             */
+            issue_date: string;
+            /** Loads */
+            loads: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "overdue" | "paid";
+            /** Total */
+            total: string;
+        };
+        /** CustomerPortalHome */
+        CustomerPortalHome: {
+            /** Active */
+            active: number;
+            /** Carrier */
+            carrier: string;
+            /** Customer */
+            customer: string;
+            /**
+             * Customer Id
+             * Format: uuid
+             */
+            customer_id: string;
+            /** Delivered */
+            delivered: number;
+            /** Preview */
+            preview: boolean;
+            /** Timezone */
+            timezone: string;
+            /** User Name */
+            user_name: string;
+        };
+        /** CustomerPortalMessage */
+        CustomerPortalMessage: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Author */
+            author: string;
+            /** Body */
+            body: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Load Number */
+            load_number: string | null;
+            /**
+             * Mine
+             * @description Written from the customer's side
+             */
+            mine: boolean;
+        };
+        /** CustomerPortalMessageIn */
+        CustomerPortalMessageIn: {
+            /** Body */
+            body: string;
+            /** Load Id */
+            load_id?: string | null;
+        };
+        /** CustomerPortalUserIn */
+        CustomerPortalUserIn: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Password
+             * @description Temporary password, needed only for a new sign-in
+             */
+            password?: string | null;
+        };
+        /** CustomerPortalUserOut */
+        CustomerPortalUserOut: {
+            /** Active */
+            active: boolean;
+            /** Email */
+            email: string;
+            /**
+             * Existing Account
+             * @description They already had a FlyFleet sign-in and keep their password
+             * @default false
+             */
+            existing_account: boolean;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Invited At
+             * Format: date-time
+             */
+            invited_at: string;
+            /** Signed In */
+            signed_in: boolean;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
         /** CustomerRead */
         CustomerRead: {
             /** Billing Address */
@@ -6238,6 +6559,89 @@ export interface components {
             phone?: string | null;
             /** Status */
             status: string;
+        };
+        /** CustomerShipment */
+        CustomerShipment: {
+            /** Delivered At */
+            delivered_at: string | null;
+            /** Delivery At */
+            delivery_at: string | null;
+            /** Destination */
+            destination: string;
+            /** Eta */
+            eta: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Late By Minutes */
+            late_by_minutes: number;
+            /** Load Number */
+            load_number: string;
+            /** Origin */
+            origin: string;
+            /** Pickup At */
+            pickup_at: string | null;
+            /** Pod Available */
+            pod_available: boolean;
+            /**
+             * Reference
+             * @description The customer's own number for it: PO or order
+             */
+            reference: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "scheduled" | "at_pickup" | "in_transit" | "delivered" | "on_hold" | "cancelled";
+        };
+        /** CustomerShipmentDetail */
+        CustomerShipmentDetail: {
+            /** Delivered At */
+            delivered_at: string | null;
+            /** Delivery At */
+            delivery_at: string | null;
+            /** Destination */
+            destination: string;
+            /** Documents */
+            documents: components["schemas"]["CustomerDocument"][];
+            /** Equipment Type */
+            equipment_type: string;
+            /** Eta */
+            eta: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Late By Minutes */
+            late_by_minutes: number;
+            /** Load Number */
+            load_number: string;
+            /** Milestones */
+            milestones: components["schemas"]["ShipmentMilestone"][];
+            /** Origin */
+            origin: string;
+            /** Pickup At */
+            pickup_at: string | null;
+            /** Pod Available */
+            pod_available: boolean;
+            position: components["schemas"]["ShipmentPosition"] | null;
+            /**
+             * Reference
+             * @description The customer's own number for it: PO or order
+             */
+            reference: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "scheduled" | "at_pickup" | "in_transit" | "delivered" | "on_hold" | "cancelled";
+            /** Stops */
+            stops: components["schemas"]["ShipmentStop"][];
+            /** @description The carrier's latest message about this shipment */
+            update: components["schemas"]["ShipmentUpdate"] | null;
         };
         /** CustomerStats */
         CustomerStats: {
@@ -9274,7 +9678,7 @@ export interface components {
              * Channels
              * @description Left out: every channel that can carry it
              */
-            channels?: ("app" | "telegram" | "sms" | "email" | "in_app")[] | null;
+            channels?: ("app" | "telegram" | "sms" | "email" | "in_app" | "portal")[] | null;
             /** Document Ids */
             document_ids?: string[];
             /** Load Id */
@@ -12772,6 +13176,72 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** ShipmentMilestone */
+        ShipmentMilestone: {
+            /**
+             * At
+             * @description When it happened, or when it is expected
+             */
+            at: string | null;
+            /** Current */
+            current: boolean;
+            /** Done */
+            done: boolean;
+            /**
+             * Expected
+             * @default false
+             */
+            expected: boolean;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "booked" | "picked_up" | "in_transit" | "delivered";
+            /** Label */
+            label: string;
+        };
+        /** ShipmentPosition */
+        ShipmentPosition: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Place */
+            place: string;
+            /**
+             * Progress
+             * @description How far along, 0 to 1, by straight-line distance
+             */
+            progress: number;
+        };
+        /** ShipmentStop */
+        ShipmentStop: {
+            /** Appt End */
+            appt_end: string | null;
+            /** Appt Start */
+            appt_start: string | null;
+            /** Arrived At */
+            arrived_at: string | null;
+            /** Departed At */
+            departed_at: string | null;
+            /** Name */
+            name: string | null;
+            /** Place */
+            place: string;
+            /** Type */
+            type: string;
+        };
+        /** ShipmentUpdate */
+        ShipmentUpdate: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Body */
+            body: string;
+        };
         /** SignupIn */
         SignupIn: {
             /** Dot Number */
@@ -13357,7 +13827,7 @@ export interface components {
              * Channel
              * @enum {string}
              */
-            channel: "app" | "email" | "team" | "none";
+            channel: "app" | "email" | "team" | "portal" | "none";
             /** Channels */
             channels: components["schemas"]["ChannelState"][];
             customer: components["schemas"]["ThreadCustomer"] | null;
@@ -17036,6 +17506,210 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CustomerDetail"];
                 };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_portal_users_api_v1_customers__customer_id__portal_users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPortalUserOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_portal_user_api_v1_customers__customer_id__portal_users_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerPortalUserIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPortalUserOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_portal_user_api_v1_customers__customer_id__portal_users__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unauthorized */
             401: {
@@ -31409,6 +32083,560 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    home_api_v1_portal_customer_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPortalHome"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    documents_api_v1_portal_customer_documents_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDocument"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_api_v1_portal_customer_documents__document_id__download_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    invoices_api_v1_portal_customer_invoices_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerInvoice"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    messages_api_v1_portal_customer_messages_get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPortalMessage"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    write_api_v1_portal_customer_messages_post: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerPortalMessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPortalMessage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    shipments_api_v1_portal_customer_shipments_get: {
+        parameters: {
+            query?: {
+                view?: "active" | "delivered" | "all";
+                q?: string | null;
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerShipment"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    shipment_api_v1_portal_customer_shipments__load_id__get: {
+        parameters: {
+            query?: {
+                /** @description Staff only: see the portal as this customer does */
+                customer_id?: string | null;
+            };
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerShipmentDetail"];
+                };
             };
             /** @description Unauthorized */
             401: {

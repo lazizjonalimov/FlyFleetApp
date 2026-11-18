@@ -55,7 +55,8 @@ def test_nothing_is_sent_where_no_channel_reaches_them(org):
     channels = org.get(f"/drivers/{s['driver']['id']}/channels").json()
     assert channels["conversation_id"] == conv["id"] and channels["channels"][0]["detail"] == "Not signed up to the driver app yet"
     customer = org.post("/conversations", {"kind": "customer", "customer_id": s["customer"]["id"]}, 201).json()
-    assert customer["name"] == "Globex" and [c["key"] for c in customer["channels"]] == ["email"]
+    assert customer["name"] == "Globex" and [c["key"] for c in customer["channels"]] == ["portal", "email"]
+    assert not any(c["connected"] for c in customer["channels"])         # nobody at Globex signs in to the portal yet
     org.error("POST", f"/conversations/{customer['id']}/messages", 409, "NO_CHANNEL", json={"body": "ETA?"})
     # Conversations with nothing in them don't fill the list.
     assert org.get("/conversations").json()["items"] == []
