@@ -150,11 +150,17 @@ class DefectIn(BaseModel):
     item: str = Field(min_length=1, max_length=120)
     severity: Severity = "minor"
     description: str | None = Field(default=None, max_length=500)
+    # Roadside violations: the regulation, what it was against, and its points when the report gives them.
+    code: str | None = Field(default=None, max_length=30)
+    against: Literal["vehicle", "trailer", "driver"] | None = None
+    points: int | None = Field(default=None, ge=0, le=12)
 
 
 class InspectionCreate(OneUnit):
     driver_id: uuid.UUID | None = None
     kind: InspectionKind
+    level: int | None = Field(default=None, ge=1, le=6, description="Roadside: the inspection level, I to VI")
+    source: Literal["entered", "scan", "driver_app"] = "entered"
     inspected_on: date
     result: InspectionResult
     odometer: int | None = Field(default=None, ge=0, le=5_000_000)
@@ -177,12 +183,31 @@ class DefectOut(BaseModel):
     severity: str
     description: str | None
     work_order: WorkOrderRef | None
+    code: str | None
+    against: str | None
+    points: int | None
+    basic: str | None
 
 
 class InspectionOut(BaseModel):
     id: uuid.UUID
     unit: UnitRef
+    # Every unit on the report: the truck and its trailer for a roadside inspection.
+    units: list[UnitRef]
     driver: Ref | None
+    level: int | None
+    level_label: str | None
+    source: str
+    status: str
+    # Severity points of its violations, and as they count today (times 3, 2 or 1 by the inspection's age).
+    points: int
+    weighted_points: int
+    repairs_due_on: date | None
+    certified_at: datetime | None
+    certified_by_name: str | None
+    dataqs_reference: str | None
+    dataqs_filed_at: datetime | None
+    allowed_actions: list[str]
     kind: InspectionKind
     inspected_on: date
     result: InspectionResult
@@ -199,6 +224,9 @@ class InspectionOut(BaseModel):
 class InspectionListParams(ListParams):
     kind: InspectionKind | None = None
     result: InspectionResult | None = None
+    status: Literal["needs_review", "reviewed", "repairs_certified", "dataqs_filed"] | None = None
+    level: int | None = Field(default=None, ge=1, le=6)
+    violations: bool | None = Field(default=None, description="Only inspections that found something")
     unit_type: UnitType | None = None
     vehicle_id: uuid.UUID | None = None
     trailer_id: uuid.UUID | None = None
@@ -229,3 +257,38 @@ class MaintenanceSummary(BaseModel):
     currency: str
     spend_this_month: Money
     completed_this_month: int
+
+
+class InspectionAction(BaseModel):
+    """review: a person has checked what was recorded. certify: the out-of-service repairs are certified on the
+    report. dataqs: a challenge was filed with FMCSA's DataQs, under its request number."""
+    action: Literal["review", "certify", "dataqs"]
+    reference: str | None = Field(default=None, max_length=40)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class Attention(BaseModel):
+    id: uuid.UUID
+    report_number: str | None
+    out_of_service: list[str]
+    violations: int
+    points: int
+    driver: str | None
+    source: str
+    repairs_due_on: date | None
+
+
+class InspectionSummary(BaseModel):
+    """Roadside inspections over the 24 months FMCSA counts."""
+    roadside: int
+    clean: int
+    with_violations: int
+    vehicle_inspections: int
+    vehicle_out_of_service: int
+    driver_inspections: int
+    driver_out_of_service: int
+    national_vehicle_rate: float
+    national_driver_rate: float
+    needs_review: int
+    needs_review_from_app: int
+    attention: Attention | None

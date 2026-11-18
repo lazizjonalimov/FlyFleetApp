@@ -294,9 +294,14 @@ def read(data: bytes, kind: str, this_year: int) -> Result | None:
     if kind == "inspection_report":
         for line in lines:
             if m := re.search(r"\b(3[89]\d\.\d+[A-Za-z0-9()]*)\s+(.+)$", line.text):
-                violations.append({"code": m[1], "description": m[2][:200].strip(),
-                                   "out_of_service": bool(re.search(r"\bOOS\b|out of service", line.text, re.I)),
-                                   "unit": "", "box": _box(line, line.words), "page": line.page})
+                rest = m[2]
+                # The report's columns after the code, when it has them: the unit (1 the truck, 2 the trailer) and
+                # whether it was put out of service (Y/N).
+                cols = re.match(r"(\d)\s+([YN])\s+(.+)$", rest)
+                description = (cols[3] if cols else rest)[:200].strip()
+                oos = (cols[2] == "Y") if cols else bool(re.search(r"\bOOS\b|out of service", line.text, re.I))
+                violations.append({"code": m[1], "description": description, "out_of_service": oos,
+                                   "unit": cols[1] if cols else "", "box": _box(line, line.words), "page": line.page})
         if violations and "out_of_service" not in found:
             oos = any(v["out_of_service"] for v in violations)
             found["out_of_service"] = Read("out_of_service", "Yes" if oos else "No", 0.8, 1, [], "text")

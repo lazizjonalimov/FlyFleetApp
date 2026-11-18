@@ -1587,6 +1587,80 @@
         "title": "AssignmentOut",
         "type": "object"
       },
+      "Attention": {
+        "properties": {
+          "driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "out_of_service": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Out Of Service",
+            "type": "array"
+          },
+          "points": {
+            "title": "Points",
+            "type": "integer"
+          },
+          "repairs_due_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repairs Due On"
+          },
+          "report_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Number"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "violations": {
+            "title": "Violations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "report_number",
+          "out_of_service",
+          "violations",
+          "points",
+          "driver",
+          "source",
+          "repairs_due_on"
+        ],
+        "title": "Attention",
+        "type": "object"
+      },
       "AttentionItem": {
         "properties": {
           "action": {
@@ -4707,6 +4781,34 @@
       },
       "DefectIn": {
         "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "enum": [
+                  "vehicle",
+                  "trailer",
+                  "driver"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Against"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "description": {
             "anyOf": [
               {
@@ -4724,6 +4826,19 @@
             "minLength": 1,
             "title": "Item",
             "type": "string"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "maximum": 12.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
           },
           "severity": {
             "default": "minor",
@@ -4744,6 +4859,39 @@
       },
       "DefectOut": {
         "properties": {
+          "against": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Against"
+          },
+          "basic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basic"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "description": {
             "anyOf": [
               {
@@ -4763,6 +4911,17 @@
           "item": {
             "title": "Item",
             "type": "string"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
           },
           "severity": {
             "title": "Severity",
@@ -4784,7 +4943,11 @@
           "item",
           "severity",
           "description",
-          "work_order"
+          "work_order",
+          "code",
+          "against",
+          "points",
+          "basic"
         ],
         "title": "DefectOut",
         "type": "object"
@@ -9939,6 +10102,49 @@
         "title": "IngestOut",
         "type": "object"
       },
+      "InspectionAction": {
+        "description": "review: a person has checked what was recorded. certify: the out-of-service repairs are certified on the\nreport. dataqs: a challenge was filed with FMCSA's DataQs, under its request number.",
+        "properties": {
+          "action": {
+            "enum": [
+              "review",
+              "certify",
+              "dataqs"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "InspectionAction",
+        "type": "object"
+      },
       "InspectionCreate": {
         "properties": {
           "defects": {
@@ -9988,6 +10194,20 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "maximum": 6.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Roadside: the inspection level, I to VI",
+            "title": "Level"
           },
           "location": {
             "anyOf": [
@@ -10047,6 +10267,16 @@
             "title": "Result",
             "type": "string"
           },
+          "source": {
+            "default": "entered",
+            "enum": [
+              "entered",
+              "scan",
+              "driver_app"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
           "trailer_id": {
             "anyOf": [
               {
@@ -10082,6 +10312,36 @@
       },
       "InspectionOut": {
         "properties": {
+          "allowed_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Allowed Actions",
+            "type": "array"
+          },
+          "certified_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certified At"
+          },
+          "certified_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certified By Name"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -10097,6 +10357,29 @@
               }
             ],
             "title": "Created By Name"
+          },
+          "dataqs_filed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataqs Filed At"
+          },
+          "dataqs_reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dataqs Reference"
           },
           "defects": {
             "items": {
@@ -10147,6 +10430,28 @@
             "title": "Kind",
             "type": "string"
           },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "level_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Label"
+          },
           "location": {
             "anyOf": [
               {
@@ -10180,6 +10485,22 @@
             ],
             "title": "Odometer"
           },
+          "points": {
+            "title": "Points",
+            "type": "integer"
+          },
+          "repairs_due_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repairs Due On"
+          },
           "report_number": {
             "anyOf": [
               {
@@ -10200,14 +10521,46 @@
             "title": "Result",
             "type": "string"
           },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
           "unit": {
             "$ref": "#/components/schemas/UnitRef"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitRef"
+            },
+            "title": "Units",
+            "type": "array"
+          },
+          "weighted_points": {
+            "title": "Weighted Points",
+            "type": "integer"
           }
         },
         "required": [
           "id",
           "unit",
+          "units",
           "driver",
+          "level",
+          "level_label",
+          "source",
+          "status",
+          "points",
+          "weighted_points",
+          "repairs_due_on",
+          "certified_at",
+          "certified_by_name",
+          "dataqs_reference",
+          "dataqs_filed_at",
+          "allowed_actions",
           "kind",
           "inspected_on",
           "result",
@@ -10221,6 +10574,81 @@
           "defects"
         ],
         "title": "InspectionOut",
+        "type": "object"
+      },
+      "InspectionSummary": {
+        "description": "Roadside inspections over the 24 months FMCSA counts.",
+        "properties": {
+          "attention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Attention"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "clean": {
+            "title": "Clean",
+            "type": "integer"
+          },
+          "driver_inspections": {
+            "title": "Driver Inspections",
+            "type": "integer"
+          },
+          "driver_out_of_service": {
+            "title": "Driver Out Of Service",
+            "type": "integer"
+          },
+          "national_driver_rate": {
+            "title": "National Driver Rate",
+            "type": "number"
+          },
+          "national_vehicle_rate": {
+            "title": "National Vehicle Rate",
+            "type": "number"
+          },
+          "needs_review": {
+            "title": "Needs Review",
+            "type": "integer"
+          },
+          "needs_review_from_app": {
+            "title": "Needs Review From App",
+            "type": "integer"
+          },
+          "roadside": {
+            "title": "Roadside",
+            "type": "integer"
+          },
+          "vehicle_inspections": {
+            "title": "Vehicle Inspections",
+            "type": "integer"
+          },
+          "vehicle_out_of_service": {
+            "title": "Vehicle Out Of Service",
+            "type": "integer"
+          },
+          "with_violations": {
+            "title": "With Violations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "roadside",
+          "clean",
+          "with_violations",
+          "vehicle_inspections",
+          "vehicle_out_of_service",
+          "driver_inspections",
+          "driver_out_of_service",
+          "national_vehicle_rate",
+          "national_driver_rate",
+          "needs_review",
+          "needs_review_from_app",
+          "attention"
+        ],
+        "title": "InspectionSummary",
         "type": "object"
       },
       "Integration": {
@@ -49910,6 +50338,64 @@
           },
           {
             "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "needs_review",
+                    "reviewed",
+                    "repairs_certified",
+                    "dataqs_filed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "level",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 6,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          },
+          {
+            "description": "Only inspections that found something",
+            "in": "query",
+            "name": "violations",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only inspections that found something",
+              "title": "Violations"
+            }
+          },
+          {
+            "in": "query",
             "name": "unit_type",
             "required": false,
             "schema": {
@@ -50139,6 +50625,83 @@
         ]
       }
     },
+    "/api/v1/maintenance/inspections/summary": {
+      "get": {
+        "description": "Roadside inspections over 24 months, the out-of-service rates against the national ones, and what waits for\nreview.",
+        "operationId": "inspection_summary_api_v1_maintenance_inspections_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Inspection Summary",
+        "tags": [
+          "maintenance"
+        ]
+      }
+    },
     "/api/v1/maintenance/inspections/{inspection_id}": {
       "get": {
         "operationId": "get_inspection_api_v1_maintenance_inspections__inspection_id__get",
@@ -50222,6 +50785,105 @@
           }
         ],
         "summary": "Get Inspection",
+        "tags": [
+          "maintenance"
+        ]
+      }
+    },
+    "/api/v1/maintenance/inspections/{inspection_id}/actions": {
+      "post": {
+        "description": "Mark it reviewed, certify the repairs of its out-of-service order, or record a DataQs challenge.",
+        "operationId": "act_on_inspection_api_v1_maintenance_inspections__inspection_id__actions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inspection_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inspection Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspectionAction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Act On Inspection",
         "tags": [
           "maintenance"
         ]

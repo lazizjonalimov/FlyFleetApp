@@ -24,7 +24,8 @@ READ = require("maintenance.read")
 MANAGE = require("maintenance.manage")
 # Inspections belong to safety as much as to the shop.
 INSPECTIONS_READ = require("safety.read", "maintenance.read")
-INSPECTIONS_RECORD = require("safety.manage", "maintenance.manage")
+# A driver records a roadside report from the driver app; it waits for safety to review it.
+INSPECTIONS_RECORD = require("safety.manage", "maintenance.manage", "driver.self")
 FAR = date(9999, 1, 1)
 PRIORITY_RANK = case({"urgent": 0, "high": 1, "normal": 2, "low": 3}, value=WorkOrder.priority)
 
@@ -137,6 +138,14 @@ def list_inspections(params: Annotated[s.InspectionListParams, Query()], p: Prin
         stmt = stmt.where(Inspection.kind == params.kind)
     if params.result:
         stmt = stmt.where(Inspection.result == params.result)
+    if params.status:
+        stmt = stmt.where(Inspection.status == params.status)
+    if params.level:
+        stmt = stmt.where(Inspection.level == params.level)
+    if params.violations is True:
+        stmt = stmt.where(Inspection.result != "pass")
+    elif params.violations is False:
+        stmt = stmt.where(Inspection.result == "pass")
     if params.unit_type == "vehicle":
         stmt = stmt.where(Inspection.vehicle_id.is_not(None))
     elif params.unit_type == "trailer":
@@ -154,7 +163,23 @@ def list_inspections(params: Annotated[s.InspectionListParams, Query()], p: Prin
     sortable = {"inspected_on": Inspection.inspected_on, "created_at": Inspection.created_at}
     rows, info = paginate(db, stmt, parse_sort(params.sort, sortable, "-inspected_on"), Inspection.id,
                           cursor=params.cursor, limit=params.limit, count=params.count)
-    return envelope(service.inspection_out(db, rows), info)
+    return envelope(service.inspection_out(db, rows, p), info)
+
+
+@router.get("/inspections/summary", response_model=s.InspectionSummary)
+def inspection_summary(p: Principal = Depends(INSPECTIONS_READ), db: Session = Depends(get_db)):
+    """Roadside inspections over 24 months, the out-of-service rates against the national ones, and what waits for
+    review."""
+    return service.inspection_summary(db, p)
+
+
+@router.post("/inspections/{inspection_id}/actions", response_model=s.InspectionOut)
+def act_on_inspection(inspection_id: uuid.UUID, body: s.InspectionAction,
+                      p: Principal = Depends(require("safety.manage")), db: Session = Depends(get_db)):
+    """Mark it reviewed, certify the repairs of its out-of-service order, or record a DataQs challenge."""
+    inspection = service.act_on_inspection(db, p, inspection_id, body)
+    db.commit()
+    return service.inspection_out(db, [inspection], p)[0]
 
 
 @router.post("/inspections", response_model=s.InspectionOut, status_code=201)
@@ -165,7 +190,7 @@ def record_inspection(body: s.InspectionCreate, p: Principal = Depends(INSPECTIO
     def work():
         inspection = service.record_inspection(db, p, body)
         db.flush()
-        return 201, service.inspection_out(db, [inspection])[0]
+        return 201, service.inspection_out(db, [inspection], p)[0]
     return run_idempotent(db, p, idempotency_key, "POST /maintenance/inspections", body.model_dump(mode="json"), work)
 
 
@@ -174,7 +199,7 @@ def get_inspection(inspection_id: uuid.UUID, p: Principal = Depends(INSPECTIONS_
     inspection = db.get(Inspection, inspection_id)
     if inspection is None:
         raise NotFound("Inspection not found")
-    return service.inspection_out(db, [inspection])[0]
+    return service.inspection_out(db, [inspection], p)[0]
 
 
 @router.post("/inspections/{inspection_id}/defects/{defect_id}/work-order", response_model=s.WorkOrderDetail,

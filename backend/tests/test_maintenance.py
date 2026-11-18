@@ -341,3 +341,59 @@ def test_a_repair_can_wait_for_parts_and_is_signed_off_when_the_unit_goes_back(o
     after = org.get("/maintenance/summary").json()
     assert after["downtime_days"] is not None and after["downtime_days"] < 1 and after["downtime_days_before"] is None
     assert after["longest_off_road"] is None
+
+
+def test_a_roadside_report_on_truck_and_trailer_is_scored_reviewed_and_certified(org):
+    s = seed(org, with_login=True)
+    safety = org.add_user("safety_manager")
+    day = str(TODAY - timedelta(days=2))
+    # Sent from the driver app: the driver's own report, waiting for safety.
+    report = s["driver_api"].post("/maintenance/inspections", {
+        "kind": "roadside", "level": 1, "vehicle_id": s["truck"]["id"], "trailer_id": s["trailer"]["id"],
+        "inspected_on": day, "result": "out_of_service", "report_number": "TX-26-0417",
+        "location": "Hillsboro, TX", "defects": [
+            {"item": "Tire flat or audible air leak", "code": "393.75(a)(3)", "against": "trailer", "severity": "out_of_service"},
+            {"item": "Clamp-type brake out of adjustment", "code": "393.47(e)", "against": "vehicle", "severity": "major"},
+            {"item": "Inoperable required lamp", "code": "393.9(a)", "against": "trailer", "severity": "minor"}]}, 201).json()
+    assert [u["type"] for u in report["units"]] == ["vehicle", "trailer"] and report["level_label"] == "Full inspection"
+    assert [d["points"] for d in report["defects"]] == [10, 4, 6] and report["points"] == 20
+    assert report["weighted_points"] == 60 and report["defects"][0]["basic"] == "Vehicle Maintenance"
+    assert (report["status"], report["source"], report["driver"]["name"]) == ("needs_review", "driver_app", "Dana Driver")
+    assert report["repairs_due_on"] == str(TODAY + timedelta(days=13))
+    # Only the trailer the out-of-service violation was against leaves the road.
+    assert org.get(f"/trailers/{s['trailer']['id']}").json()["status"] == "out_of_service"
+    assert org.get(f"/vehicles/{s['truck']['id']}").json()["status"] == "active"
+
+    summary = org.get("/maintenance/inspections/summary").json()
+    assert (summary["roadside"], summary["with_violations"], summary["needs_review"]) == (1, 1, 1)
+    assert (summary["vehicle_inspections"], summary["vehicle_out_of_service"]) == (1, 1)
+    assert (summary["driver_inspections"], summary["driver_out_of_service"]) == (1, 0)
+    assert summary["national_vehicle_rate"] == 22.26
+    assert summary["attention"] == {**summary["attention"], "report_number": "TX-26-0417", "out_of_service": ["trailer"],
+                                    "violations": 3, "points": 20, "driver": "Dana Driver", "source": "driver_app"}
+    assert summary["needs_review_from_app"] == 1
+    assert [i["id"] for i in org.items("/maintenance/inspections", status="needs_review", level=1, violations="true")] == [report["id"]]
+
+    url = f"/maintenance/inspections/{report['id']}/actions"
+    org.add_user("dispatcher").error("POST", url, 403, "FORBIDDEN", json={"action": "review"})
+    assert safety.post(url, {"action": "review"}, 200).json()["status"] == "reviewed"
+    # The repairs are certified only once the trailer is repaired and back in service.
+    assert safety.error("POST", url, 409, "STILL_OUT_OF_SERVICE", json={"action": "certify"})
+    tire = report["defects"][0]
+    wo = org.post(f"/maintenance/inspections/{report['id']}/defects/{tire['id']}/work-order", expect=201).json()
+    assert wo["unit"]["type"] == "trailer" and wo["priority"] == "urgent"
+    move(org, wo, "complete", notes="Tire replaced roadside")
+    back_on_the_road(org, s["trailer"], unit_type="trailer")
+    certified = safety.post(url, {"action": "certify"}, 200).json()
+    assert certified["status"] == "repairs_certified" and certified["certified_by_name"] == "Safety Manager"
+    assert safety.error("POST", url, 422, "VALIDATION_ERROR", json={"action": "dataqs", "reference": "x"})
+    filed = safety.post(url, {"action": "dataqs", "reference": "DQ-2026-118"}, 200).json()
+    assert (filed["status"], filed["dataqs_reference"]) == ("dataqs_filed", "DQ-2026-118")
+    # A violation against the driver isn't a repair.
+    driver_only = org.post("/maintenance/inspections", {
+        "kind": "roadside", "level": 3, "vehicle_id": s["truck"]["id"], "driver_id": s["driver"]["id"],
+        "inspected_on": day, "result": "defects",
+        "defects": [{"item": "Medical card not in possession", "code": "391.41(a)", "severity": "minor"}]}, 201).json()
+    assert driver_only["defects"][0]["against"] == "driver" and driver_only["points"] == 1
+    org.error("POST", f"/maintenance/inspections/{driver_only['id']}/defects/{driver_only['defects'][0]['id']}/work-order",
+              409, "NOT_A_REPAIR")

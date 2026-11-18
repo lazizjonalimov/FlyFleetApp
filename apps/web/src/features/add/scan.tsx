@@ -17,6 +17,7 @@ import { errorMessage } from "@/lib/api/errors";
 import type { Schema } from "@/lib/api/types";
 import { fromLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
+import { plural } from "@/lib/format/text";
 import { US_STATES } from "@/lib/reference/states";
 import { checkFile, uploadDocument } from "@/lib/upload";
 import { ModalFrame } from "./frame";
@@ -29,6 +30,18 @@ const TONE: Record<string, string> = { ok: "ok", info: "info", warn: "warn", bad
 const ICON: Record<string, string> = { ok: "M5 12l5 5 9-10", info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01", warn: "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01", bad: "M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" };
 
 /** Add a record from a document: upload it, check what was read next to the document, save. */
+
+type Violation = { code: string; description: string; unit?: string; out_of_service: boolean; against?: "vehicle" | "trailer" | "driver" | null; basic?: string | null; points?: number | null };
+const ROMAN = ["", "I", "II", "III", "IV", "V", "VI"];
+const LEVELS: Record<number, string> = { 1: "Full inspection", 2: "Walk-around", 3: "Driver only", 4: "Special study", 5: "Vehicle only", 6: "Radioactive shipment" };
+/** "I", "Level II", "3" -> 1, 2, 3. */
+function levelOf(text: string | null | undefined): number | null {
+  const t = (text ?? "").replace(/level/i, "").trim().toUpperCase();
+  if (/^[1-6]$/.test(t)) return Number(t);
+  const n = ROMAN.indexOf(t);
+  return n > 0 ? n : null;
+}
+
 export function ScanFlow({ kind, flow, docId = null, onBack, onClose }: { kind: string; flow: Flow; docId?: string | null; onBack: () => void; onClose: () => void }) {
   const { me, notify } = useConsole();
   const scan = flow.scan!;
@@ -303,14 +316,14 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
         message = `Draft ${invoice.invoice_number ?? "invoice"} created for ${load.customer.name}`;
         go = { screen: "invoice", invoiceId: invoice.id };
       } else if (kind === "inspection") {
-        const violations = reads.flatMap((r) => r.violations) as { code: string; description: string; out_of_service: boolean }[];
+        const violations = reads.flatMap((r) => r.violations) as Violation[];
         const oos = violations.some((x) => x.out_of_service);
         const inspection = await unwrap(api.POST("/api/v1/maintenance/inspections", { params: { header: { "idempotency-key": crypto.randomUUID() } }, body: {
           kind: "roadside", inspected_on: v("inspected_on")!, result: oos ? "out_of_service" : violations.length ? "defects" : "pass",
+          level: levelOf(v("level")), source: "scan",
           vehicle_id: v("vehicle_id"), trailer_id: v("trailer_id"), driver_id: v("driver_id"), report_number: v("report_number"),
-          location: [v("location"), v("state")].filter(Boolean).join(", ") || null, inspector: v("inspector"),
-          notes: v("level") ? `Level ${v("level")}` : null,
-          defects: violations.map((x) => ({ item: `${x.code} ${x.description}`.slice(0, 160), severity: x.out_of_service ? "out_of_service" : "major" })),
+          location: [v("location"), v("state")].filter(Boolean).join(", ") || null, inspector: v("inspector"), notes: null,
+          defects: violations.map((x) => ({ item: x.description.slice(0, 120) || x.code, code: x.code, against: x.against ?? null, points: x.points ?? null, severity: x.out_of_service ? "out_of_service" : "major" })),
         } as never }));
         await apply("inspection", inspection.id);
         message = `Inspection saved${oos ? " · out-of-service order recorded" : ""}`;
@@ -338,7 +351,17 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
     }
   };
 
-  const violations = reads.flatMap((r) => r.violations) as { code: string; description: string; unit?: string; out_of_service: boolean }[];
+  const violations = reads.flatMap((r) => r.violations) as Violation[];
+  const unitLabel = (x: Violation) => {
+    if (x.against === "driver") return "Driver";
+    const picked = x.against === "trailer" ? lists.trailers.find((o) => o.v === vals.trailer_id) : lists.trucks.find((o) => o.v === vals.vehicle_id);
+    return `${x.unit ? `Unit ${x.unit}` : x.against === "trailer" ? "Trailer" : "Truck"}${picked ? ` · ${picked.l.replace(/^(Truck|Trailer) /, "")}` : ""}`;
+  };
+  const level = levelOf(vals.level ?? null);
+  const unitsOos = violations.some((x) => x.out_of_service && x.against !== "driver");
+  const driverOos = violations.some((x) => x.out_of_service && x.against === "driver");
+  const driverCount = violations.filter((x) => x.against === "driver").length;
+  const points = violations.reduce((t, x) => t + (x.points ?? 0), 0);
   const invoiceLoad = kind === "invoice" ? lists.loads.find((o) => o.v === vals.load_id) : undefined;
   return (
     <ModalFrame
@@ -388,8 +411,15 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
                 <div className="ires">
                   <div className="r g6 wrap">
                     <span className="h3 f1">Result</span>
-                    {violations.some((x) => x.out_of_service) ? <span className="badge" data-k="bad"><i></i>Out of service</span> : violations.length ? <span className="badge" data-k="warn"><i></i>Violations</span> : <span className="badge" data-k="ok"><i></i>Clean</span>}
+                    <span className="badge" data-k={unitsOos ? "bad" : violations.some((x) => x.against !== "driver") ? "warn" : "ok"}><i></i>{unitsOos ? "Vehicle out of service" : violations.some((x) => x.against !== "driver") ? "Vehicle violations" : "Vehicle clean"}</span>
+                    <span className="badge" data-k={driverOos ? "bad" : driverCount ? "warn" : "ok"}><i></i>{driverOos ? "Driver out of service" : driverCount ? "Driver violations" : "Driver clean"}</span>
                   </div>
+                  <dl className="kv" style={{ gridTemplateColumns: "1fr 1fr", marginTop: "8px" }}>
+                    <div className="c g2"><dt>Level</dt><dd className="w5">{level ? `${ROMAN[level]} · ${LEVELS[level]}` : "Not read"}</dd></div>
+                    <div className="c g2"><dt>Violations</dt><dd className="w5">{`${violations.length} · ${violations.filter((x) => x.out_of_service).length} out of service`}</dd></div>
+                    <div className="c g2"><dt>Severity</dt><dd className="w5">{`${points} points${points ? " · ×3 while recent" : ""}`}</dd></div>
+                    <div className="c g2"><dt>Driver</dt><dd className="w5">{driverCount ? plural(driverCount, "driver violation") : "No driver violations"}</dd></div>
+                  </dl>
                 </div>
                 {violations.length ? (
                   <div className="r g8" style={{ marginTop: "2px" }}>
@@ -401,11 +431,12 @@ function Review({ kind, flow, reads, docs, onRetake, onClose }: { kind: string; 
                   <div key={x.code + x.description} className="vcard">
                     <div className="r g6">
                       <span className="mono fs12 w6 tx"><span>{x.code}</span></span>
-                      {x.unit ? <span className="tag" data-k="mu"><span>{x.unit}</span></span> : null}
+                      <span className="tag" data-k="mu"><span>{unitLabel(x)}</span></span>
                       <span className="sp"></span>
                       {x.out_of_service ? <span className="tag" data-k="bad">Out of service</span> : null}
                     </div>
                     <div className="fs13 w5 tx"><span>{x.description}</span></div>
+                    <div className="fs12 mu">{[x.basic, x.points !== null && x.points !== undefined ? (x.out_of_service ? `${x.points - 2} + 2 out of service` : plural(x.points, "point")) : "Points not known for this code"].filter(Boolean).join(" · ")}</div>
                   </div>
                 ))}
                 <div className="r g8" style={{ marginTop: "4px" }}>

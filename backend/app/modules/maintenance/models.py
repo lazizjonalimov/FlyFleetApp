@@ -28,6 +28,10 @@ INSPECTION_KINDS = ("pre_trip", "post_trip", "annual", "roadside", "other")
 INSPECTION_RESULTS = ("pass", "defects", "out_of_service")
 DEFECT_SEVERITIES = ("minor", "major", "out_of_service")
 ONE_UNIT = "(vehicle_id IS NULL) <> (trailer_id IS NULL)"
+# A roadside inspection looks at the truck and its trailer together: at least one of them.
+SOME_UNIT = "vehicle_id IS NOT NULL OR trailer_id IS NOT NULL"
+INSPECTION_STATUSES = ("needs_review", "reviewed", "repairs_certified", "dataqs_filed")
+INSPECTION_SOURCES = ("entered", "scan", "driver_app", "fmcsa")
 
 
 class WorkOrder(Base, IdMixin, TenantScoped, TimestampMixin):
@@ -114,6 +118,17 @@ class Inspection(Base, IdMixin, TenantScoped, TimestampMixin):
     report_number: Mapped[str | None] = mapped_column(String(80))
     notes: Mapped[str | None] = mapped_column(Text)
     created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Roadside: the level of the inspection (I to VI), where it came from, and what is left to do about it.
+    level: Mapped[int | None] = mapped_column(Integer)
+    source: Mapped[str] = mapped_column(String(15), default="entered", server_default="entered")
+    status: Mapped[str] = mapped_column(String(20), default="reviewed", server_default="reviewed")
+    # An out-of-service order's repairs are certified on the report within 15 days (49 CFR 396.9(d)(3)).
+    repairs_due_on: Mapped[date | None] = mapped_column(Date)
+    certified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    certified_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # A challenge filed with FMCSA's DataQs, by its request number.
+    dataqs_reference: Mapped[str | None] = mapped_column(String(40))
+    dataqs_filed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         ForeignKeyConstraint(["organization_id", "vehicle_id"], ["vehicles.organization_id", "vehicles.id"],
@@ -125,9 +140,12 @@ class Inspection(Base, IdMixin, TenantScoped, TimestampMixin):
         Index("ix_inspections_org_inspected", "organization_id", "inspected_on", "id"),
         Index("ix_inspections_org_vehicle", "organization_id", "vehicle_id"),
         Index("ix_inspections_org_trailer", "organization_id", "trailer_id"),
-        CheckConstraint(ONE_UNIT, name="one_unit"),
+        CheckConstraint(SOME_UNIT, name="some_unit"),
         CheckConstraint("kind IN " + str(INSPECTION_KINDS), name="kind_valid"),
         CheckConstraint("result IN " + str(INSPECTION_RESULTS), name="result_valid"),
+        CheckConstraint("level IS NULL OR level BETWEEN 1 AND 6", name="level_valid"),
+        CheckConstraint("status IN " + str(INSPECTION_STATUSES), name="status_valid"),
+        CheckConstraint("source IN " + str(INSPECTION_SOURCES), name="source_valid"),
     )
 
 
@@ -140,6 +158,10 @@ class InspectionDefect(Base, IdMixin, TenantScoped):
     description: Mapped[str | None] = mapped_column(String(500))
     work_order_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # the order they were listed in
+    # Roadside violations: the regulation, what it was against, and its severity points as FMCSA weighs them.
+    code: Mapped[str | None] = mapped_column(String(30))
+    against: Mapped[str | None] = mapped_column(String(10))
+    points: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         ForeignKeyConstraint(["organization_id", "inspection_id"], ["inspections.organization_id", "inspections.id"],
@@ -148,4 +170,6 @@ class InspectionDefect(Base, IdMixin, TenantScoped):
                              name="fk_inspection_defects_work_order"),
         Index("ix_inspection_defects_org_inspection", "organization_id", "inspection_id"),
         CheckConstraint("severity IN " + str(DEFECT_SEVERITIES), name="severity_valid"),
+        CheckConstraint("against IS NULL OR against IN ('vehicle', 'trailer', 'driver')", name="against_valid"),
+        CheckConstraint("points IS NULL OR points BETWEEN 0 AND 12", name="points_valid"),
     )

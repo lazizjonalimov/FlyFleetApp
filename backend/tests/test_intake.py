@@ -279,3 +279,21 @@ def test_a_load_spreadsheet_books_drafts_and_adds_new_customers(org):
     assert again["cant"] == 1 and again["issues"][0]["message"] == "Customer “Hooli” isn't in FlyFleet; your role can't add customers"
     org.add_user("safety_manager").error("POST", "/imports", 403, "FORBIDDEN", files={"file": ("l.csv", b"a\n1\n")},
                                          data={"kind": "loads"})
+
+
+def test_an_inspection_report_is_read_violation_by_violation(org):
+    report = text_pdf([[(40, 740, "DRIVER / VEHICLE EXAMINATION REPORT"), (40, 700, "Report no. TX-26-0417"),
+                        (300, 700, "Date 11/12/2026"), (460, 700, "Level I"), (40, 660, "Driver CARTER, JAMAL"),
+                        (40, 600, "393.47(e) 1 N Clamp type brake out of adjustment"),
+                        (40, 585, "393.9(a) 2 N Inoperable required lamp"),
+                        (40, 570, "393.75(a)(3) 2 Y Tire flat audible air leak"),
+                        (40, 555, "391.41(a) 1 N Medical card not in possession")]])
+    doc = upload_unattached(org, report, "inspection", "report.pdf", "application/pdf")
+    read = org.post("/intake/reads", {"document_id": doc["id"], "kind": "inspection_report"}, 201).json()
+    got = {v["code"]: v for v in read["violations"]}
+    assert [v["code"] for v in read["violations"]] == ["393.47(e)", "393.9(a)", "393.75(a)(3)", "391.41(a)"]
+    assert (got["393.47(e)"]["against"], got["393.47(e)"]["points"], got["393.47(e)"]["out_of_service"]) == ("vehicle", 4, False)
+    assert (got["393.75(a)(3)"]["against"], got["393.75(a)(3)"]["points"], got["393.75(a)(3)"]["out_of_service"]) == ("trailer", 10, True)
+    assert got["393.75(a)(3)"]["description"] == "Tire flat audible air leak" and got["393.75(a)(3)"]["basic"] == "Vehicle Maintenance"
+    assert (got["391.41(a)"]["against"], got["391.41(a)"]["points"]) == ("driver", 1)
+    assert {f["key"]: f["value"] for f in read["fields"]}["out_of_service"] == "Yes"

@@ -18,6 +18,7 @@ from app.core.money import money
 from app.modules.drivers.models import Driver
 from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.maintenance import schemas as s
+from app.modules.maintenance import violations
 from app.modules.maintenance.models import Inspection, InspectionDefect, WorkOrder, WorkOrderLine
 from app.modules.organizations.models import Organization, User
 
@@ -215,8 +216,36 @@ def one_year_after(day: date) -> date:
         return day + timedelta(days=365)
 
 
+def _inspection_units(db: Session, body: s.InspectionCreate) -> list[Unit]:
+    """The units on the report: one, or for a roadside inspection the truck and its trailer."""
+    if body.kind == "roadside" and body.vehicle_id and body.trailer_id:
+        return [find_unit(db, body.vehicle_id, None, lock=True), find_unit(db, None, body.trailer_id, lock=True)]
+    return [find_unit(db, body.vehicle_id, body.trailer_id, lock=True)]
+
+
+def _against(defect: s.DefectIn, units: list[Unit]) -> str | None:
+    """What a violation was against: as recorded, the driver for the driver's regulations (391, 392, 395), else the
+    one unit on the report or the truck."""
+    if defect.against:
+        return defect.against
+    if defect.code and defect.code.strip().startswith(("391", "392", "395")):
+        return "driver"
+    if not defect.code:
+        return None
+    return kind_of(units[0])
+
+
 def record_inspection(db: Session, p: Principal, body: s.InspectionCreate) -> Inspection:
-    unit = find_unit(db, body.vehicle_id, body.trailer_id, lock=True)
+    if p.role == "driver":
+        # From the driver app: their own roadside report, which safety reviews.
+        mine = db.scalar(select(Driver.id).where(Driver.user_id == p.user_id))
+        if mine is None or body.kind != "roadside":
+            raise Invalid("Drivers send their roadside inspection reports", field="kind")
+        body = body.model_copy(update={"driver_id": mine, "source": "driver_app"})
+    units = _inspection_units(db, body)
+    unit = units[0]
+    if body.level is not None and body.kind != "roadside":
+        raise Invalid("Only a roadside inspection has a level", field="level")
     if body.driver_id is not None and db.get(Driver, body.driver_id) is None:
         raise Invalid("Driver not found", field="driver_id")
     if body.inspected_on > p.today():
@@ -228,16 +257,34 @@ def record_inspection(db: Session, p: Principal, body: s.InspectionCreate) -> In
     if any(d.severity == "out_of_service" for d in body.defects) and body.result != "out_of_service":
         raise Invalid("An out-of-service defect puts the unit out of service: choose that result", field="result")
 
-    inspection = Inspection(organization_id=p.org_id, created_by=p.user_id, **body.model_dump(exclude={"defects"}))
+    out_of_service = any(d.severity == "out_of_service" for d in body.defects)
+    # Read from a report or sent from a phone, it waits for safety to look at it; entered by safety, it is checked.
+    status = "needs_review" if body.source == "driver_app" or (body.source != "entered" and not p.can("safety.manage")) \
+        else "reviewed"
+    inspection = Inspection(organization_id=p.org_id, created_by=p.user_id, status=status,
+                            repairs_due_on=body.inspected_on + timedelta(days=15) if out_of_service and body.kind == "roadside"
+                            else None, **body.model_dump(exclude={"defects", "vehicle_id", "trailer_id"}),
+                            vehicle_id=body.vehicle_id, trailer_id=body.trailer_id)
     db.add(inspection)
     db.flush()
     for position, defect in enumerate(body.defects):
+        against = _against(defect, units)
         db.add(InspectionDefect(organization_id=p.org_id, inspection_id=inspection.id, position=position,
-                                **defect.model_dump()))
+                                **defect.model_dump(exclude={"against", "points"}), against=against,
+                                points=violations.points_of(defect.code, defect.severity == "out_of_service", defect.points)
+                                if defect.code else defect.points))
 
     if body.result == "out_of_service":
         what = body.kind.replace("_", " ").capitalize()
-        take_off_road(db, p, unit, "out_of_service", f"{what} inspection on {body.inspected_on.isoformat()}")
+        why = f"{what} inspection on {body.inspected_on.isoformat()}"
+        # The units the out-of-service violations were against. Said of none (or no violation is marked out of
+        # service), it is the inspection's unit; against the driver only, no unit leaves the road.
+        named = {_against(d, units) for d in body.defects if d.severity == "out_of_service"}
+        held = [u for u in units if kind_of(u) in named]
+        if not held and (not named or None in named):
+            held = [unit]
+        for each in held:
+            take_off_road(db, p, each, "out_of_service", why)
     if body.kind == "annual" and body.result == "pass":
         # A passed annual inspection is good for a year: the unit's compliance date moves with it.
         due = one_year_after(body.inspected_on)
@@ -246,8 +293,95 @@ def record_inspection(db: Session, p: Principal, body: s.InspectionCreate) -> In
     if body.odometer and isinstance(unit, Vehicle) and (unit.odometer is None or body.odometer > unit.odometer):
         unit.odometer = body.odometer
     audit(db, p, "inspection.recorded", "inspection", inspection.id,
-          {"unit": unit_ref(unit).name, "kind": body.kind, "result": body.result, "defects": len(body.defects)})
+          {"unit": " · ".join(unit_ref(u).name for u in units), "kind": body.kind, "result": body.result,
+           "defects": len(body.defects), "level": body.level, "source": body.source})
     return inspection
+
+
+def inspection_actions(inspection: Inspection, p: Principal, oos: bool) -> list[str]:
+    if not p.can("safety.manage"):
+        return []
+    out = []
+    if inspection.status == "needs_review":
+        out.append("review")
+    if oos and inspection.status in ("needs_review", "reviewed"):
+        out.append("certify")
+    if inspection.kind == "roadside" and inspection.result != "pass" and inspection.status != "dataqs_filed":
+        out.append("dataqs")
+    return out
+
+
+def act_on_inspection(db: Session, p: Principal, inspection_id: uuid.UUID, body: s.InspectionAction) -> Inspection:
+    inspection = db.scalar(select(Inspection).where(Inspection.id == inspection_id).with_for_update())
+    if inspection is None:
+        raise NotFound("Inspection not found")
+    defects = list(db.scalars(select(InspectionDefect).where(InspectionDefect.inspection_id == inspection.id)))
+    oos = any(d.severity == "out_of_service" for d in defects)
+    if body.action not in inspection_actions(inspection, p, oos):
+        raise Conflict("That can't be done to this inspection now", code="INVALID_TRANSITION",
+                       details={"status": inspection.status, "action": body.action})
+    note = (body.note or "").strip() or None
+    if body.action == "review":
+        inspection.status = "reviewed"
+    elif body.action == "certify":
+        held = [u for u in (db.get(Vehicle, inspection.vehicle_id) if inspection.vehicle_id else None,
+                            db.get(Trailer, inspection.trailer_id) if inspection.trailer_id else None)
+                if u is not None and u.status == "out_of_service"]
+        if held:
+            raise Conflict(f"{unit_ref(held[0]).name} is still out of service: repair it and return it to service first",
+                           code="STILL_OUT_OF_SERVICE")
+        inspection.status, inspection.certified_at, inspection.certified_by = "repairs_certified", datetime.now(UTC), p.user_id
+    else:
+        reference = (body.reference or "").strip()
+        if len(reference) < 3:
+            raise Invalid("Enter the DataQs request number", field="reference")
+        inspection.status, inspection.dataqs_reference = "dataqs_filed", reference
+        inspection.dataqs_filed_at = datetime.now(UTC)
+    event = {"review": "reviewed", "certify": "repairs_certified", "dataqs": "dataqs_filed"}[body.action]
+    audit(db, p, f"inspection.{event}", "inspection", inspection.id,
+          {k: v for k, v in (("note", note), ("reference", body.reference)) if v} or None)
+    return inspection
+
+
+def inspection_summary(db: Session, p: Principal) -> s.InspectionSummary:
+    """Roadside inspections over the 24 months FMCSA counts, the out-of-service rates, what waits for review."""
+    today = p.today()
+    rows = list(db.scalars(select(Inspection).where(Inspection.kind == "roadside",
+                                                    Inspection.inspected_on >= today - timedelta(days=730))))
+    found = {}
+    if rows:
+        for d in db.scalars(select(InspectionDefect).where(InspectionDefect.inspection_id.in_([r.id for r in rows]))):
+            found.setdefault(d.inspection_id, []).append(d)
+    def oos_against(r, kinds):
+        return any(d.severity == "out_of_service" and (d.against in kinds or (d.against is None and "vehicle" in kinds))
+                   for d in found.get(r.id, []))
+    vehicle = [r for r in rows if r.level in violations.VEHICLE_LEVELS or r.level is None]
+    driver = [r for r in rows if r.level in violations.DRIVER_LEVELS]
+    waiting = list(db.scalars(select(Inspection).where(Inspection.status == "needs_review")
+                              .order_by(Inspection.inspected_on.desc(), Inspection.created_at.desc())))
+    attention = None
+    flagged = next((r for r in waiting if any(d.severity == "out_of_service" for d in found.get(r.id, []))), None) \
+        or (waiting[0] if waiting else None)
+    if flagged is not None:
+        defects = found.get(flagged.id) or list(db.scalars(select(InspectionDefect).where(
+            InspectionDefect.inspection_id == flagged.id)))
+        held = sorted({d.against or "vehicle" for d in defects if d.severity == "out_of_service"})
+        name = None
+        if flagged.driver_id:
+            d = db.get(Driver, flagged.driver_id)
+            name = f"{d.first_name} {d.last_name}" if d else None
+        attention = s.Attention(id=flagged.id, report_number=flagged.report_number, out_of_service=held,
+                                violations=len(defects), points=sum(d.points or 0 for d in defects), driver=name,
+                                source=flagged.source, repairs_due_on=flagged.repairs_due_on)
+    return s.InspectionSummary(
+        roadside=len(rows), clean=sum(1 for r in rows if r.result == "pass"),
+        with_violations=sum(1 for r in rows if r.result != "pass"),
+        vehicle_inspections=len(vehicle),
+        vehicle_out_of_service=sum(1 for r in vehicle if oos_against(r, ("vehicle", "trailer"))),
+        driver_inspections=len(driver), driver_out_of_service=sum(1 for r in driver if oos_against(r, ("driver",))),
+        national_vehicle_rate=violations.NATIONAL_OOS["vehicle"], national_driver_rate=violations.NATIONAL_OOS["driver"],
+        needs_review=len(waiting), needs_review_from_app=sum(1 for r in waiting if r.source == "driver_app"),
+        attention=attention)
 
 
 def work_order_from_defect(db: Session, p: Principal, inspection_id: uuid.UUID, defect_id: uuid.UUID) -> WorkOrder:
@@ -257,8 +391,13 @@ def work_order_from_defect(db: Session, p: Principal, inspection_id: uuid.UUID, 
         raise NotFound("Defect not found")
     if defect.work_order_id:
         raise Conflict("A work order was already raised for this defect", code="DUPLICATE_REFERENCE")
+    if defect.against == "driver":
+        raise Conflict("A violation against the driver isn't repaired in the shop", code="NOT_A_REPAIR")
+    vehicle_id, trailer_id = inspection.vehicle_id, inspection.trailer_id
+    if vehicle_id and trailer_id:  # a roadside report on both: the unit the violation was against
+        vehicle_id, trailer_id = (None, trailer_id) if defect.against == "trailer" else (vehicle_id, None)
     body = s.WorkOrderCreate(
-        vehicle_id=inspection.vehicle_id, trailer_id=inspection.trailer_id, title=defect.item, description=defect.description,
+        vehicle_id=vehicle_id, trailer_id=trailer_id, title=defect.item, description=defect.description,
         priority={"out_of_service": "urgent", "major": "high"}.get(defect.severity, "normal"),
         out_of_service=defect.severity == "out_of_service", odometer=inspection.odometer)
     return create_work_order(db, p, body, defect=defect)
@@ -338,7 +477,7 @@ def work_order_detail(db: Session, p: Principal, work_order_id: uuid.UUID) -> s.
         allowed_actions=allowed_actions(wo, p), editable=p.can("maintenance.manage") and wo.status in OPEN)
 
 
-def inspection_out(db: Session, inspections: list[Inspection]) -> list[s.InspectionOut]:
+def inspection_out(db: Session, inspections: list[Inspection], p: Principal | None = None) -> list[s.InspectionOut]:
     if not inspections:
         return []
     units = units_by_id(db, [i.vehicle_id for i in inspections], [i.trailer_id for i in inspections])
@@ -352,15 +491,31 @@ def inspection_out(db: Session, inspections: list[Inspection]) -> list[s.Inspect
         .order_by(InspectionDefect.position, InspectionDefect.id))
     for d, number, status in rows:
         work_order = s.WorkOrderRef(id=d.work_order_id, number=number, status=status) if d.work_order_id else None
+        entry = violations.lookup(d.code)
         defects.setdefault(d.inspection_id, []).append(
-            s.DefectOut(id=d.id, item=d.item, severity=d.severity, description=d.description, work_order=work_order))
-    people = names(db, [i.created_by for i in inspections])
-    return [s.InspectionOut(
-        id=i.id, unit=units[i.vehicle_id or i.trailer_id],
-        driver=s.Ref(id=i.driver_id, name=drivers[i.driver_id]) if i.driver_id in drivers else None,
-        kind=i.kind, inspected_on=i.inspected_on, result=i.result, odometer=i.odometer, location=i.location,
-        inspector=i.inspector, report_number=i.report_number, notes=i.notes, created_by_name=people.get(i.created_by),
-        created_at=i.created_at, defects=defects.get(i.id, [])) for i in inspections]
+            s.DefectOut(id=d.id, item=d.item, severity=d.severity, description=d.description, work_order=work_order,
+                        code=d.code, against=d.against, points=d.points,
+                        basic=violations.BASICS.get(entry[1]) if entry else None))
+    people = names(db, [x for i in inspections for x in (i.created_by, i.certified_by)])
+    today = p.today() if p is not None else date.today()
+    out = []
+    for i in inspections:
+        found = defects.get(i.id, [])
+        points = sum(d.points or 0 for d in found)
+        out.append(s.InspectionOut(
+            id=i.id, unit=units[i.vehicle_id or i.trailer_id],
+            units=[units[x] for x in (i.vehicle_id, i.trailer_id) if x],
+            driver=s.Ref(id=i.driver_id, name=drivers[i.driver_id]) if i.driver_id in drivers else None,
+            kind=i.kind, inspected_on=i.inspected_on, result=i.result, odometer=i.odometer, location=i.location,
+            inspector=i.inspector, report_number=i.report_number, notes=i.notes,
+            created_by_name=people.get(i.created_by), created_at=i.created_at, defects=found,
+            level=i.level, level_label=violations.LEVELS.get(i.level) if i.level else None, source=i.source,
+            status=i.status, points=points, weighted_points=points * violations.time_weight(i.inspected_on, today),
+            repairs_due_on=i.repairs_due_on, certified_at=i.certified_at,
+            certified_by_name=people.get(i.certified_by), dataqs_reference=i.dataqs_reference,
+            dataqs_filed_at=i.dataqs_filed_at,
+            allowed_actions=inspection_actions(i, p, any(d.severity == "out_of_service" for d in found)) if p else []))
+    return out
 
 
 def summary(db: Session, p: Principal) -> s.MaintenanceSummary:

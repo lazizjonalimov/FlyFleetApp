@@ -374,9 +374,24 @@ def present(db: Session, p: Principal, r: DocumentRead) -> ReadOut:
     return ReadOut(id=r.id, document_id=r.document_id, filename=doc.filename if doc else "",
                    content_type=doc.content_type if doc else "",
                    kind=r.kind, kind_label=label, status=r.status, reader=r.reader, pages=r.pages,
-                   duration_ms=r.duration_ms, error=r.error, fields=fields, violations=r.violations,
+                   duration_ms=r.duration_ms, error=r.error, fields=fields, violations=_scored(r.violations),
                    checks=found_checks, suggestions=suggest, applied_entity_type=r.applied_entity_type,
                    applied_entity_id=r.applied_entity_id, corrections=r.corrections, created_at=r.created_at)
+
+
+def _scored(found: list[dict]) -> list[dict]:
+    """Each violation read from a report with what FlyFleet knows of its code: what it was against (the unit
+    column, or the driver for the driver's regulations), its BASIC and its severity points."""
+    from app.modules.maintenance import violations as rules
+    out = []
+    for v in found:
+        code = str(v.get("code") or "")
+        against = "driver" if code.startswith(("391", "392", "395")) else \
+            {"1": "vehicle", "2": "trailer"}.get(str(v.get("unit") or ""), None)
+        entry = rules.lookup(code)
+        out.append({**v, "against": against, "basic": rules.BASICS.get(entry[1]) if entry else None,
+                    "points": rules.points_of(code, bool(v.get("out_of_service")))})
+    return out
 
 
 ENTITY_MODELS = {"driver": Driver, "vehicle": Vehicle, "trailer": Trailer, "load": Load, "inspection": Inspection,

@@ -2628,6 +2628,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/maintenance/inspections/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Inspection Summary
+         * @description Roadside inspections over 24 months, the out-of-service rates against the national ones, and what waits for
+         *     review.
+         */
+        get: operations["inspection_summary_api_v1_maintenance_inspections_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/maintenance/inspections/{inspection_id}": {
         parameters: {
             query?: never;
@@ -2639,6 +2660,26 @@ export interface paths {
         get: operations["get_inspection_api_v1_maintenance_inspections__inspection_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/maintenance/inspections/{inspection_id}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Act On Inspection
+         * @description Mark it reviewed, certify the repairs of its out-of-service order, or record a DataQs challenge.
+         */
+        post: operations["act_on_inspection_api_v1_maintenance_inspections__inspection_id__actions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4980,6 +5021,28 @@ export interface components {
             trailer: components["schemas"]["Ref"] | null;
             vehicle: components["schemas"]["Ref"];
         };
+        /** Attention */
+        Attention: {
+            /** Driver */
+            driver: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Out Of Service */
+            out_of_service: string[];
+            /** Points */
+            points: number;
+            /** Repairs Due On */
+            repairs_due_on: string | null;
+            /** Report Number */
+            report_number: string | null;
+            /** Source */
+            source: string;
+            /** Violations */
+            violations: number;
+        };
         /** AttentionItem */
         AttentionItem: {
             /**
@@ -5961,10 +6024,16 @@ export interface components {
         };
         /** DefectIn */
         DefectIn: {
+            /** Against */
+            against?: ("vehicle" | "trailer" | "driver") | null;
+            /** Code */
+            code?: string | null;
             /** Description */
             description?: string | null;
             /** Item */
             item: string;
+            /** Points */
+            points?: number | null;
             /**
              * Severity
              * @default minor
@@ -5974,6 +6043,12 @@ export interface components {
         };
         /** DefectOut */
         DefectOut: {
+            /** Against */
+            against: string | null;
+            /** Basic */
+            basic: string | null;
+            /** Code */
+            code: string | null;
             /** Description */
             description: string | null;
             /**
@@ -5983,6 +6058,8 @@ export interface components {
             id: string;
             /** Item */
             item: string;
+            /** Points */
+            points: number | null;
             /** Severity */
             severity: string;
             work_order: components["schemas"]["WorkOrderRef"] | null;
@@ -7562,6 +7639,22 @@ export interface components {
             /** Received */
             received: number;
         };
+        /**
+         * InspectionAction
+         * @description review: a person has checked what was recorded. certify: the out-of-service repairs are certified on the
+         *     report. dataqs: a challenge was filed with FMCSA's DataQs, under its request number.
+         */
+        InspectionAction: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "review" | "certify" | "dataqs";
+            /** Note */
+            note?: string | null;
+            /** Reference */
+            reference?: string | null;
+        };
         /** InspectionCreate */
         InspectionCreate: {
             /** Defects */
@@ -7580,6 +7673,11 @@ export interface components {
              * @enum {string}
              */
             kind: "pre_trip" | "post_trip" | "annual" | "roadside" | "other";
+            /**
+             * Level
+             * @description Roadside: the inspection level, I to VI
+             */
+            level?: number | null;
             /** Location */
             location?: string | null;
             /** Notes */
@@ -7593,6 +7691,12 @@ export interface components {
              * @enum {string}
              */
             result: "pass" | "defects" | "out_of_service";
+            /**
+             * Source
+             * @default entered
+             * @enum {string}
+             */
+            source: "entered" | "scan" | "driver_app";
             /** Trailer Id */
             trailer_id?: string | null;
             /** Vehicle Id */
@@ -7600,6 +7704,12 @@ export interface components {
         };
         /** InspectionOut */
         InspectionOut: {
+            /** Allowed Actions */
+            allowed_actions: string[];
+            /** Certified At */
+            certified_at: string | null;
+            /** Certified By Name */
+            certified_by_name: string | null;
             /**
              * Created At
              * Format: date-time
@@ -7607,6 +7717,10 @@ export interface components {
             created_at: string;
             /** Created By Name */
             created_by_name: string | null;
+            /** Dataqs Filed At */
+            dataqs_filed_at: string | null;
+            /** Dataqs Reference */
+            dataqs_reference: string | null;
             /** Defects */
             defects: components["schemas"]["DefectOut"][];
             driver: components["schemas"]["Ref"] | null;
@@ -7627,12 +7741,20 @@ export interface components {
              * @enum {string}
              */
             kind: "pre_trip" | "post_trip" | "annual" | "roadside" | "other";
+            /** Level */
+            level: number | null;
+            /** Level Label */
+            level_label: string | null;
             /** Location */
             location: string | null;
             /** Notes */
             notes: string | null;
             /** Odometer */
             odometer: number | null;
+            /** Points */
+            points: number;
+            /** Repairs Due On */
+            repairs_due_on: string | null;
             /** Report Number */
             report_number: string | null;
             /**
@@ -7640,7 +7762,44 @@ export interface components {
              * @enum {string}
              */
             result: "pass" | "defects" | "out_of_service";
+            /** Source */
+            source: string;
+            /** Status */
+            status: string;
             unit: components["schemas"]["UnitRef"];
+            /** Units */
+            units: components["schemas"]["UnitRef"][];
+            /** Weighted Points */
+            weighted_points: number;
+        };
+        /**
+         * InspectionSummary
+         * @description Roadside inspections over the 24 months FMCSA counts.
+         */
+        InspectionSummary: {
+            attention: components["schemas"]["Attention"] | null;
+            /** Clean */
+            clean: number;
+            /** Driver Inspections */
+            driver_inspections: number;
+            /** Driver Out Of Service */
+            driver_out_of_service: number;
+            /** National Driver Rate */
+            national_driver_rate: number;
+            /** National Vehicle Rate */
+            national_vehicle_rate: number;
+            /** Needs Review */
+            needs_review: number;
+            /** Needs Review From App */
+            needs_review_from_app: number;
+            /** Roadside */
+            roadside: number;
+            /** Vehicle Inspections */
+            vehicle_inspections: number;
+            /** Vehicle Out Of Service */
+            vehicle_out_of_service: number;
+            /** With Violations */
+            with_violations: number;
         };
         /** Integration */
         Integration: {
@@ -26468,6 +26627,10 @@ export interface operations {
                 count?: boolean;
                 kind?: ("pre_trip" | "post_trip" | "annual" | "roadside" | "other") | null;
                 result?: ("pass" | "defects" | "out_of_service") | null;
+                status?: ("needs_review" | "reviewed" | "repairs_certified" | "dataqs_filed") | null;
+                level?: number | null;
+                /** @description Only inspections that found something */
+                violations?: boolean | null;
                 unit_type?: ("vehicle" | "trailer") | null;
                 vehicle_id?: string | null;
                 trailer_id?: string | null;
@@ -26605,6 +26768,71 @@ export interface operations {
             };
         };
     };
+    inspection_summary_api_v1_maintenance_inspections_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     get_inspection_api_v1_maintenance_inspections__inspection_id__get: {
         parameters: {
             query?: never;
@@ -26615,6 +26843,77 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InspectionOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    act_on_inspection_api_v1_maintenance_inspections__inspection_id__actions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inspection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InspectionAction"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

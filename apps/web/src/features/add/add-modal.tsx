@@ -100,7 +100,7 @@ async function save(kind: string, values: Values, editId: string | null, key: st
     }
     case "inspection": {
       const defect = text(v.defect).trim();
-      await unwrap(api.POST("/api/v1/maintenance/inspections", { params: { header }, body: { inspected_on: text(v.inspected_on), kind: text(v.kind) as "pre_trip", result: text(v.result) as "pass", ...unitOf(v.unit), driver_id: blank(v.driver_id), report_number: blank(v.report_number), location: blank(v.location), inspector: blank(v.inspector), notes: blank(v.notes), defects: defect ? [{ item: defect, severity: text(v.severity) as "minor" }] : [] } }));
+      await unwrap(api.POST("/api/v1/maintenance/inspections", { params: { header }, body: { inspected_on: text(v.inspected_on), kind: text(v.kind) as "pre_trip", result: text(v.result) as "pass", ...unitOf(v.unit), driver_id: blank(v.driver_id), report_number: blank(v.report_number), location: blank(v.location), inspector: blank(v.inspector), notes: blank(v.notes), source: "entered", level: null, defects: defect ? [{ item: defect, severity: text(v.severity) as "minor" }] : [] } }));
       return { message: "Inspection recorded", go: goTo("inspections") };
     }
     case "invoice": {
