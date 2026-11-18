@@ -3,6 +3,8 @@ import csv
 import io
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import text
+
 from tests.conftest import complete, deliver, new_load, qualify, seed, stops, upload
 
 
@@ -213,3 +215,94 @@ def test_csv_export_needs_permission_is_audited_and_is_safe_to_open(org):
     assert dispatcher.get("/reports/drivers").json()["rows"]
     dispatcher.error("GET", "/reports/drivers", 403, "FORBIDDEN", params={"format": "csv"})
     org.add_user("driver").error("GET", "/reports/drivers", 403, "FORBIDDEN")
+
+
+def test_on_time_delivery_by_week_by_customer_and_the_weakest_lane(org):
+    s = seed(org)
+    initech = org.post("/customers", {"name": "Initech"}, 201).json()
+    for appointment in (iso(days=5), iso(days=6), iso(days=-2)):          # two on time, one two days late
+        deliver(org, new_load(org, s["customer"]["id"], stops=stops(iso(days=-3), appointment)), s)
+    for appointment in (iso(days=-1), iso(days=-2)):                       # both late
+        deliver(org, new_load(org, initech["id"], stops=stops(iso(days=-3), appointment)), s)
+    new_load(org, initech["id"], stops=stops(iso(days=-3), iso(days=-2)))   # never delivered: not judged
+
+    report = org.get("/reports/on-time").json()
+    assert (report["weeks"], report["target_pct"], report["date_to"]) == (8, 95, day(0))
+    assert (report["deliveries"], report["on_time"], report["late"], report["pct"]) == (5, 2, 3, "40.0")
+    # Late by the appointment less the 15 minutes' grace: two days, one day and two days.
+    assert abs(report["avg_late_minutes"] - (2865 + 1425 + 2865) / 3) <= 2
+    assert abs(report["median_late_minutes"] - 2865) <= 2
+    assert len(report["by_week"]) == 8 and report["by_week"][-1]["deliveries"] == 5
+    assert all(w["deliveries"] == 0 and w["pct"] is None for w in report["by_week"][:-1])
+    assert (report["previous_pct"], report["previous_deliveries"]) == (None, 0)
+    worst, best = report["by_customer"]
+    assert (worst["name"], worst["on_time"], worst["pct"]) == ("Initech", 0, "0.0")       # worst first
+    assert (best["name"], best["deliveries"], best["on_time"], best["late"], best["pct"]) == ("Globex", 3, 2, 1, "66.7")
+    lane = report["weakest_lane"]
+    assert (lane["origin"], lane["destination"], lane["deliveries"], lane["pct"]) == ("Chicago, IL", "Dallas, TX", 5, "40.0")
+
+    one = org.get("/reports/on-time", params={"customer_id": initech["id"], "weeks": 4}).json()
+    assert len(one["by_week"]) == 4 and one["pct"] == "0.0" and [c["name"] for c in one["by_customer"]] == ["Initech"]
+    assert one["weakest_lane"] is None                  # two deliveries are too few to call a lane weak
+
+    rows = list(csv.reader(io.StringIO(org.get("/reports/on-time", params={"format": "csv"}).text.lstrip("﻿"))))
+    assert rows[0] == ["Customer", "Deliveries", "On time", "Late", "On-time %", "Average lateness (min)"]
+    assert rows[1][0] == "Initech" and rows[-1][0] == "Total"
+
+
+def test_the_rest_of_the_catalog(org, owner_sql):
+    s = seed(org)
+    window = {"date_from": day(-10), "date_to": day(10)}
+    planned = new_load(org, s["customer"]["id"], stops=stops(iso(days=1), iso(days=2)))
+    waiting = deliver(org, new_load(org, s["customer"]["id"], customer_rate="900.00", stops=stops(iso(days=-2), iso(days=-1))), s)
+    reviewing = deliver(org, new_load(org, s["customer"]["id"], customer_rate="700.00", stops=stops(iso(days=-2), iso(days=-1))), s)
+    upload(org, "load", reviewing["id"])
+
+    statuses = org.get("/reports/loads-by-status", params=window).json()
+    assert [(r["label"], r["loads"]) for r in statuses["rows"]] == [("Planned", 1), ("Delivered", 1), ("POD in review", 1)]
+    assert statuses["totals"]["loads"] == 3 and statuses["totals"]["revenue"] == "4100.00"
+    assert planned["status"] == "planned"
+
+    pods = org.get("/reports/awaiting-pod").json()
+    assert [(r["label"], r["pod"], r["waiting"], r["revenue"]) for r in pods["rows"]] == [
+        (waiting["load_number"], "Not received", 0, "900.00"), (reviewing["load_number"], "In review", 0, "700.00")]
+    assert pods["rows"][0]["driver"] == "Dana Driver" and pods["columns"][3]["kind"] == "date"
+
+    # A day on the road, inside the period: arrived at the pickup two days ago, delivered yesterday.
+    with owner_sql.begin() as c:
+        c.execute(text("SELECT set_config('app.org_id', :o, true)"), {"o": org.org_id})
+        c.execute(text("UPDATE load_stops SET arrived_at = now() - interval '2 days' WHERE load_id = :l AND seq = "
+                       "(SELECT min(seq) FROM load_stops WHERE load_id = :l)"), {"l": waiting["id"]})
+        c.execute(text("UPDATE loads SET delivered_at = now() - interval '1 day' WHERE id = :l"), {"l": waiting["id"]})
+    used = org.get("/reports/utilization", params={"date_from": day(-10), "date_to": day(0)}).json()
+    truck = next(r for r in used["rows"] if r["label"] == s["truck"]["unit_number"])
+    assert truck["days"] == "1.0" and 8 <= float(truck["utilization"]) <= 10 and truck["loads"] == 2
+
+    soon = org.post("/drivers", {"first_name": "Ana", "last_name": "Ruiz", "cdl_expiry": day(10), "medical_cert_expiry": day(400)}, 201).json()
+    qualify(org, soon["id"])
+    org.post("/vehicles", {"unit_number": "T-OLD", "registration_expiry": day(-3), "insurance_expiry": day(400), "inspection_expiry": day(400)}, 201)
+    expiring = org.get("/reports/expiring").json()
+    assert [(r["label"], r["kind"], r["item"], r["left"], r["state"]) for r in expiring["rows"]] == [
+        ("Truck T-OLD", "Truck", "Registration", -3, "Expired"), ("Ana Ruiz", "Driver", "CDL", 10, "Expiring")]
+
+    for category, amount in (("fuel", "300.00"), ("tolls", "20.00")):
+        body = {"category": category, "incurred_on": day(0), "amount": amount}
+        if category == "fuel":
+            body |= {"gallons": "80", "jurisdiction": "TX", "vehicle_id": s["truck"]["id"]}
+        org.post("/expenses", body, 201)
+    spent = org.get("/reports/expenses").json()
+    assert [(r["label"], r["count"], r["amount"], r["share"]) for r in spent["rows"]] == [
+        ("Fuel", 1, "300.00", "93.8"), ("Tolls", 1, "20.00", "6.3")]
+    assert spent["totals"]["amount"] == "320.00"
+
+    org.patch(f"/drivers/{s['driver']['id']}", {"pay_type": "per_mile", "pay_rate": "0.50"}, 200)
+    org.post("/settlements", {"driver_id": s["driver"]["id"], "period_start": day(-6), "period_end": day(0)}, 201)
+    pay = org.get("/reports/driver-statements").json()
+    assert [(r["label"], r["statements"]) for r in pay["rows"]] == [("Dana Driver", 1)]
+    assert pay["rows"][0]["net"] == pay["totals"]["net"] and pay["rows"][0]["paid"] == "0.00"
+
+    safety = org.add_user("safety_manager")
+    assert safety.get("/reports/expiring").json()["rows"]
+    safety.error("GET", "/reports/expenses", 403, "FORBIDDEN")
+    safety.error("GET", "/reports/driver-statements", 403, "FORBIDDEN")
+    assert "revenue" not in safety.get("/reports/awaiting-pod").json()["rows"][0]

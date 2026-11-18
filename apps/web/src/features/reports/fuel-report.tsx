@@ -16,28 +16,12 @@ import type { Schema } from "@/lib/api/types";
 import { timeZoneLabel } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
 import { formatNumber } from "@/lib/format/text";
+import { scale } from "./line-chart";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const WEEKS = [8, 13, 26];
 const day = (iso: string) => `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;
 const usd = (v: number, places = 3) => `$${v.toFixed(places)}`;
-
-/** Where the axis of a chart starts and ends, and the ticks between: the smallest round step that keeps the axis
- * to a handful of ticks, with a little room around the values. */
-function scale(values: number[], steps: number[], most = 5) {
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  for (const step of steps) {
-    const lo = Math.floor((min - step / 4) / step) * step;
-    const hi = Math.ceil((max + step / 4) / step) * step;
-    if ((hi - lo) / step <= most || step === steps.at(-1)) {
-      const ticks: number[] = [];
-      for (let v = hi; v >= lo - step / 1000; v -= step) ticks.push(Number(v.toFixed(4)));
-      return { lo, hi, ticks };
-    }
-  }
-  return { lo: min, hi: max, ticks: [max, min] };
-}
 
 /** The address of the fuel report as JSON or CSV. */
 export function fuelReportUrl(weeks: number, truck: string, format: "json" | "csv") {

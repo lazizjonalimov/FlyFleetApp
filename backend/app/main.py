@@ -35,6 +35,7 @@ from app.modules.owners.portal_router import router as owner_portal_router
 from app.modules.owners.router import equipment_router as ownership_router
 from app.modules.owners.router import router as owners_router
 from app.modules.people.router import router as people_router
+from app.modules.reports.catalog import router as report_catalog_router
 from app.modules.reports.router import router as reports_router
 from app.modules.safety.router import router as safety_router
 from app.modules.settlements.owner_router import router as owner_settlements_router
@@ -84,7 +85,7 @@ def create_app() -> FastAPI:
                    equipment_router, loads_router, load_places_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
                    ifta_router, tracking_router, messaging_router, tasks_router, teams_router, integrations_router,
-                   settlements_router, reports_router):
+                   settlements_router, reports_router, report_catalog_router):
         v1.include_router(router)
     app.include_router(v1)
 

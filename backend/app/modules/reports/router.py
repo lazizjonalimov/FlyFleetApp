@@ -317,7 +317,7 @@ def search(q: str = Query(min_length=2, max_length=100), limit: int = Query(defa
 class ReportColumn(BaseModel):
     key: str
     label: str
-    kind: Literal["text", "number", "money", "percent"] = "text"
+    kind: Literal["text", "number", "money", "percent", "date"] = "text"
 
 
 class Report(BaseModel):
