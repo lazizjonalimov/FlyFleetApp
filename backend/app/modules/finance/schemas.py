@@ -77,6 +77,9 @@ class InvoiceListItem(BaseModel):
     # Worked out from the due date in the company's time zone; never stored.
     is_overdue: bool
     days_overdue: int
+    loads: int = Field(description="How many loads the invoice bills")
+    paid_on: date | None = Field(description="When the last payment applied to it was received")
+    void_reason: str | None
     created_at: datetime
 
 
@@ -103,16 +106,24 @@ class InvoiceDetail(InvoiceListItem):
     issued_at: datetime | None
     issued_by_name: str | None
     voided_at: datetime | None
-    void_reason: str | None
     allowed_actions: list[str]
+
+
+InvoiceState = Literal["draft", "issued", "partially_paid", "overdue", "paid", "void"]
 
 
 class InvoiceListParams(ListParams):
     status: InvoiceStatus | None = None
+    open: bool | None = Field(default=None, description="Drafts and issued invoices not yet paid")
+    state: InvoiceState | None = Field(
+        default=None, description="As the list shows it: an issued invoice with something paid is partially paid, "
+                                  "one with nothing paid and past its due date is overdue")
     customer_id: uuid.UUID | None = None
     overdue: bool | None = None
     issued_from: date | None = None
     issued_to: date | None = None
+    due_from: date | None = None
+    due_to: date | None = None
 
 
 # ---------------------------------------------------------------- payments
@@ -186,6 +197,16 @@ class Receivables(BaseModel):
     oldest_overdue_days: int | None = Field(description="Days past due of the oldest unpaid invoice")
     ready_to_invoice_loads: int
     ready_to_invoice_amount: Money
+    blocked_loads: int = Field(description="Delivered, not invoiced, and waiting for the proof of delivery")
+    blocked_amount: Money
+    # This month so far, in the company's time zone.
+    period_from: date
+    period_to: date
+    invoiced_amount: Money = Field(description="What the invoices issued in the period add up to")
+    invoiced_count: int
+    received_amount: Money | None = Field(description="Payments received in the period; null for roles that "
+                                                      "can't see payments")
+    received_count: int | None
 
 
 def party(data: dict[str, Any] | None, fallback_name: str = "") -> Party:

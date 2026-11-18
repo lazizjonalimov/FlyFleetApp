@@ -20,6 +20,8 @@ export type Cell = {
   al?: string;
   isM?: number;
   isMore?: number;
+  /** The row's own actions, under "⋯". */
+  menu?: { l: string; go: () => void; cls?: string }[];
   isP?: number;
   ini?: string;
   isTags?: number;

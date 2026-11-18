@@ -11125,6 +11125,11 @@
             "title": "Lines",
             "type": "array"
           },
+          "loads": {
+            "description": "How many loads the invoice bills",
+            "title": "Loads",
+            "type": "integer"
+          },
           "notes": {
             "anyOf": [
               {
@@ -11139,6 +11144,19 @@
           "paid": {
             "title": "Paid",
             "type": "string"
+          },
+          "paid_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the last payment applied to it was received",
+            "title": "Paid On"
           },
           "payment_terms_days": {
             "anyOf": [
@@ -11212,6 +11230,9 @@
           "balance",
           "is_overdue",
           "days_overdue",
+          "loads",
+          "paid_on",
+          "void_reason",
           "created_at",
           "notes",
           "seller",
@@ -11222,7 +11243,6 @@
           "issued_at",
           "issued_by_name",
           "voided_at",
-          "void_reason",
           "allowed_actions"
         ],
         "title": "InvoiceDetail",
@@ -11358,9 +11378,27 @@
             ],
             "title": "Issue Date"
           },
+          "loads": {
+            "description": "How many loads the invoice bills",
+            "title": "Loads",
+            "type": "integer"
+          },
           "paid": {
             "title": "Paid",
             "type": "string"
+          },
+          "paid_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the last payment applied to it was received",
+            "title": "Paid On"
           },
           "status": {
             "enum": [
@@ -11375,6 +11413,17 @@
           "total": {
             "title": "Total",
             "type": "string"
+          },
+          "void_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Void Reason"
           }
         },
         "required": [
@@ -11390,6 +11439,9 @@
           "balance",
           "is_overdue",
           "days_overdue",
+          "loads",
+          "paid_on",
+          "void_reason",
           "created_at"
         ],
         "title": "InvoiceListItem",
@@ -21738,6 +21790,15 @@
       "Receivables": {
         "description": "What customers owe right now.",
         "properties": {
+          "blocked_amount": {
+            "title": "Blocked Amount",
+            "type": "string"
+          },
+          "blocked_loads": {
+            "description": "Delivered, not invoiced, and waiting for the proof of delivery",
+            "title": "Blocked Loads",
+            "type": "integer"
+          },
           "currency": {
             "title": "Currency",
             "type": "string"
@@ -21749,6 +21810,15 @@
           },
           "draft_invoices": {
             "title": "Draft Invoices",
+            "type": "integer"
+          },
+          "invoiced_amount": {
+            "description": "What the invoices issued in the period add up to",
+            "title": "Invoiced Amount",
+            "type": "string"
+          },
+          "invoiced_count": {
+            "title": "Invoiced Count",
             "type": "integer"
           },
           "oldest_overdue_days": {
@@ -21779,6 +21849,16 @@
             "title": "Overdue Invoices",
             "type": "integer"
           },
+          "period_from": {
+            "format": "date",
+            "title": "Period From",
+            "type": "string"
+          },
+          "period_to": {
+            "format": "date",
+            "title": "Period To",
+            "type": "string"
+          },
           "ready_to_invoice_amount": {
             "title": "Ready To Invoice Amount",
             "type": "string"
@@ -21786,6 +21866,29 @@
           "ready_to_invoice_loads": {
             "title": "Ready To Invoice Loads",
             "type": "integer"
+          },
+          "received_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Payments received in the period; null for roles that can't see payments",
+            "title": "Received Amount"
+          },
+          "received_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Received Count"
           }
         },
         "required": [
@@ -21798,7 +21901,15 @@
           "draft_amount",
           "oldest_overdue_days",
           "ready_to_invoice_loads",
-          "ready_to_invoice_amount"
+          "ready_to_invoice_amount",
+          "blocked_loads",
+          "blocked_amount",
+          "period_from",
+          "period_to",
+          "invoiced_amount",
+          "invoiced_count",
+          "received_amount",
+          "received_count"
         ],
         "title": "Receivables",
         "type": "object"
@@ -47009,6 +47120,50 @@
             }
           },
           {
+            "description": "Drafts and issued invoices not yet paid",
+            "in": "query",
+            "name": "open",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Drafts and issued invoices not yet paid",
+              "title": "Open"
+            }
+          },
+          {
+            "description": "As the list shows it: an issued invoice with something paid is partially paid, one with nothing paid and past its due date is overdue",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "issued",
+                    "partially_paid",
+                    "overdue",
+                    "paid",
+                    "void"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "As the list shows it: an issued invoice with something paid is partially paid, one with nothing paid and past its due date is overdue",
+              "title": "State"
+            }
+          },
+          {
             "in": "query",
             "name": "customer_id",
             "required": false,
@@ -47073,6 +47228,40 @@
                 }
               ],
               "title": "Issued To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "due_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "due_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due To"
             }
           }
         ],

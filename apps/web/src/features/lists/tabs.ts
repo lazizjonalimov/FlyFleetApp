@@ -13,13 +13,15 @@ export const LOAD_TABS: Tab[] = [
   { label: "Ready to invoice", params: { view: "ready_to_invoice" } },
 ];
 
+/** The invoices tab that lists delivered loads not yet on an invoice instead of invoices. */
+export const READY_TAB = "Ready to invoice";
 export const INVOICE_TABS: Tab[] = [
-  { label: "Open", params: { status: "issued" } },
+  { label: "All open", params: { open: true } },
+  { label: READY_TAB, params: { ready: true } },
   { label: "Drafts", params: { status: "draft" } },
   { label: "Overdue", params: { overdue: true } },
-  { label: "Paid", params: { status: "paid" } },
-  { label: "Void", params: { status: "void" } },
-  { label: "All" },
+  { label: "Paid", params: { status: "paid" }, count: false },
+  { label: "Void", params: { status: "void" }, count: false },
 ];
 
 export const DOCUMENT_TABS: Tab[] = [

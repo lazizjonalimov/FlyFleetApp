@@ -33,12 +33,27 @@ def _paid():
             .correlate(Invoice).scalar_subquery())
 
 
+def _paid_on():
+    return (select(func.max(Payment.received_on))
+            .join(PaymentAllocation, PaymentAllocation.payment_id == Payment.id)
+            .where(PaymentAllocation.invoice_id == Invoice.id, Payment.status == "recorded")
+            .correlate(Invoice).scalar_subquery())
+
+
+def _load_count():
+    # From the lines, which an issued invoice keeps even after it is voided and its loads are freed.
+    return (select(func.count(func.distinct(InvoiceLine.load_id))).where(InvoiceLine.invoice_id == Invoice.id)
+            .correlate(Invoice).scalar_subquery())
+
+
 def _invoice_rows():
-    return select(Invoice, Customer.name, _paid().label("paid")).join(Customer, Customer.id == Invoice.customer_id)
+    return (select(Invoice, Customer.name, _paid().label("paid"), _load_count().label("loads"),
+                   _paid_on().label("paid_on"))
+            .join(Customer, Customer.id == Invoice.customer_id))
 
 
 def _invoice_item(row, today: date) -> dict:
-    invoice, customer_name, paid = row
+    invoice, customer_name, paid, loads, paid_on = row
     paid = Decimal(paid)
     owed = invoice.status in ("draft", "issued")
     overdue = invoice.status == "issued" and invoice.due_date is not None and invoice.due_date < today
@@ -47,7 +62,8 @@ def _invoice_item(row, today: date) -> dict:
         customer=Ref(id=invoice.customer_id, name=customer_name), issue_date=invoice.issue_date,
         due_date=invoice.due_date, currency=invoice.currency, total=invoice.total, paid=paid,
         balance=(invoice.total - paid) if owed else ZERO, is_overdue=overdue,
-        days_overdue=(today - invoice.due_date).days if overdue else 0, created_at=invoice.created_at)
+        days_overdue=(today - invoice.due_date).days if overdue else 0, loads=loads or 0, paid_on=paid_on,
+        void_reason=invoice.void_reason, created_at=invoice.created_at)
 
 
 def _invoice_detail(db: Session, p: Principal, invoice_id: uuid.UUID) -> s.InvoiceDetail:
@@ -96,7 +112,7 @@ def _invoice_detail(db: Session, p: Principal, invoice_id: uuid.UUID) -> s.Invoi
                                    reference=pay.reference, amount=amount, status=pay.status)
                   for amount, pay in payments] if p.can("payments.read") else [],
         issued_at=invoice.issued_at, issued_by_name=issued_by, voided_at=invoice.voided_at,
-        void_reason=invoice.void_reason, allowed_actions=actions)
+        allowed_actions=actions)
 
 
 @router.get("/invoices", response_model=Page[s.InvoiceListItem])
@@ -104,20 +120,38 @@ def list_invoices(params: Annotated[s.InvoiceListParams, Query()], p: Principal 
                   db: Session = Depends(get_db)):
     today = p.today()
     stmt = _invoice_rows()
+    overdue = (Invoice.status == "issued") & (Invoice.due_date < today)
     if params.status:
         stmt = stmt.where(Invoice.status == params.status)
+    if params.open is not None:
+        stmt = stmt.where(Invoice.status.in_(("draft", "issued")) if params.open
+                          else Invoice.status.in_(("paid", "void")))
+    if params.state:
+        issued, paid = Invoice.status == "issued", _paid()
+        stmt = stmt.where({
+            "draft": Invoice.status == "draft", "paid": Invoice.status == "paid", "void": Invoice.status == "void",
+            "partially_paid": issued & (paid > 0),
+            "overdue": overdue & (paid == 0),
+            "issued": issued & (paid == 0) & ~overdue,
+        }[params.state])
     if params.customer_id:
         stmt = stmt.where(Invoice.customer_id == params.customer_id)
     if params.overdue is not None:
-        overdue = (Invoice.status == "issued") & (Invoice.due_date < today)
         stmt = stmt.where(overdue if params.overdue else ~overdue)
     if params.issued_from:
         stmt = stmt.where(Invoice.issue_date >= params.issued_from)
     if params.issued_to:
         stmt = stmt.where(Invoice.issue_date <= params.issued_to)
+    if params.due_from:
+        stmt = stmt.where(Invoice.due_date >= params.due_from)
+    if params.due_to:
+        stmt = stmt.where(Invoice.due_date <= params.due_to)
     if params.q:
         pattern = like(params.q.strip())
-        stmt = stmt.where(or_(Invoice.invoice_number.ilike(pattern), Customer.name.ilike(pattern)))
+        on_load = (select(InvoiceLine.id).join(Load, Load.id == InvoiceLine.load_id)
+                   .where(InvoiceLine.invoice_id == Invoice.id, Load.load_number.ilike(pattern))
+                   .correlate(Invoice).exists())
+        stmt = stmt.where(or_(Invoice.invoice_number.ilike(pattern), Customer.name.ilike(pattern), on_load))
     sortable = {"created_at": Invoice.created_at, "total": Invoice.total, "customer": Customer.name,
                 "issue_date": func.coalesce(Invoice.issue_date, literal(FAR)),
                 "due_date": func.coalesce(Invoice.due_date, literal(FAR))}

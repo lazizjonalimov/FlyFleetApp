@@ -7982,10 +7982,20 @@ export interface components {
             issued_by_name: string | null;
             /** Lines */
             lines: components["schemas"]["InvoiceLineOut"][];
+            /**
+             * Loads
+             * @description How many loads the invoice bills
+             */
+            loads: number;
             /** Notes */
             notes: string | null;
             /** Paid */
             paid: string;
+            /**
+             * Paid On
+             * @description When the last payment applied to it was received
+             */
+            paid_on: string | null;
             /** Payment Terms Days */
             payment_terms_days: number | null;
             /** Payments */
@@ -8052,8 +8062,18 @@ export interface components {
             is_overdue: boolean;
             /** Issue Date */
             issue_date: string | null;
+            /**
+             * Loads
+             * @description How many loads the invoice bills
+             */
+            loads: number;
             /** Paid */
             paid: string;
+            /**
+             * Paid On
+             * @description When the last payment applied to it was received
+             */
+            paid_on: string | null;
             /**
              * Status
              * @enum {string}
@@ -8061,6 +8081,8 @@ export interface components {
             status: "draft" | "issued" | "paid" | "void";
             /** Total */
             total: string;
+            /** Void Reason */
+            void_reason: string | null;
         };
         /** InvoiceLoads */
         InvoiceLoads: {
@@ -11291,6 +11313,13 @@ export interface components {
          * @description What customers owe right now.
          */
         Receivables: {
+            /** Blocked Amount */
+            blocked_amount: string;
+            /**
+             * Blocked Loads
+             * @description Delivered, not invoiced, and waiting for the proof of delivery
+             */
+            blocked_loads: number;
             /** Currency */
             currency: string;
             /**
@@ -11300,6 +11329,13 @@ export interface components {
             draft_amount: string;
             /** Draft Invoices */
             draft_invoices: number;
+            /**
+             * Invoiced Amount
+             * @description What the invoices issued in the period add up to
+             */
+            invoiced_amount: string;
+            /** Invoiced Count */
+            invoiced_count: number;
             /**
              * Oldest Overdue Days
              * @description Days past due of the oldest unpaid invoice
@@ -11313,10 +11349,27 @@ export interface components {
             overdue_balance: string;
             /** Overdue Invoices */
             overdue_invoices: number;
+            /**
+             * Period From
+             * Format: date
+             */
+            period_from: string;
+            /**
+             * Period To
+             * Format: date
+             */
+            period_to: string;
             /** Ready To Invoice Amount */
             ready_to_invoice_amount: string;
             /** Ready To Invoice Loads */
             ready_to_invoice_loads: number;
+            /**
+             * Received Amount
+             * @description Payments received in the period; null for roles that can't see payments
+             */
+            received_amount: string | null;
+            /** Received Count */
+            received_count: number | null;
         };
         /** Recipient */
         Recipient: {
@@ -24581,10 +24634,16 @@ export interface operations {
                 /** @description Also return the total number of matching records */
                 count?: boolean;
                 status?: ("draft" | "issued" | "paid" | "void") | null;
+                /** @description Drafts and issued invoices not yet paid */
+                open?: boolean | null;
+                /** @description As the list shows it: an issued invoice with something paid is partially paid, one with nothing paid and past its due date is overdue */
+                state?: ("draft" | "issued" | "partially_paid" | "overdue" | "paid" | "void") | null;
                 customer_id?: string | null;
                 overdue?: boolean | null;
                 issued_from?: string | null;
                 issued_to?: string | null;
+                due_from?: string | null;
+                due_to?: string | null;
             };
             header?: never;
             path?: never;

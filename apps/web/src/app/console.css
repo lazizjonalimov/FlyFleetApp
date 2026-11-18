@@ -103,6 +103,7 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .btn.dark{background:var(--tx);border-color:var(--tx);color:var(--sf)}
 .ff .btn.bad{color:#B42318}
 .ff[data-theme=dark] .btn.bad{color:#FF9B92}
+.ff[data-theme=dark] .ddi.bad{color:#FF9B92}
 .ff .btn.sm{height:28px;padding:0 10px;font-size:12px}
 .ff .btn.xs{height:24px;padding:0 8px;font-size:12px;border-radius:5px}
 .ff .btn.lg{height:40px;padding:0 16px;font-size:14px;border-radius:8px}
@@ -792,6 +793,7 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .ddi{display:flex;align-items:center;gap:8px;width:100%;min-height:30px;padding:0 8px;border:none;border-radius:6px;background:none;font-size:13px;color:var(--tx);text-align:left;cursor:pointer;flex:none}
 .ff .ddi:hover,.ff .ddi:focus-visible{background:var(--hov);outline:none}
 .ff .ddi.on{font-weight:500}
+.ff .ddi.bad{color:#B42318}
 .ff .ddi .ddk{width:14px;height:14px;color:var(--pri);visibility:hidden}
 .ff .ddi.on .ddk{visibility:visible}
 .ff .ddi .ddp{width:14px;height:14px;color:var(--mu)}

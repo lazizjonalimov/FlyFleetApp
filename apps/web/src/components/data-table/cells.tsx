@@ -1,9 +1,55 @@
 "use client";
 
 import { clsx } from "clsx";
+import { useRef, useState, type CSSProperties } from "react";
 import { Icon } from "@/components/ui/icon";
 import { tx } from "@/features/console/dom";
 import { type Cell } from "@/features/console/view";
+
+const DOTS = "M5 12h.01M12 12h.01M19 12h.01";
+
+/**
+ * A row's "⋯" menu. It is placed against the window, not the table, so a scrolling table never clips it, and
+ * it opens upwards when there is no room below. A click inside it never opens the row.
+ */
+function RowMenu({ items }: { items: NonNullable<Cell["menu"]> }) {
+  const button = useRef<HTMLButtonElement>(null);
+  const [at, setAt] = useState<CSSProperties | null>(null);
+  const width = 220;
+  const toggle = (event: { stopPropagation: () => void }) => {
+    event.stopPropagation();
+    if (at) return setAt(null);
+    const box = button.current?.getBoundingClientRect();
+    if (!box) return;
+    const tall = items.length * 34 + 12;
+    const below = box.bottom + 4 + tall <= window.innerHeight;
+    setAt({ position: "fixed", width: `${width}px`, minWidth: 0, left: `${Math.max(8, box.right - width)}px`, ...(below ? { top: `${box.bottom + 4}px` } : { top: "auto", bottom: `${window.innerHeight - box.top + 4}px` }) });
+  };
+  return (
+    <div className="dd" onClick={(event) => event.stopPropagation()}>
+      <button ref={button} className="btn ghost icon xs" aria-label="Row actions" aria-haspopup="menu" aria-expanded={!!at} onClick={toggle}>
+        <Icon className="dots" d={DOTS} />
+      </button>
+      {at ? (
+        <>
+          <div className="ddcatch" onClick={() => setAt(null)}></div>
+          <div className="ddl" role="menu" style={at} ref={(menu) => menu?.querySelector<HTMLButtonElement>(".ddi")?.focus()} onKeyDown={(event) => { if (event.key === "Escape") { setAt(null); button.current?.focus(); } }}>
+            <div className="ddo" style={{ maxHeight: "none", paddingTop: "4px" }}>
+              {items.map((item) => (
+                <button key={item.l} className={clsx("ddi", item.cls)} role="menuitem" onClick={() => { setAt(null); item.go(); }}>{item.l}</button>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function More({ c }: { c: Cell }) {
+  if (c.menu) return c.menu.length ? <RowMenu items={c.menu} /> : null;
+  return <button className="btn ghost icon xs" aria-label="Row actions"><Icon className="dots" d={DOTS} /></button>;
+}
 
 /** A table cell of any kind, including record links and row actions. */
 export function DataCell({ c }: { c: Cell }) {
@@ -118,9 +164,7 @@ export function DataCell({ c }: { c: Cell }) {
           ))}
         </div>
       ) : null}
-      {c.isMore ? (
-        <button className="btn ghost icon xs" aria-label="Row actions"><Icon className="dots" d="M5 12h.01M12 12h.01M19 12h.01" /></button>
-      ) : null}
+      {c.isMore ? <More c={c} /> : null}
     </div>
   );
 }
@@ -231,9 +275,7 @@ export function BasicCell({ c }: { c: Cell }) {
           ) : null}
         </button>
       ) : null}
-      {c.isMore ? (
-        <button className="btn ghost icon xs" aria-label="Row actions"><Icon className="dots" d="M5 12h.01M12 12h.01M19 12h.01" /></button>
-      ) : null}
+      {c.isMore ? <More c={c} /> : null}
     </div>
   );
 }

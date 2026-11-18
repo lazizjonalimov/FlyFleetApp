@@ -372,10 +372,26 @@ def receivables(db: Session, p: Principal) -> s.Receivables:
         func.count().filter(Invoice.status == "draft"),
         func.coalesce(func.sum(Invoice.total).filter(Invoice.status == "draft"), 0),
         func.min(Invoice.due_date).filter(Invoice.status == "issued", overdue, balance > 0)).select_from(Invoice)).one()
-    ready = db.execute(select(func.count(), func.coalesce(func.sum(Load.customer_rate + Load.charges_total), 0))
-                       .where(Load.status == "completed", Load.billing_status == "unbilled",
-                              Load.invoice_id.is_(None))).one()
+    # Delivered and not on any invoice: ready once the proof of delivery is approved (completed), blocked until then.
+    unbilled = (Load.billing_status == "unbilled") & Load.invoice_id.is_(None)
+    worth = Load.customer_rate + Load.charges_total
+    ready_now, blocked = Load.status == "completed", Load.status.in_(("delivered", "pod_review"))
+    loads = db.execute(select(
+        func.count().filter(ready_now), func.coalesce(func.sum(worth).filter(ready_now), 0),
+        func.count().filter(blocked), func.coalesce(func.sum(worth).filter(blocked), 0)).where(unbilled)).one()
+
+    start = today.replace(day=1)
+    issued = db.execute(select(func.count(), func.coalesce(func.sum(Invoice.total), 0)).where(
+        Invoice.status.in_(("issued", "paid")), Invoice.issue_date >= start, Invoice.issue_date <= today)).one()
+    received = None
+    if p.can("payments.read"):
+        received = db.execute(select(func.count(), func.coalesce(func.sum(Payment.amount), 0)).where(
+            Payment.status == "recorded", Payment.received_on >= start, Payment.received_on <= today)).one()
     return s.Receivables(currency=p.currency, open_balance=row[0], overdue_balance=row[1], open_invoices=row[2],
                          overdue_invoices=row[3], draft_invoices=row[4], draft_amount=row[5],
                          oldest_overdue_days=(today - row[6]).days if row[6] else None,
-                         ready_to_invoice_loads=ready[0], ready_to_invoice_amount=ready[1])
+                         ready_to_invoice_loads=loads[0], ready_to_invoice_amount=loads[1],
+                         blocked_loads=loads[2], blocked_amount=loads[3], period_from=start, period_to=today,
+                         invoiced_count=issued[0], invoiced_amount=issued[1],
+                         received_count=received[0] if received else None,
+                         received_amount=received[1] if received else None)

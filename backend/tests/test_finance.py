@@ -268,3 +268,53 @@ def test_finance_is_closed_to_roles_without_it(org):
     safety.error("GET", f"/invoices/{invoice['id']}", 403, "FORBIDDEN")
     assert safety.get(f"/loads/{load['id']}").json()["invoice"] is None
     assert safety.get(f"/customers/{s['customer']['id']}").json()["stats"]["open_balance"] is None   # the customer, not what it owes
+
+
+def test_the_invoice_list_reads_the_way_the_screen_shows_it(org, owner_sql):
+    s = seed(org)
+    part, _ = issued(org, s, customer_rate="1000.00")
+    pay(org, s, "400.00", (part["id"], "400.00"))
+    settled, _ = issued(org, s, customer_rate="500.00")
+    pay(org, s, "500.00", (settled["id"], "500.00"))
+    voided, _ = issued(org, s, customer_rate="300.00")
+    org.post(f"/invoices/{voided['id']}/void", {"reason": "Wrong rate"}, 200)
+    late, _ = issued(org, s, customer_rate="200.00")
+    sent, _ = issued(org, s, customer_rate="250.00")
+    waiting = complete(org, s, customer_rate="150.00")
+    unissued = draft(org, s, waiting).json()
+    complete(org, s, customer_rate="700.00")                                   # ready to invoice
+    deliver(org, new_load(org, s["customer"]["id"], customer_rate="900.00"), s)  # delivered, its POD not yet approved
+    with owner_sql.begin() as c:
+        c.execute(text("SELECT set_config('app.org_id', :o, true)"), {"o": org.org_id})
+        c.execute(text("ALTER TABLE invoices DISABLE TRIGGER invoices_guard"))
+        c.execute(text("UPDATE invoices SET issue_date = issue_date - 60, due_date = due_date - 60 WHERE id = :i"), {"i": late["id"]})
+        c.execute(text("ALTER TABLE invoices ENABLE TRIGGER invoices_guard"))
+
+    rows = {x["id"]: x for x in org.items("/invoices")}
+    assert rows[part["id"]]["loads"] == 1 and rows[unissued["id"]]["loads"] == 1
+    assert rows[settled["id"]]["paid_on"] == str(TODAY) and rows[sent["id"]]["paid_on"] is None
+    assert rows[voided["id"]]["void_reason"] == "Wrong rate" and rows[voided["id"]]["loads"] == 1   # its lines keep the load
+
+    ids = lambda **q: {x["id"] for x in org.items("/invoices", **q)}            # noqa: E731
+    assert ids(state="draft") == {unissued["id"]} and ids(state="issued") == {sent["id"]}
+    assert ids(state="partially_paid") == {part["id"]} and ids(state="overdue") == {late["id"]}
+    assert ids(state="paid") == {settled["id"]} and ids(state="void") == {voided["id"]}
+    assert ids(open="true") == {unissued["id"], part["id"], late["id"], sent["id"]}
+    assert ids(open="true", due_to=str(TODAY - timedelta(days=1))) == {late["id"]}
+    assert ids(due_from=str(TODAY)) == {part["id"], settled["id"], voided["id"], sent["id"]}
+    load_number = org.get(f"/loads/{waiting['id']}").json()["load_number"]
+    assert ids(q=load_number) == {unissued["id"]}                              # found by a load it bills
+
+    money = org.get("/finance/receivables").json()
+    assert (money["period_from"], money["period_to"]) == (str(TODAY.replace(day=1)), str(TODAY))
+    # Issued this month: the aged one was issued 60 days ago and the void one doesn't count.
+    assert (money["invoiced_count"], money["invoiced_amount"]) == (3, "1750.00")
+    assert (money["received_count"], money["received_amount"]) == (2, "900.00")
+    # Ready: the 700 load and the one freed by voiding; blocked: the delivered one waiting for its POD.
+    assert (money["ready_to_invoice_loads"], money["ready_to_invoice_amount"]) == (2, "1000.00")
+    assert (money["blocked_loads"], money["blocked_amount"]) == (1, "900.00")
+
+    dispatcher = org.add_user("dispatcher")
+    org.post("/permission-overrides", {"user_id": dispatcher.user_id, "permission": "invoices.read", "effect": "allow"}, 201)
+    seen = dispatcher.get("/finance/receivables").json()
+    assert seen["received_amount"] is None and seen["received_count"] is None and seen["invoiced_count"] == 3
