@@ -4928,6 +4928,12 @@ export interface components {
             name: string;
             /** Reasons */
             reasons: components["schemas"]["Reason"][];
+            seat?: components["schemas"]["Seat"] | null;
+            /**
+             * Strengths
+             * @default []
+             */
+            strengths: string[];
             /** Terminal Id */
             terminal_id: string | null;
         };
@@ -11121,6 +11127,29 @@ export interface components {
              * @enum {string}
              */
             type: "load" | "customer" | "driver" | "vehicle" | "trailer" | "invoice" | "work_order";
+        };
+        /**
+         * Seat
+         * @description The truck a driver is seated in, the trailer it last pulled, and where it last reported from.
+         */
+        Seat: {
+            /** Miles To Pickup */
+            miles_to_pickup?: number | null;
+            /** Place */
+            place?: string | null;
+            /** Position Minutes */
+            position_minutes?: number | null;
+            /** Trailer Type */
+            trailer_type?: string | null;
+            /** Trailer Unit */
+            trailer_unit?: string | null;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /** SeatIn */
         SeatIn: {

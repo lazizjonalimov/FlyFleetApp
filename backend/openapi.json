@@ -2057,6 +2057,24 @@
             "title": "Reasons",
             "type": "array"
           },
+          "seat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Seat"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "strengths": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Strengths",
+            "type": "array"
+          },
           "terminal_id": {
             "anyOf": [
               {
@@ -21901,6 +21919,81 @@
           "subtitle"
         ],
         "title": "SearchResult",
+        "type": "object"
+      },
+      "Seat": {
+        "description": "The truck a driver is seated in, the trailer it last pulled, and where it last reported from.",
+        "properties": {
+          "miles_to_pickup": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Miles To Pickup"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "position_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Minutes"
+          },
+          "trailer_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Type"
+          },
+          "trailer_unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Unit"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          },
+          "vehicle_id": {
+            "format": "uuid",
+            "title": "Vehicle Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vehicle_id",
+          "unit_number"
+        ],
+        "title": "Seat",
         "type": "object"
       },
       "SeatIn": {

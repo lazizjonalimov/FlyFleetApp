@@ -22,8 +22,9 @@ const why = (k: "ok" | "warn" | "bad", t: string) => ({ k, t, ic: k === "ok" ? I
 
 /** Why a driver or unit can or can't take the load, as the API reasons it. */
 function reasons(candidate: Candidate) {
-  const out = candidate.reasons.map((reason) => why(reason.severity === "blocking" ? "bad" : "warn", reason.message));
-  if (candidate.eligible && !candidate.reasons.length) out.push(why("ok", "Qualified and free at these times"));
+  // What speaks for them first, then what stands against them.
+  const out = [...(candidate.strengths ?? []).map((text) => why("ok", text)), ...candidate.reasons.map((reason) => why(reason.severity === "blocking" ? "bad" : "warn", reason.message))];
+  if (candidate.eligible && !out.length) out.push(why("ok", "Qualified and free at these times"));
   if (candidate.current_load && candidate.eligible) out.push(why("ok", `Now on ${candidate.current_load.load_number} · ${loadLabel(candidate.current_load.status).toLowerCase()}`));
   return out;
 }
@@ -86,13 +87,15 @@ function UnitPicker({ label, chosen, options, pick }: { label: string; chosen: C
  * is shown here and nothing is lost.
  */
 export function AssignPanel({ loadId, close }: { loadId: string; close: () => void }) {
-  const { me, fin, notify, set } = useConsole();
+  const { me, fin, notify, set, state } = useConsole();
   const org = me.organization;
   const zone = org.timezone;
   const load = useLoad(loadId);
   const changes = useLoadChanges();
   const eligible = useQuery({ queryKey: [org.id, "dispatch", "eligible", loadId], queryFn: () => unwrap(api.GET("/api/v1/dispatch/eligible-resources", { params: { query: { load_id: loadId } } })) });
-  const [driverId, setDriverId] = useState<string | null>(null);
+  // The chosen driver is kept with the board, which previews the load on their row.
+  const driverId = typeof state.assignDriver === "string" ? state.assignDriver : null;
+  const setDriverId = (id: string) => set({ assignDriver: id });
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [trailerId, setTrailerId] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -102,7 +105,8 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
 
   const detail = load.data;
   const resources = eligible.data;
-  const drivers = [...(resources?.drivers ?? [])].sort((a, b) => Number(b.eligible) - Number(a.eligible) || a.reasons.length - b.reasons.length);
+  // In the API's order: eligible first, nearest the pickup, fewest concerns.
+  const drivers = resources?.drivers ?? [];
   const best = drivers.find((driver) => driver.eligible && !driver.reasons.length) ?? drivers.find((driver) => driver.eligible);
   const chosenDriver = drivers.find((driver) => driver.id === (driverId ?? detail?.assignment?.driver.id ?? best?.id));
   const firstFree = (list: Candidate[]) => list.find((each) => each.eligible && !each.reasons.length) ?? list.find((each) => each.eligible);
@@ -219,7 +223,7 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
                       </span>
                     ) : null}
                   </span>
-                  <span className="fs12 mu ell"><span>{driver.detail ? driver.detail.charAt(0).toUpperCase() + driver.detail.slice(1) : ""}</span></span>
+                  <span className="fs12 mu ell"><span>{driver.seat ? [driver.seat.unit_number, driver.seat.trailer_unit, driver.seat.place].filter(Boolean).join(" · ") : driver.detail ? driver.detail.charAt(0).toUpperCase() + driver.detail.slice(1) : ""}</span></span>
                   <span className="r g4 wrap" style={{ marginTop: "3px" }}>
                     {list.map((y, i2) => (
                       <span key={i2} className="why" data-k={y.k}>

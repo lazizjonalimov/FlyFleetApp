@@ -260,3 +260,26 @@ def test_a_driver_sees_and_moves_only_their_own_loads(org):
     driver.error("GET", f"/loads/{load['id']}", 403, "FORBIDDEN")
     unlinked = org.add_user("driver")
     unlinked.error("GET", "/driver/loads", 403, "DRIVER_NOT_LINKED")
+
+
+def test_a_driver_in_the_panel_comes_with_their_truck_and_what_speaks_for_them(org):
+    s = seed(org)
+    org.put(f"/vehicles/{s['truck']['id']}/seat", {"driver_id": s["driver"]["id"]}, 200)
+    # The truck last pulled a dry van, and reports from near Dallas.
+    hauled = deliver(org, new_load(org, s["customer"]["id"]), s)
+    assert hauled["status"] == "delivered"
+    now = datetime.now(UTC)
+    org.post("/positions", {"samples": [{"vehicle_id": s["truck"]["id"], "recorded_at": (now - timedelta(minutes=47)).isoformat(),
+                                         "lat": 32.7767, "lon": -96.7970, "speed_mph": 0, "heading": 0}]}, 200)
+    load = new_load(org, s["customer"]["id"], stops=[
+        {"type": "pickup", "city": "Dallas", "state": "TX", "appt_start": iso(days=1)},
+        {"type": "delivery", "city": "Austin", "state": "TX", "appt_start": iso(days=2)}])
+    driver = eligible(org, load, "drivers", s["driver"])
+    seat = driver["seat"]
+    assert seat["unit_number"] == s["truck"]["unit_number"] and seat["trailer_unit"] == s["trailer"]["unit_number"]
+    assert seat["miles_to_pickup"] < 5 and 46 <= seat["position_minutes"] <= 48 and "Dallas" in seat["place"]
+    near = f"{seat['miles_to_pickup']} mi from pickup" if seat["miles_to_pickup"] >= 1 else "Under 1 mi from pickup"
+    assert driver["strengths"][:2] == [near, "Free all day"]
+    assert "Medical card valid to Jan 2035" in driver["strengths"] and "Dry van matches" in driver["strengths"]
+    assert any(r["code"] == "LOCATION_OLD" and r["message"] == "Location 47 min old" for r in driver["reasons"])
+    assert driver["eligible"] is True

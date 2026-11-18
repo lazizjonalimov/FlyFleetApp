@@ -2,7 +2,7 @@
 
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment } from "react";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
@@ -15,6 +15,7 @@ import { api, unwrap } from "@/lib/api/client";
 import { formatDateTime, fromLocalInput, timeZoneLabel, todayIn, toLocalInput } from "@/lib/format/dates";
 import { formatMoney } from "@/lib/format/money";
 import { formatNumber, initials, plural } from "@/lib/format/text";
+import { useMinuteClock } from "@/lib/time/clock";
 import { AssignPanel } from "./assign-panel";
 
 const FIRST_HOUR = 6;
@@ -35,11 +36,9 @@ export function DispatchScreen() {
   const zone = org.timezone;
   const today = todayIn(zone);
   const day = typeof state.bday === "string" ? state.bday : today;
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
+  // Now, to the minute, once the board is in the browser (the server draws it without a now-line).
+  const clock = useMinuteClock();
+  const now = clock ?? Date.parse(`${day}T12:00:00Z`);
   const q = typeof state.bq === "string" ? state.bq.trim().toLowerCase() : "";
   const panelLoad = state.panel === "assign" && typeof state.assignLoad === "string" ? state.assignLoad : null;
 
@@ -58,7 +57,12 @@ export function DispatchScreen() {
   const matches = (load: LoadListItem) => !q || [load.load_number, load.reference, load.customer.name, load.origin_city, load.destination_city, load.assignment?.driver.name].some((text) => text?.toLowerCase().includes(q));
   const waiting = (queue.data?.items ?? []).filter(matches);
   const onBoard = active.data?.items ?? [];
-  const assign = (load: { id: string }) => set({ screen: "dispatch", panel: "assign", assignLoad: load.id, drawer: null, overlay: "none", modal: "none" });
+  const assign = (load: { id: string }) => set({ screen: "dispatch", panel: "assign", assignLoad: load.id, assignDriver: null, drawer: null, overlay: "none", modal: "none" });
+  // The load being assigned, previewed on the row of the driver chosen for it (the panel's best match until then).
+  const eligible = useQuery({ queryKey: [org.id, "dispatch", "eligible", panelLoad], queryFn: () => unwrap(api.GET("/api/v1/dispatch/eligible-resources", { params: { query: { load_id: panelLoad! } } })), enabled: !!panelLoad });
+  const candidates = eligible.data?.drivers ?? [];
+  const previewDriver = typeof state.assignDriver === "string" ? state.assignDriver : (candidates.find((d) => d.eligible && !d.reasons.length) ?? candidates.find((d) => d.eligible))?.id ?? null;
+  const previewLoad = panelLoad ? [...(queue.data?.items ?? []), ...onBoard].find((load) => load.id === panelLoad) ?? null : null;
   const updated = Math.max(queue.dataUpdatedAt, active.dataUpdatedAt);
 
   // where a load sits on the day: from pickup to delivery, cut to the hours shown
@@ -83,9 +87,11 @@ export function DispatchScreen() {
     const blocked = driver.compliance.issues.some((issue) => issue.severity === "blocking");
     const chip = blocked ? "Not dispatchable" : busy ? loadLabel(busy.status) : "Available";
     const ck = blocked ? "bad" : busy ? "mu" : "ok";
-    return { id: driver.id, n: driver.full_name, ini: initials(driver.full_name), units: units || (driver.employee_number ?? ""), chip, ck, pk: blocked ? "bad" : busy ? "brand" : "ok", blocks, empty: !blocks.length, sel: "" };
+    const spot = previewLoad && driver.id === previewDriver && previewLoad.assignment?.driver.id !== driver.id ? place(previewLoad) : null;
+    if (spot && previewLoad) blocks.push({ id: `preview-${previewLoad.id}`, number: previewLoad.load_number, lane: `Preview · ${previewLoad.origin_city ?? ""} → ${previewLoad.destination_city ?? ""}`, k: "", cls: "ghost", alert: false, title: `${previewLoad.load_number} would go to ${driver.full_name}`, ...spot });
+    return { id: driver.id, n: driver.full_name, ini: initials(driver.full_name), units: units || (driver.employee_number ?? ""), chip, ck, pk: blocked ? "bad" : busy ? "brand" : "ok", blocks, empty: !blocks.length, sel: spot ? "sel" : "" };
   }).filter((row) => !q || row.n.toLowerCase().includes(q) || row.blocks.some((block) => block.number.toLowerCase().includes(q)));
-  const nowF = day === today ? (hoursInto(new Date(now).toISOString(), day, zone) - FIRST_HOUR) / HOURS : -1;
+  const nowF = day === today && clock !== null ? (hoursInto(new Date(now).toISOString(), day, zone) - FIRST_HOUR) / HOURS : -1;
   const showNow = nowF >= 0 && nowF <= 1;
   const hours = Array.from({ length: HOURS }, (_, i) => (i % 2 === 0 ? `${String(FIRST_HOUR + i).padStart(2, "0")}:00` : ""));
   const sum: [string, number | undefined, string][] = [
@@ -230,7 +236,7 @@ export function DispatchScreen() {
                   {d.blocks.map((b) => (
                     <Fragment key={b.id}>
                       {" "}
-                      <button className={clsx("blk2", b.cls)} data-k={b.k} style={{ left: b.l, width: b.w, textAlign: "left" }} title={b.title} onClick={() => set({ screen: "loads", drawer: b.id, overlay: "none", modal: "none" })}>
+                      <button className={clsx("blk2", b.cls)} data-k={b.k} style={{ left: b.l, width: b.w, textAlign: "left" }} title={b.title} onClick={() => (b.id.startsWith("preview-") ? undefined : set({ screen: "loads", drawer: b.id, overlay: "none", modal: "none" }))}>
                         <div className="r g4">
                           <span className="mono fs11 w6 nw"><span>{b.number}</span></span>
                           {b.alert ? (
@@ -249,7 +255,7 @@ export function DispatchScreen() {
             {showNow ? <div className="nowline" style={{ left: `calc(208px + (100% - 208px) * ${nowF.toFixed(5)})` }}></div> : null}
           </div>
         </section>
-        {panelLoad ? <AssignPanel key={panelLoad} loadId={panelLoad} close={() => set({ panel: "none", assignLoad: null })} /> : null}
+        {panelLoad ? <AssignPanel key={panelLoad} loadId={panelLoad} close={() => set({ panel: "none", assignLoad: null, assignDriver: null })} /> : null}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { clsx } from "clsx";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { combo } from "@/components/forms/combo";
 import { Combobox } from "@/components/forms/combobox";
 import { Icon } from "@/components/ui/icon";
@@ -11,6 +11,7 @@ import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
 import { useAction } from "@/features/console/use-action";
 import { useOpenConversation } from "@/features/messages/use-message";
+import { useSecondClock } from "@/lib/time/clock";
 import { api, unwrap } from "@/lib/api/client";
 import type { Schema } from "@/lib/api/types";
 import { plural } from "@/lib/format/text";
@@ -44,11 +45,9 @@ export function TrackingScreen() {
   const org = me.organization;
   const act = useAction();
   const message = useOpenConversation();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  // Now, to the second, once the screen is in the browser.
+  const tick = useSecondClock();
+  const now = tick ?? 0;
   const live = useQuery({ queryKey: [org.id, "fleet", "live"], queryFn: fetchLive, refetchInterval: 15_000 });
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
@@ -67,7 +66,7 @@ export function TrackingScreen() {
   const hm = useMemo(() => new Intl.DateTimeFormat("en-US", { timeZone: org.timezone, hour: "2-digit", minute: "2-digit", hour12: false }), [org.timezone]);
   const hms = useMemo(() => new Intl.DateTimeFormat("en-US", { timeZone: org.timezone, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }), [org.timezone]);
   const parts = zone.formatToParts(new Date(now));
-  const clock = `${parts.filter((x) => ["hour", "minute", "second", "literal"].includes(x.type)).map((x) => x.value).join("").trim()} ${parts.find((x) => x.type === "timeZoneName")?.value ?? ""}`.replace(/,/g, "");
+  const clock = tick === null ? "" : `${parts.filter((x) => ["hour", "minute", "second", "literal"].includes(x.type)).map((x) => x.value).join("").trim()} ${parts.find((x) => x.type === "timeZoneName")?.value ?? ""}`.replace(/,/g, "");
 
   // The trail for the selected truck over the chosen period.
   const span = useMemo(() => {

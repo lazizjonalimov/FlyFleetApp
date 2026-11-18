@@ -4,11 +4,12 @@ The same checks back the assignment panel (to explain) and the assignment itself
 dispatcher is shown is exactly what the API will accept.
 """
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.crud import like
@@ -44,6 +45,17 @@ class OtherLoad(BaseModel):
     delivery_at: datetime | None
 
 
+class Seat(BaseModel):
+    """The truck a driver is seated in, the trailer it last pulled, and where it last reported from."""
+    vehicle_id: uuid.UUID
+    unit_number: str
+    trailer_unit: str | None = None
+    trailer_type: str | None = None
+    place: str | None = None
+    position_minutes: int | None = None
+    miles_to_pickup: int | None = None
+
+
 class Candidate(BaseModel):
     id: uuid.UUID
     name: str
@@ -52,6 +64,9 @@ class Candidate(BaseModel):
     eligible: bool
     reasons: list[Reason]
     current_load: OtherLoad | None
+    seat: Seat | None = None
+    # What speaks for this driver: near the pickup, free that day, papers good past delivery, the right trailer.
+    strengths: list[str] = []
 
 
 class EligibleResources(BaseModel):
@@ -167,8 +182,62 @@ def check_trio(db: Session, load: Load, driver: Driver, vehicle: Vehicle, traile
     return reasons
 
 
+def _on_day(other: OtherLoad, day: date, zone: str) -> bool:
+    """Whether another load takes up any of that day."""
+    start = other.pickup_at or other.delivery_at
+    end = other.delivery_at or other.pickup_at
+    if start is None or end is None:
+        return False
+    tz = ZoneInfo(zone)
+    return start.astimezone(tz).date() <= day <= end.astimezone(tz).date()
+
+
+def _seats(db: Session, load: Load, driver_ids: list[uuid.UUID], now: datetime) -> dict[uuid.UUID, Seat]:
+    """For each driver: the truck they're seated in, the trailer it last pulled, where it last reported from and
+    how far that is from the load's pickup."""
+    from app.core import places
+    from app.modules.fleet.models import UnitAssignment
+    from app.modules.loads.models import LoadStop
+    from app.modules.tracking import incidents
+    if not driver_ids:
+        return {}
+    rows = db.execute(select(UnitAssignment.driver_id, UnitAssignment.co_driver_id, Vehicle.id, Vehicle.unit_number)
+                      .join(Vehicle, Vehicle.id == UnitAssignment.vehicle_id)
+                      .where(UnitAssignment.effective_to.is_(None),
+                             or_(UnitAssignment.driver_id.in_(driver_ids), UnitAssignment.co_driver_id.in_(driver_ids)))).all()
+    by_driver: dict[uuid.UUID, tuple[uuid.UUID, str]] = {}
+    for driver_id, co_driver_id, vehicle_id, unit in rows:
+        by_driver[driver_id] = (vehicle_id, unit)
+        if co_driver_id:
+            by_driver[co_driver_id] = (vehicle_id, unit)
+    vehicle_ids = list({vid for vid, _ in by_driver.values()})
+    pulled: dict[uuid.UUID, tuple[str, str]] = {}
+    for vehicle_id, unit, kind in db.execute(
+            select(DispatchAssignment.vehicle_id, Trailer.unit_number, Trailer.type)
+            .join(Trailer, Trailer.id == DispatchAssignment.trailer_id)
+            .where(DispatchAssignment.vehicle_id.in_(vehicle_ids)).order_by(DispatchAssignment.created_at.desc())).all():
+        pulled.setdefault(vehicle_id, (unit, kind))
+    positions = incidents.latest_positions(db, vehicle_ids)
+    pickup = db.scalar(select(LoadStop).where(LoadStop.load_id == load.id, LoadStop.type == "pickup")
+                       .order_by(LoadStop.seq).limit(1))
+    there = places.locate(pickup.city, pickup.state) if pickup is not None else None
+    out: dict[uuid.UUID, Seat] = {}
+    for driver_id, (vehicle_id, unit) in by_driver.items():
+        seat = Seat(vehicle_id=vehicle_id, unit_number=unit, trailer_unit=pulled.get(vehicle_id, (None, None))[0],
+                    trailer_type=pulled.get(vehicle_id, (None, None))[1])
+        pos = positions.get(vehicle_id)
+        if pos is not None and now - pos.recorded_at < timedelta(days=2):
+            lat, lon = float(pos.lat), float(pos.lon)
+            seat.place = places.describe(lat, lon)
+            seat.position_minutes = int((now - pos.recorded_at).total_seconds() // 60)
+            if there is not None:
+                seat.miles_to_pickup = round(places.km(lat, lon, *there) * incidents.ROAD_FACTOR / 1.609344)
+        out[driver_id] = seat
+    return out
+
+
 def evaluate(db: Session, load: Load, today: date, now: datetime, *, q: str | None = None,
-             terminal_id: uuid.UUID | None = None, limit: int = 200, scope=None) -> EligibleResources:
+             terminal_id: uuid.UUID | None = None, limit: int = 200, scope=None, zone: str = "UTC") -> EligibleResources:
     """Every driver, truck and trailer that could be considered for the load, eligible ones first. A dispatch
     team's dispatcher is offered the team's trucks and the drivers on them."""
     from app.core import scope as team_scope
@@ -195,18 +264,41 @@ def evaluate(db: Session, load: Load, today: date, now: datetime, *, q: str | No
         return (under_way or others or [None])[0]
 
     def ranked(candidates: list[Candidate]) -> list[Candidate]:
-        return sorted(candidates, key=lambda c: (not c.eligible, len(c.reasons), c.name.lower()))
+        far = 10**9
+        return sorted(candidates, key=lambda c: (not c.eligible, c.seat.miles_to_pickup if c.seat and
+                                                 c.seat.miles_to_pickup is not None else far,
+                                                 len(c.reasons), c.name.lower()))
 
     drivers = pick(Driver, (Driver.first_name, Driver.last_name, Driver.employee_number),
                    (Driver.last_name, Driver.first_name))
     quals = qualifications_by_driver(db, [d.id for d in drivers])
+    seats = _seats(db, load, [d.id for d in drivers], now)
+    pickup_day = load.pickup_at.astimezone(ZoneInfo(zone)).date() if load.pickup_at else None
+    delivery_day = load.delivery_at.astimezone(ZoneInfo(zone)).date() if load.delivery_at else pickup_day
     driver_out = []
     for d in drivers:
         others = held.get(("driver", d.id), [])
         reasons = driver_reasons(load, d, quals.get(d.id, []), others, today, now)
+        seat = seats.get(d.id)
+        strengths: list[str] = []
+        if seat is not None and seat.miles_to_pickup is not None:
+            miles = seat.miles_to_pickup
+            strengths.append(f"{miles:,} mi from pickup" if miles >= 1 else "Under 1 mi from pickup")
+        if pickup_day is not None and not [o for o in others if _on_day(o, pickup_day, zone)]:
+            strengths.append("Free all day")
+        if d.medical_cert_expiry and delivery_day and d.medical_cert_expiry >= delivery_day:
+            strengths.append(f"Medical card valid to {d.medical_cert_expiry:%b %Y}")
+        if seat is not None and seat.trailer_type == load.equipment_type:
+            strengths.append(f"{load.equipment_type.replace('_', ' ').capitalize()} matches")
+        if seat is not None and seat.position_minutes is not None and 30 <= seat.position_minutes < 24 * 60:
+            age = seat.position_minutes
+            reasons.append(Reason(code="LOCATION_OLD", severity="warning",
+                                  message=f"Location {age // 60} h {age % 60} min old" if age >= 60 else
+                                  f"Location {age} min old"))
         driver_out.append(Candidate(id=d.id, name=f"{d.first_name} {d.last_name}",
                                     detail=d.driver_type.replace("_", " "), terminal_id=d.terminal_id,
-                                    eligible=not blocking(reasons), reasons=reasons, current_load=current(others)))
+                                    eligible=not blocking(reasons), reasons=reasons, current_load=current(others),
+                                    seat=seat, strengths=strengths))
 
     def units(model, kind: Kind, what: str) -> list[Candidate]:
         out = []

@@ -63,7 +63,8 @@ def eligible_resources(load_id: uuid.UUID, q: str | None = Query(default=None, m
     """Drivers, trucks and trailers for a load, each with the reasons it can or can't take it."""
     loads.visible(db, p, load_id)
     load = get_or_404(db, Load, load_id, "Load")
-    return eligibility.evaluate(db, load, p.today(), datetime.now(UTC), q=q, terminal_id=terminal_id, scope=p.scope)
+    return eligibility.evaluate(db, load, p.today(), datetime.now(UTC), q=q, terminal_id=terminal_id, scope=p.scope,
+                               zone=p.timezone or "UTC")
 
 
 @router.post("/assignments", response_model=ls.LoadDetail, status_code=201)
