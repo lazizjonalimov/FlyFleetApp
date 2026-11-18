@@ -66,9 +66,13 @@ test("dispatch: assigning from the board, then arriving at pickup", async ({ pag
   await fleet(page);
   await book(page, account);
   await open(page, account, "dispatch");
-  await page.locator(".qcard", { hasText: "Lakeside Foods" }).getByRole("button", { name: "Assign" }).click();
+  // Dragging the load onto a driver opens the assignment with that driver chosen; nothing is saved until confirmed.
+  const card = page.locator(".qcard", { hasText: "Lakeside Foods" });
+  await expect(card).toContainText(/Pickup in \d+h|Planned|Late pickup/);
+  await card.dragTo(page.locator(".tlrow", { hasText: "Avery Novak" }));
   const panel = page.getByRole("complementary", { name: "Assign load" });
   await expect(panel).toContainText("Avery Novak");
+  await expect(panel.locator("[aria-checked=true], .on, .sel").first()).toContainText("Avery Novak");
   await expect(panel).toContainText("301");
   await panel.getByRole("button", { name: "Assign & dispatch" }).click();
   await expect(page.getByRole("status")).toContainText("assigned and dispatched to Avery Novak");
