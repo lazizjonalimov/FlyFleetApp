@@ -1,10 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
-import { day, open, signUp, viaApp, type Account } from "./helpers";
+import { day, open, qualify, signUp, type Account, viaApp } from "./helpers";
 
 /** A customer, a driver, a truck and a trailer: what a load needs to be booked and dispatched. */
 async function fleet(page: Page) {
   const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Lakeside Foods", payment_terms_days: 30 });
   const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Avery", last_name: "Novak", driver_type: "company", status: "active", pay_type: "per_mile", pay_rate: "0.60", cdl_expiry: day(500), medical_cert_expiry: day(300) });
+  await qualify(page, driver.id);
   await viaApp(page, "POST", "/vehicles", { unit_number: "301", ownership: "owned", status: "active", registration_expiry: day(300), insurance_expiry: day(300), inspection_expiry: day(300) });
   await viaApp(page, "POST", "/trailers", { unit_number: "8801", type: "dry_van", ownership: "owned", status: "active", registration_expiry: day(300), insurance_expiry: day(300), inspection_expiry: day(300) });
   return { customer, driver };

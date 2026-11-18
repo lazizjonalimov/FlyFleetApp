@@ -3692,6 +3692,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/safety/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Compliance Matrix
+         * @description Each driver, truck or trailer with every item of their file, or the company's own documents.
+         */
+        get: operations["compliance_matrix_api_v1_safety_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/safety/matrix.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Matrix
+         * @description The matrix as a spreadsheet: one row per record, the date and state of each item.
+         */
+        get: operations["export_matrix_api_v1_safety_matrix_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/safety/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminder Rules
+         * @description The company's reminder rules and qualification file, when reminders next go out and how many went this week.
+         */
+        get: operations["reminder_rules_api_v1_safety_reminders_get"];
+        /**
+         * Save Reminder Rules
+         * @description Change the rules. The qualification file decides at once who can be dispatched.
+         */
+        put: operations["save_reminder_rules_api_v1_safety_reminders_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/safety/reminders/sent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminders Sent
+         * @description The latest reminders, newest first.
+         */
+        get: operations["reminders_sent_api_v1_safety_reminders_sent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/safety/summary": {
         parameters: {
             query?: never;
@@ -5217,6 +5301,73 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "expiring" | "expired" | "incomplete";
+        };
+        /** ComplianceCell */
+        ComplianceCell: {
+            /**
+             * Blocks
+             * @default true
+             */
+            blocks: boolean;
+            /** Days Left */
+            days_left?: number | null;
+            /** Expires On */
+            expires_on?: string | null;
+            /**
+             * In Review
+             * @default false
+             */
+            in_review: boolean;
+            /** Item */
+            item: string;
+            /** Review Document Id */
+            review_document_id?: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "valid" | "expiring" | "expired" | "missing";
+        };
+        /** ComplianceColumn */
+        ComplianceColumn: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** ComplianceMatrix */
+        ComplianceMatrix: {
+            /** Columns */
+            columns: components["schemas"]["ComplianceColumn"][];
+            /**
+             * Entity
+             * @enum {string}
+             */
+            entity: "driver" | "vehicle" | "trailer" | "organization";
+            /** Rows */
+            rows: components["schemas"]["ComplianceRow"][];
+        };
+        /** ComplianceRow */
+        ComplianceRow: {
+            /** Cells */
+            cells: components["schemas"]["ComplianceCell"][];
+            /** Dispatchable */
+            dispatchable: boolean;
+            document?: components["schemas"]["FiledDocument"] | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Status */
+            status: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "expired" | "missing" | "lapsed" | "incomplete" | "expiring" | "review" | "qualified" | "inactive";
         };
         /** ContactCreate */
         ContactCreate: {
@@ -6751,6 +6902,53 @@ export interface components {
             /** Value */
             value: string | null;
         };
+        /**
+         * FileItem
+         * @description One line of a company's driver qualification file.
+         */
+        FileItem: {
+            /**
+             * Blocks
+             * @default true
+             */
+            blocks: boolean;
+            /** Type */
+            type: string;
+        };
+        /** FileItemIn */
+        FileItemIn: {
+            /**
+             * Blocks
+             * @default true
+             */
+            blocks: boolean;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "mvr" | "clearinghouse" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training";
+        };
+        /** FiledDocument */
+        FiledDocument: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Review Status */
+            review_status: string;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /** Reviewed By Name */
+            reviewed_by_name?: string | null;
+        };
         /** Fleet */
         Fleet: {
             /** Drivers Active */
@@ -7539,7 +7737,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection" | "organization";
         };
         /** LinkOut */
         LinkOut: {
@@ -7552,7 +7750,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection";
+            entity_type: "load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection" | "organization";
             /**
              * Id
              * Format: uuid
@@ -10400,7 +10598,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "mvr" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other";
+            type: "mvr" | "clearinghouse" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other";
         };
         /** QualificationRead */
         QualificationRead: {
@@ -10432,7 +10630,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "mvr" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other";
+            type: "mvr" | "clearinghouse" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other";
         };
         /** QualificationUpdate */
         QualificationUpdate: {
@@ -10447,7 +10645,7 @@ export interface components {
             /** Required */
             required?: boolean | null;
             /** Type */
-            type?: ("mvr" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other") | null;
+            type?: ("mvr" | "clearinghouse" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training" | "other") | null;
         };
         /** RateIn */
         RateIn: {
@@ -10687,6 +10885,108 @@ export interface components {
             reason?: string | null;
             /** Version */
             version: number;
+        };
+        /** ReminderOption */
+        ReminderOption: {
+            /**
+             * Connected
+             * @default true
+             */
+            connected: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /** ReminderRules */
+        ReminderRules: {
+            /** Channel Options */
+            channel_options: components["schemas"]["ReminderOption"][];
+            /** Channels */
+            channels: string[];
+            /** Checklist */
+            checklist: components["schemas"]["FileItem"][];
+            /** Copy Options */
+            copy_options: components["schemas"]["ReminderOption"][];
+            /** Copy To */
+            copy_to: string[];
+            /** Enabled */
+            enabled: boolean;
+            /** Failed Week */
+            failed_week: number;
+            /** Item Options */
+            item_options: components["schemas"]["ReminderOption"][];
+            /** Last Run At */
+            last_run_at: string | null;
+            /** Lead Days */
+            lead_days: number[];
+            /** Next Run At */
+            next_run_at: string | null;
+            /** Run Hour */
+            run_hour: number;
+            /** Sent Week */
+            sent_week: number;
+            /** Version */
+            version: number;
+        };
+        /** ReminderRulesIn */
+        ReminderRulesIn: {
+            /** Channels */
+            channels: ("app" | "telegram" | "sms" | "email")[];
+            /** Checklist */
+            checklist: components["schemas"]["FileItemIn"][];
+            /** Copy To */
+            copy_to: ("safety_manager" | "fleet_manager")[];
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Lead Days
+             * @description Days before an expiry, 1 to 365
+             */
+            lead_days: number[];
+            /** Run Hour */
+            run_hour: number;
+            /** Version */
+            version: number;
+        };
+        /** ReminderSent */
+        ReminderSent: {
+            /** Deliveries */
+            deliveries: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Entity Id
+             * Format: uuid
+             */
+            entity_id: string;
+            /** Entity Label */
+            entity_label: string;
+            /** Entity Type */
+            entity_type: string;
+            /**
+             * Expires On
+             * Format: date
+             */
+            expires_on: string;
+            /** Failed */
+            failed: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item */
+            item: string;
+            /** Item Label */
+            item_label: string;
+            /** Lead Days */
+            lead_days: number;
+            /**
+             * Sent At
+             * Format: date-time
+             */
+            sent_at: string;
         };
         /**
          * Report
@@ -11028,6 +11328,46 @@ export interface components {
             title: string;
             /** Tone */
             tone: string;
+        };
+        /**
+         * SafetyOverview
+         * @description The summary with what the compliance page names: the first thing run out, who is running out, what is
+         *     missing, how many drivers are fully qualified, and how many records each tab holds.
+         */
+        SafetyOverview: {
+            /** Drivers Active */
+            drivers_active: number;
+            /** Drivers Blocked */
+            drivers_blocked: number;
+            /** Drivers Qualified */
+            drivers_qualified: number;
+            /** Expired */
+            expired: number;
+            /** Expired First */
+            expired_first: string | null;
+            /** Expiring */
+            expiring: number;
+            /** Expiring Company */
+            expiring_company: number;
+            /** Expiring Drivers */
+            expiring_drivers: number;
+            /** Expiring Trailers */
+            expiring_trailers: number;
+            /** Expiring Trucks */
+            expiring_trucks: number;
+            /** Missing */
+            missing: number;
+            /** Missing Items */
+            missing_items: string[];
+            /**
+             * Tabs
+             * @description Records on each tab: driver, vehicle, trailer, organization
+             */
+            tabs: {
+                [key: string]: number;
+            };
+            /** Units Blocked */
+            units_blocked: number;
         };
         /** SafetySummary */
         SafetySummary: {
@@ -13013,7 +13353,7 @@ export interface components {
             /** Entity Id */
             entity_id?: string | null;
             /** Entity Type */
-            entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection") | null;
+            entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection" | "organization") | null;
             /** Expires On */
             expires_on?: string | null;
             /** Filename */
@@ -13024,7 +13364,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "other";
+            type: "bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "mvr" | "clearinghouse" | "road_test" | "drug_test" | "authority" | "ucr" | "ifta_license" | "other";
         };
         /** UploadIntentOut */
         UploadIntentOut: {
@@ -17547,12 +17887,14 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection") | null;
+                entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "work_order" | "expense" | "owner" | "inspection" | "organization") | null;
                 entity_id?: string | null;
-                type?: ("bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "other") | null;
+                type?: ("bol" | "pod" | "rate_confirmation" | "receipt" | "license" | "medical" | "insurance" | "registration" | "inspection" | "maintenance" | "invoice" | "lease" | "w9" | "title" | "cab_card" | "ach_authorization" | "mvr" | "clearinghouse" | "road_test" | "drug_test" | "authority" | "ucr" | "ifta_license" | "other") | null;
                 review_status?: ("not_required" | "pending" | "approved" | "rejected") | null;
                 /** @description Only documents already expired or expiring soon */
                 expiring?: boolean | null;
+                /** @description compliance: licences, medical cards, test results, insurance, registrations and the company's authority, which safety reviews before they count */
+                group?: "compliance" | null;
             };
             header?: never;
             path?: never;
@@ -30779,6 +31121,342 @@ export interface operations {
             };
         };
     };
+    compliance_matrix_api_v1_safety_matrix_get: {
+        parameters: {
+            query?: {
+                entity?: "driver" | "vehicle" | "trailer" | "organization";
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComplianceMatrix"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    export_matrix_api_v1_safety_matrix_csv_get: {
+        parameters: {
+            query?: {
+                entity?: "driver" | "vehicle" | "trailer" | "organization";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reminder_rules_api_v1_safety_reminders_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRules"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    save_reminder_rules_api_v1_safety_reminders_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReminderRulesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderRules"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reminders_sent_api_v1_safety_reminders_sent_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderSent"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     summary_api_v1_safety_summary_get: {
         parameters: {
             query?: never;
@@ -30794,7 +31472,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SafetySummary"];
+                    "application/json": components["schemas"]["SafetyOverview"];
                 };
             };
             /** @description Unauthorized */

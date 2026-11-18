@@ -18,7 +18,8 @@ from app.modules.drivers.models import Driver, DriverQualification
 from app.modules.equipment.models import Trailer, Vehicle
 from app.modules.loads.models import Load
 from app.modules.owners.service import blocked_units
-from app.modules.safety.rules import driver_issues, unit_issues
+from app.modules.safety.rules import FileItem, driver_issues, unit_issues
+from app.modules.safety.settings import checklist_of
 
 # A load in one of these states has a claim on its driver and equipment.
 HOLDS_RESOURCES = ("assigned", "dispatched", "at_pickup", "in_transit", "at_delivery", "on_hold")
@@ -123,12 +124,12 @@ def _compliance(issues) -> list[Reason]:
 
 
 def driver_reasons(load: Load, driver: Driver, qualifications, others: list[OtherLoad], today: date,
-                   now: datetime) -> list[Reason]:
+                   now: datetime, checklist: list[FileItem] | None = None) -> list[Reason]:
     reasons: list[Reason] = []
     if driver.status != "active":
         reasons.append(Reason(code="DRIVER_NOT_ACTIVE", severity="blocking",
                               message=f"Driver is {driver.status.replace('_', ' ')}"))
-    reasons += _compliance(driver_issues(driver, qualifications, today))
+    reasons += _compliance(driver_issues(driver, qualifications, today, checklist))
     reasons += _schedule(load, others, now, "Driver")
     if load.terminal_id and driver.terminal_id and driver.terminal_id != load.terminal_id:
         reasons.append(Reason(code="OTHER_TERMINAL", severity="warning", message="Based at another terminal"))
@@ -173,7 +174,7 @@ def check_trio(db: Session, load: Load, driver: Driver, vehicle: Vehicle, traile
     held = commitments(db, load)
     quals = qualifications_by_driver(db, [driver.id]).get(driver.id, [])
     blocked = blocked_units(db, [vehicle.id], [trailer.id] if trailer is not None else None)
-    reasons = driver_reasons(load, driver, quals, held.get(("driver", driver.id), []), today, now)
+    reasons = driver_reasons(load, driver, quals, held.get(("driver", driver.id), []), today, now, checklist_of(db))
     reasons += unit_reasons(load, vehicle, held.get(("vehicle", vehicle.id), []), today, now, "Truck",
                             blocked.get(vehicle.id))
     if trailer is not None:
@@ -272,13 +273,14 @@ def evaluate(db: Session, load: Load, today: date, now: datetime, *, q: str | No
     drivers = pick(Driver, (Driver.first_name, Driver.last_name, Driver.employee_number),
                    (Driver.last_name, Driver.first_name))
     quals = qualifications_by_driver(db, [d.id for d in drivers])
+    checklist = checklist_of(db)
     seats = _seats(db, load, [d.id for d in drivers], now)
     pickup_day = load.pickup_at.astimezone(ZoneInfo(zone)).date() if load.pickup_at else None
     delivery_day = load.delivery_at.astimezone(ZoneInfo(zone)).date() if load.delivery_at else pickup_day
     driver_out = []
     for d in drivers:
         others = held.get(("driver", d.id), [])
-        reasons = driver_reasons(load, d, quals.get(d.id, []), others, today, now)
+        reasons = driver_reasons(load, d, quals.get(d.id, []), others, today, now, checklist)
         seat = seats.get(d.id)
         strengths: list[str] = []
         if seat is not None and seat.miles_to_pickup is not None:

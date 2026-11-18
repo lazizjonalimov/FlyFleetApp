@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { day, open, signUp, viaApp } from "./helpers";
+import { day, open, qualify, signUp, viaApp } from "./helpers";
 
 const PAPERS = { registration_expiry: day(400), insurance_expiry: day(400), inspection_expiry: day(400) };
 const ago = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -42,6 +42,7 @@ test("fleet alerts follow the loads, and a policy saves as a new version", async
   const account = await signUp(page);
   const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Globex" });
   const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Ken", last_name: "Ito", cdl_expiry: day(400), medical_cert_expiry: day(400) });
+  await qualify(page, driver.id);
   const truck = await viaApp<{ id: string }>(page, "POST", "/vehicles", { unit_number: "T-77", ...PAPERS });
   const inHours = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
   const load = await viaApp<{ id: string; load_number: string; version: number }>(page, "POST", "/loads", {

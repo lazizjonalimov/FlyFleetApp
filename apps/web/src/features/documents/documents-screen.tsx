@@ -15,7 +15,10 @@ export type Document = Schema<"DocumentOut">;
 
 export const DOCUMENT_TYPES: Record<string, string> = {
   bol: "Bill of lading", pod: "Proof of delivery", rate_confirmation: "Rate confirmation", receipt: "Receipt", license: "Licence", medical: "Medical certificate",
-  insurance: "Insurance", registration: "Registration", inspection: "Inspection", maintenance: "Maintenance", invoice: "Invoice", other: "Other",
+  insurance: "Insurance", registration: "Registration", inspection: "Inspection", maintenance: "Maintenance", invoice: "Invoice", lease: "Lease",
+  w9: "W-9", title: "Title", cab_card: "Cab card", ach_authorization: "ACH authorization", mvr: "MVR review", clearinghouse: "Clearinghouse query",
+  road_test: "Road test certificate", drug_test: "Drug test result", authority: "Operating authority", ucr: "UCR registration",
+  ifta_license: "IFTA license", other: "Other",
 };
 export const REVIEW: Record<string, [label: string, tone: string]> = { pending: ["Needs review", "info"], approved: ["Approved", "ok"], rejected: ["Rejected", "bad"], not_required: ["Filed", "mu"] };
 const SCAN: Record<string, [label: string, tone: string]> = { clean: ["Passed", "ok"], infected: ["Blocked", "bad"], not_scanned: ["Not scanned", "mu"], pending: ["Scanning", "mu"] };

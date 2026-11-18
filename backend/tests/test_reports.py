@@ -3,7 +3,7 @@ import csv
 import io
 from datetime import UTC, datetime, timedelta
 
-from tests.conftest import complete, deliver, new_load, seed, stops, upload
+from tests.conftest import complete, deliver, new_load, qualify, seed, stops, upload
 
 
 def day(offset: int) -> str:
@@ -16,8 +16,8 @@ def iso(days: float = 0, hours: float = 0) -> str:
 
 def test_the_expirations_queue_lists_every_dated_item_in_order(org):
     yard = org.post("/terminals", {"name": "North yard"}, 201).json()
-    driver = org.post("/drivers", {"first_name": "Ed", "last_name": "Expired", "cdl_expiry": day(-10),
-                                   "medical_cert_expiry": day(5), "terminal_id": yard["id"]}, 201).json()
+    driver = qualify(org, org.post("/drivers", {"first_name": "Ed", "last_name": "Expired", "cdl_expiry": day(-10),
+                                                "medical_cert_expiry": day(5), "terminal_id": yard["id"]}, 201).json()["id"])
     org.post(f"/drivers/{driver['id']}/qualifications", {"type": "hazmat", "expires_on": day(20), "required": True}, 201)
     org.post(f"/drivers/{driver['id']}/qualifications", {"type": "training"}, 201)          # undated: not in the queue
     org.post("/drivers", {"first_name": "Gone", "last_name": "Away", "status": "terminated", "cdl_expiry": day(-99)}, 201)
@@ -47,8 +47,14 @@ def test_the_expirations_queue_lists_every_dated_item_in_order(org):
     rest = org.items("/safety/expirations", limit=3, cursor=first["page"]["next_cursor"])
     assert first["page"]["total_count"] == 4 and len(first["items"]) == 3 and [x["item"] for x in rest] == ["hazmat"]
 
-    assert org.get("/safety/summary").json() == {"expired": 2, "expiring": 2, "missing": 0, "drivers_blocked": 1,
-                                                 "units_blocked": 1}
+    summary = org.get("/safety/summary").json()
+    # The company's own file (authority, insurance, UCR, IFTA) counts as missing until its documents are filed.
+    assert {k: summary[k] for k in ("expired", "expiring", "missing", "drivers_blocked", "units_blocked")} == {
+        "expired": 2, "expiring": 2, "missing": 4, "drivers_blocked": 1, "units_blocked": 1}
+    assert summary["expired_first"] == "Ed Expired · CDL" and summary["expiring_drivers"] == 1
+    assert summary["missing_items"] == ["operating authority", "liability insurance", "UCR registration", "IFTA license"]
+    assert (summary["drivers_active"], summary["drivers_qualified"]) == (1, 0)
+    assert summary["tabs"] == {"driver": 1, "vehicle": 1, "trailer": 0, "organization": 4}
     org.patch(f"/vehicles/{truck['id']}", {"insurance_expiry": day(365)}, 200)
     assert org.get("/safety/summary").json()["units_blocked"] == 0
     org.add_user("accountant").error("GET", "/safety/expirations", 403, "FORBIDDEN")
@@ -59,11 +65,16 @@ def test_missing_dates_are_listed_separately(org):
     org.post("/vehicles", {"unit_number": "202"}, 201)
     assert org.items("/safety/expirations") == []
     missing = org.items("/safety/expirations", state="missing")
+    # The driver's file as the company has it: the CDL, the medical card and the four standard items.
     assert {(x["entity_label"], x["item"]) for x in missing} == {
-        ("No Dates", "cdl"), ("No Dates", "medical"), ("Truck 202", "insurance"), ("Truck 202", "registration"),
-        ("Truck 202", "inspection")}
+        ("No Dates", "cdl"), ("No Dates", "medical"), ("No Dates", "mvr"), ("No Dates", "clearinghouse"),
+        ("No Dates", "road_test"), ("No Dates", "drug_test"), ("Truck 202", "insurance"),
+        ("Truck 202", "registration"), ("Truck 202", "inspection")}
     assert all(x["days_left"] is None and x["expires_on"] is None for x in missing)
-    assert org.get("/safety/summary").json()["missing"] == 5
+    assert {x["item"]: x["blocks_dispatch"] for x in missing if x["entity_label"] == "No Dates"}["road_test"] is True
+    summary = org.get("/safety/summary").json()
+    assert summary["missing"] == 9 + 4 and summary["drivers_blocked"] == 1
+    assert summary["missing_items"][:2] == ["CDL", "clearinghouse query"]
 
 
 def test_documents_with_their_own_expiry_show_up(org):

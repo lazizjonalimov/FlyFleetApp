@@ -3,14 +3,14 @@ fleet. The scope narrows what the role can already see, everywhere the API reads
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from tests.conftest import act, assign, new_load, seed, upload
+from tests.conftest import act, assign, new_load, qualify, seed, upload
 
 PAPERS = {"insurance_expiry": "2035-01-01", "registration_expiry": "2035-01-01", "inspection_expiry": "2035-01-01"}
 
 
 def second_rig(org) -> dict:
-    driver = org.post("/drivers", {"first_name": "Ken", "last_name": "Ito", "cdl_expiry": "2035-01-01",
-                                   "medical_cert_expiry": "2035-01-01"}, 201).json()
+    driver = qualify(org, org.post("/drivers", {"first_name": "Ken", "last_name": "Ito", "cdl_expiry": "2035-01-01",
+                                                "medical_cert_expiry": "2035-01-01"}, 201).json()["id"])
     truck = org.post("/vehicles", {"unit_number": f"T-{uuid.uuid4().hex[:5]}", **PAPERS}, 201).json()
     trailer = org.post("/trailers", {"unit_number": f"TR-{uuid.uuid4().hex[:5]}", "type": "dry_van", **PAPERS}, 201).json()
     org.put(f"/vehicles/{truck['id']}/seat", {"driver_id": driver["id"]}, 200)

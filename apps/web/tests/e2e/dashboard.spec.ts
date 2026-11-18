@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { day, open, signUp, viaApp } from "./helpers";
+import { day, open, qualify, signUp, viaApp } from "./helpers";
 
 const PAPERS = { registration_expiry: day(400), insurance_expiry: day(400), inspection_expiry: day(400) };
 const at = (minutes: number) => new Date(Date.now() + minutes * 60_000).toISOString();
@@ -13,6 +13,7 @@ test("needs attention: each exception with its own action, done from the dashboa
   const account = await signUp(page);
   const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Globex" });
   const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Dana", last_name: "Reyes", cdl_number: "D1234567", cdl_state: "TX", cdl_expiry: day(900), medical_cert_expiry: day(900) });
+  await qualify(page, driver.id);
   const truck = await viaApp<{ id: string }>(page, "POST", "/vehicles", { unit_number: "T-55", ...PAPERS });
   // A pickup in two hours with nobody on it.
   const waiting = await viaApp<Load>(page, "POST", "/loads", { customer_id: customer.id, commodity: "Paper", customer_rate: "2500.00", stops: route(at(120), at(480)) });

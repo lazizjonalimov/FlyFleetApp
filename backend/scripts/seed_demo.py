@@ -123,6 +123,18 @@ def main() -> int:
                                                               "expires_on": date(25), "reference": "HM-22871"})
         post(f"/drivers/{drivers[2]['id']}/qualifications", {"type": "drug_test", "issued_on": date(-190),
                                                               "expires_on": date(175), "required": True})
+        # The rest of each qualification file: the annual MVR review and clearinghouse query, the road test and the
+        # pre-employment drug test. Marcus's clearinghouse query is coming due; Tom has no road test on file.
+        files = (
+            {"clearinghouse": date(240), "road_test": None, "drug_test": None},
+            {"mvr": date(320), "clearinghouse": date(12), "road_test": None, "drug_test": None},
+            {"mvr": date(90), "clearinghouse": date(200), "road_test": None},
+            {"mvr": date(100), "clearinghouse": date(150), "drug_test": None},
+            {"mvr": date(280), "clearinghouse": date(300), "road_test": None, "drug_test": None},
+        )
+        for driver, items in zip(drivers, files, strict=True):
+            for kind, expires in items.items():
+                post(f"/drivers/{driver['id']}/qualifications", {"type": kind, "expires_on": expires})
 
         # --- equipment --------------------------------------------------------------------------------
         good = {"insurance_expiry": date(200), "registration_expiry": date(150), "inspection_expiry": date(120)}

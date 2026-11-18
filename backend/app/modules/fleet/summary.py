@@ -24,7 +24,8 @@ from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import Terminal
 from app.modules.owners.models import EquipmentOwnership, Owner
 from app.modules.people.models import Person
-from app.modules.safety.rules import QUALIFICATION_LABELS
+from app.modules.safety.rules import QUALIFICATION_LABELS, driver_issues, latest, lower
+from app.modules.safety.settings import checklist_of
 
 LIVE = ("assigned", "dispatched", "at_pickup", "in_transit", "at_delivery")
 OFF_ROAD = ("in_maintenance", "out_of_service")
@@ -220,18 +221,29 @@ def trailer_summary(p: Principal = Depends(require("equipment.read")), db: Sessi
         next_unit_number=next_unit_number(db, Trailer))
 
 
+def _plural(kind: str) -> str:
+    """ "mvr" -> "MVRs", "clearinghouse" -> "clearinghouse queries", "twic" -> "TWIC cards"."""
+    if kind == "mvr":
+        return "MVRs"
+    label = lower(QUALIFICATION_LABELS.get(kind, "other paper"))
+    return label[:-1] + "ies" if label.endswith("y") else label + "s"
+
+
 @router.get("/drivers/summary", response_model=DriverSummary, summary="The drivers table's figures and filter values")
 def driver_summary(p: Principal = Depends(require("drivers.read")), db: Session = Depends(get_db)):
     drivers = list(db.scalars(team_scope.where(select(Driver), team_scope.drivers(p.scope, Driver.id))))
     today = p.today()
     soon = today + timedelta(days=30)
     quals = list(db.scalars(select(DriverQualification)))
-    blocked_by_quals = {q.driver_id for q in quals if q.required and q.expires_on and q.expires_on < today}
+    by_driver: dict = {}
+    for q in quals:
+        by_driver.setdefault(q.driver_id, []).append(q)
+    checklist = checklist_of(db)
     active = [d for d in drivers if d.status == "active"]
 
     def blocked(d: Driver) -> bool:
-        return bool((d.cdl_expiry and d.cdl_expiry < today) or (d.medical_cert_expiry and d.medical_cert_expiry < today)
-                    or d.id in blocked_by_quals)
+        """As dispatch decides it: the same rules, the company's own qualification file."""
+        return any(i.severity == "blocking" for i in driver_issues(d, by_driver.get(d.id, []), today, checklist))
 
     busy = _busy_ids(db, DispatchAssignment.driver_id) | _busy_ids(db, DispatchAssignment.co_driver_id)
     seats = list(db.scalars(select(UnitAssignment).where(UnitAssignment.effective_to.is_(None),
@@ -254,9 +266,9 @@ def driver_summary(p: Principal = Depends(require("drivers.read")), db: Session 
         if d.cdl_expiry and today <= d.cdl_expiry <= soon:
             expiring["CDLs"] += 1
     active_ids = {d.id for d in active}
-    for q in quals:
+    for q in (q for held in by_driver.values() for q in latest(held).values()):
         if q.driver_id in active_ids and q.expires_on and today <= q.expires_on <= soon:
-            expiring[("MVRs" if q.type == "mvr" else QUALIFICATION_LABELS.get(q.type, "other papers").lower() + "s")] += 1
+            expiring[_plural(q.type)] += 1
     endorsements = [e.strip() for d in active for e in (d.endorsements or "").replace(",", " ").split() if e.strip()]
     return DriverSummary(
         total=len(drivers), active=len(active), inactive=len([d for d in drivers if d.status != "active"]),

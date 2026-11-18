@@ -37,17 +37,19 @@ from app.modules.finance.models import Invoice
 from app.modules.loads import service as loads
 from app.modules.loads.models import Load
 from app.modules.maintenance.models import Inspection, WorkOrder
-from app.modules.organizations.models import Membership, User
+from app.modules.organizations.models import Membership, Organization, User
 from app.modules.owners.models import Owner
+from app.modules.safety.renewals import renew
 from app.modules.safety.rules import WARN_DAYS
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 DocumentType = Literal["bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance",
                        "registration", "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card",
-                       "ach_authorization", "other"]
+                       "ach_authorization", "mvr", "clearinghouse", "road_test", "drug_test", "authority", "ucr",
+                       "ifta_license", "other"]
 EntityType = Literal["load", "driver", "vehicle", "trailer", "customer", "invoice", "work_order", "expense", "owner",
-                     "inspection"]
+                     "inspection", "organization"]
 
 # What a document can be attached to: the record, the permission needed to see that record, its display name.
 ENTITIES = {
@@ -62,13 +64,15 @@ ENTITIES = {
     "owner": (Owner, "owners.read", lambda x: x.legal_name or x.dba or "Owner"),
     "inspection": (Inspection, "maintenance.read",
                    lambda x: f"Inspection {x.report_number}" if x.report_number else f"Inspection, {x.inspected_on.isoformat()}"),
+    "organization": (Organization, "safety.read", lambda x: x.legal_name or x.name),
 }
-# Scans of personal identity documents: only roles that may see the numbers on them may see the scans.
-SENSITIVE = ("license", "medical")
+# Scans of personal identity documents and test results: only roles that may see the numbers on them may see them.
+SENSITIVE = ("license", "medical", "mvr", "clearinghouse", "drug_test")
 # Carry an owner's tax ID or bank account: only roles that may see those may see the scans.
 OWNER_SENSITIVE = ("w9", "ach_authorization")
 # Reviewed by safety before they count. Proof of delivery is reviewed through the load instead.
-COMPLIANCE = ("license", "medical", "insurance", "registration", "inspection")
+COMPLIANCE = ("license", "medical", "insurance", "registration", "inspection", "mvr", "clearinghouse", "road_test",
+              "drug_test", "authority", "ucr", "ifta_license")
 # What a driver may add to a load they are hauling.
 DRIVER_TYPES = ("pod", "bol", "receipt")
 
@@ -154,6 +158,9 @@ class DocumentListParams(ListParams):
     type: DocumentType | None = None
     review_status: Literal["not_required", "pending", "approved", "rejected"] | None = None
     expiring: bool | None = Field(default=None, description="Only documents already expired or expiring soon")
+    group: Literal["compliance"] | None = Field(
+        default=None, description="compliance: licences, medical cards, test results, insurance, registrations and "
+                                  "the company's authority, which safety reviews before they count")
 
 
 # ---------------------------------------------------------------- access
@@ -177,6 +184,8 @@ def _check_entity(db: Session, p: Principal, entity_type: str, entity_id: uuid.U
             raise Forbidden("Drivers can add a POD, BOL or receipt to a load they are hauling")
     elif not p.can(permission):
         raise Forbidden("Your role does not allow access to that record")
+    if entity_type == "organization" and entity_id != p.org_id:
+        raise Invalid("Company documents are filed with your own company", field="entity_id")
     if db.get(model, entity_id) is None:
         raise Invalid(f"{entity_type.capitalize()} not found", field="entity_id")
     if doc_type in SENSITIVE and not _see_sensitive(p):
@@ -372,6 +381,8 @@ def list_documents(params: Annotated[DocumentListParams, Query()],
         stmt = stmt.where(Document.type == params.type)
     if params.review_status:
         stmt = stmt.where(Document.review_status == params.review_status)
+    if params.group == "compliance":
+        stmt = stmt.where(Document.type.in_(COMPLIANCE))
     if params.expiring:
         stmt = stmt.where(Document.expires_on <= p.today() + timedelta(days=WARN_DAYS))
     if params.q:
@@ -503,7 +514,10 @@ def review(document_id: uuid.UUID, body: ReviewIn, p: Principal = Depends(requir
         raise Invalid("Say what is wrong so it can be fixed", field="note")
     doc.review_status, doc.review_note = body.decision, note
     doc.reviewed_by, doc.reviewed_at = p.user_id, datetime.now(UTC)
-    audit(db, p, f"document.{body.decision}", "document", doc.id, {"note": note} if note else None)
+    # An approved renewal is what makes the record compliant again: its date goes onto the driver or unit.
+    renewed = renew(db, p, doc) if body.decision == "approved" else []
+    audit(db, p, f"document.{body.decision}", "document", doc.id,
+          {k: v for k, v in (("note", note), ("renewed", renewed)) if v} or None)
     db.commit()
     return _present(db, [doc])[0]
 

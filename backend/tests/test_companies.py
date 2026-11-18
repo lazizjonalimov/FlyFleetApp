@@ -3,7 +3,7 @@ import uuid
 
 from sqlalchemy import text
 
-from tests.conftest import PASSWORD, login, new_load, seed
+from tests.conftest import FILE, PASSWORD, login, new_load, seed
 
 
 def add_company(api, name="Second Co", expect=201, **extra):
@@ -68,7 +68,7 @@ def test_copying_setup_makes_a_new_company_ready_to_operate(org):
     assert driver["full_name"] == "Dana Driver" and driver["cdl_number"] == "D1234567"   # re-encrypted, still readable
     assert driver["terminal_id"] == new.items("/terminals")[0]["id"] != yard["id"]
     assert driver["user_id"] == s["driver_api"].user_id                                   # the driver's sign-in came along
-    assert [q["type"] for q in new.get(f"/drivers/{driver['id']}/qualifications").json()] == ["hazmat"]
+    assert sorted(q["type"] for q in new.get(f"/drivers/{driver['id']}/qualifications").json()) == sorted([*FILE, "hazmat"])
     assert len(new.items("/vehicles")) == 1 and len(new.items("/trailers")) == 1
     assert {m["role"] for m in new.get("/members").json()} == {"owner", "dispatcher", "driver"}
     # Work and money are never copied.

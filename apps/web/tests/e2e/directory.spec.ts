@@ -31,7 +31,9 @@ test("adding a driver from Create, then opening and editing the record", async (
   await expect(page).toHaveURL(new RegExp(`/${account.slug}/drivers/[0-9a-f-]{36}$`));
   await expect(page.getByRole("heading", { name: "Casey Lund", level: 1 })).toBeVisible();
   await expect(page.locator(".main")).toContainText("Medical certificate");
-  await expect(page.locator(".main")).toContainText("Expiring soon");
+  // Nothing of the qualification file is on file yet, so the driver can't be dispatched.
+  await expect(page.locator(".ph")).toContainText("Not dispatchable");
+  await expect(page.locator(".main")).toContainText("No MVR review on file");
 
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit driver" });

@@ -2885,6 +2885,190 @@
         "title": "Compliance",
         "type": "object"
       },
+      "ComplianceCell": {
+        "properties": {
+          "blocks": {
+            "default": true,
+            "title": "Blocks",
+            "type": "boolean"
+          },
+          "days_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Left"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "in_review": {
+            "default": false,
+            "title": "In Review",
+            "type": "boolean"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "review_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Document Id"
+          },
+          "state": {
+            "enum": [
+              "valid",
+              "expiring",
+              "expired",
+              "missing"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item",
+          "state"
+        ],
+        "title": "ComplianceCell",
+        "type": "object"
+      },
+      "ComplianceColumn": {
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "ComplianceColumn",
+        "type": "object"
+      },
+      "ComplianceMatrix": {
+        "properties": {
+          "columns": {
+            "items": {
+              "$ref": "#/components/schemas/ComplianceColumn"
+            },
+            "title": "Columns",
+            "type": "array"
+          },
+          "entity": {
+            "enum": [
+              "driver",
+              "vehicle",
+              "trailer",
+              "organization"
+            ],
+            "title": "Entity",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComplianceRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "entity",
+          "columns",
+          "rows"
+        ],
+        "title": "ComplianceMatrix",
+        "type": "object"
+      },
+      "ComplianceRow": {
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/ComplianceCell"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "dispatchable": {
+            "title": "Dispatchable",
+            "type": "boolean"
+          },
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FiledDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "expired",
+              "missing",
+              "lapsed",
+              "incomplete",
+              "expiring",
+              "review",
+              "qualified",
+              "inactive"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "cells",
+          "verdict",
+          "dispatchable"
+        ],
+        "title": "ComplianceRow",
+        "type": "object"
+      },
       "ContactCreate": {
         "properties": {
           "email": {
@@ -8132,6 +8316,107 @@
         "title": "FieldOut",
         "type": "object"
       },
+      "FileItem": {
+        "description": "One line of a company's driver qualification file.",
+        "properties": {
+          "blocks": {
+            "default": true,
+            "title": "Blocks",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "FileItem",
+        "type": "object"
+      },
+      "FileItemIn": {
+        "properties": {
+          "blocks": {
+            "default": true,
+            "title": "Blocks",
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "mvr",
+              "clearinghouse",
+              "drug_test",
+              "road_test",
+              "employment_application",
+              "annual_review",
+              "hazmat",
+              "twic",
+              "training"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "FileItemIn",
+        "type": "object"
+      },
+      "FiledDocument": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "review_status": {
+            "title": "Review Status",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "reviewed_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed By Name"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "created_at",
+          "review_status"
+        ],
+        "title": "FiledDocument",
+        "type": "object"
+      },
       "Fleet": {
         "properties": {
           "drivers_active": {
@@ -10592,7 +10877,8 @@
               "work_order",
               "expense",
               "owner",
-              "inspection"
+              "inspection",
+              "organization"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -10623,7 +10909,8 @@
               "work_order",
               "expense",
               "owner",
-              "inspection"
+              "inspection",
+              "organization"
             ],
             "title": "Entity Type",
             "type": "string"
@@ -19765,6 +20052,7 @@
           "type": {
             "enum": [
               "mvr",
+              "clearinghouse",
               "drug_test",
               "road_test",
               "employment_application",
@@ -19853,6 +20141,7 @@
           "type": {
             "enum": [
               "mvr",
+              "clearinghouse",
               "drug_test",
               "road_test",
               "employment_application",
@@ -19940,6 +20229,7 @@
               {
                 "enum": [
                   "mvr",
+                  "clearinghouse",
                   "drug_test",
                   "road_test",
                   "employment_application",
@@ -20638,6 +20928,288 @@
           "version"
         ],
         "title": "ReleaseIn",
+        "type": "object"
+      },
+      "ReminderOption": {
+        "properties": {
+          "connected": {
+            "default": true,
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label"
+        ],
+        "title": "ReminderOption",
+        "type": "object"
+      },
+      "ReminderRules": {
+        "properties": {
+          "channel_options": {
+            "items": {
+              "$ref": "#/components/schemas/ReminderOption"
+            },
+            "title": "Channel Options",
+            "type": "array"
+          },
+          "channels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Channels",
+            "type": "array"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/FileItem"
+            },
+            "title": "Checklist",
+            "type": "array"
+          },
+          "copy_options": {
+            "items": {
+              "$ref": "#/components/schemas/ReminderOption"
+            },
+            "title": "Copy Options",
+            "type": "array"
+          },
+          "copy_to": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Copy To",
+            "type": "array"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "failed_week": {
+            "title": "Failed Week",
+            "type": "integer"
+          },
+          "item_options": {
+            "items": {
+              "$ref": "#/components/schemas/ReminderOption"
+            },
+            "title": "Item Options",
+            "type": "array"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "lead_days": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Lead Days",
+            "type": "array"
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          },
+          "run_hour": {
+            "title": "Run Hour",
+            "type": "integer"
+          },
+          "sent_week": {
+            "title": "Sent Week",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "lead_days",
+          "channels",
+          "copy_to",
+          "run_hour",
+          "checklist",
+          "version",
+          "next_run_at",
+          "last_run_at",
+          "sent_week",
+          "failed_week",
+          "channel_options",
+          "copy_options",
+          "item_options"
+        ],
+        "title": "ReminderRules",
+        "type": "object"
+      },
+      "ReminderRulesIn": {
+        "properties": {
+          "channels": {
+            "items": {
+              "enum": [
+                "app",
+                "telegram",
+                "sms",
+                "email"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Channels",
+            "type": "array"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/FileItemIn"
+            },
+            "maxItems": 9,
+            "title": "Checklist",
+            "type": "array"
+          },
+          "copy_to": {
+            "items": {
+              "enum": [
+                "safety_manager",
+                "fleet_manager"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "title": "Copy To",
+            "type": "array"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "lead_days": {
+            "description": "Days before an expiry, 1 to 365",
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Lead Days",
+            "type": "array"
+          },
+          "run_hour": {
+            "maximum": 23.0,
+            "minimum": 0.0,
+            "title": "Run Hour",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "lead_days",
+          "channels",
+          "copy_to",
+          "run_hour",
+          "checklist",
+          "version"
+        ],
+        "title": "ReminderRulesIn",
+        "type": "object"
+      },
+      "ReminderSent": {
+        "properties": {
+          "deliveries": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Deliveries",
+            "type": "array"
+          },
+          "entity_id": {
+            "format": "uuid",
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "entity_label": {
+            "title": "Entity Label",
+            "type": "string"
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "expires_on": {
+            "format": "date",
+            "title": "Expires On",
+            "type": "string"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "item_label": {
+            "title": "Item Label",
+            "type": "string"
+          },
+          "lead_days": {
+            "title": "Lead Days",
+            "type": "integer"
+          },
+          "sent_at": {
+            "format": "date-time",
+            "title": "Sent At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "entity_type",
+          "entity_id",
+          "entity_label",
+          "item",
+          "item_label",
+          "expires_on",
+          "lead_days",
+          "sent_at",
+          "failed",
+          "deliveries"
+        ],
+        "title": "ReminderSent",
         "type": "object"
       },
       "Report": {
@@ -21675,6 +22247,99 @@
           "decision"
         ],
         "title": "RowIssue",
+        "type": "object"
+      },
+      "SafetyOverview": {
+        "description": "The summary with what the compliance page names: the first thing run out, who is running out, what is\nmissing, how many drivers are fully qualified, and how many records each tab holds.",
+        "properties": {
+          "drivers_active": {
+            "title": "Drivers Active",
+            "type": "integer"
+          },
+          "drivers_blocked": {
+            "title": "Drivers Blocked",
+            "type": "integer"
+          },
+          "drivers_qualified": {
+            "title": "Drivers Qualified",
+            "type": "integer"
+          },
+          "expired": {
+            "title": "Expired",
+            "type": "integer"
+          },
+          "expired_first": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expired First"
+          },
+          "expiring": {
+            "title": "Expiring",
+            "type": "integer"
+          },
+          "expiring_company": {
+            "title": "Expiring Company",
+            "type": "integer"
+          },
+          "expiring_drivers": {
+            "title": "Expiring Drivers",
+            "type": "integer"
+          },
+          "expiring_trailers": {
+            "title": "Expiring Trailers",
+            "type": "integer"
+          },
+          "expiring_trucks": {
+            "title": "Expiring Trucks",
+            "type": "integer"
+          },
+          "missing": {
+            "title": "Missing",
+            "type": "integer"
+          },
+          "missing_items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Items",
+            "type": "array"
+          },
+          "tabs": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Records on each tab: driver, vehicle, trailer, organization",
+            "title": "Tabs",
+            "type": "object"
+          },
+          "units_blocked": {
+            "title": "Units Blocked",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expired",
+          "expiring",
+          "missing",
+          "drivers_blocked",
+          "units_blocked",
+          "expired_first",
+          "expiring_drivers",
+          "expiring_trucks",
+          "expiring_trailers",
+          "expiring_company",
+          "missing_items",
+          "drivers_active",
+          "drivers_qualified",
+          "tabs"
+        ],
+        "title": "SafetyOverview",
         "type": "object"
       },
       "SafetySummary": {
@@ -28063,7 +28728,8 @@
                   "work_order",
                   "expense",
                   "owner",
-                  "inspection"
+                  "inspection",
+                  "organization"
                 ],
                 "type": "string"
               },
@@ -28114,6 +28780,13 @@
               "title",
               "cab_card",
               "ach_authorization",
+              "mvr",
+              "clearinghouse",
+              "road_test",
+              "drug_test",
+              "authority",
+              "ucr",
+              "ifta_license",
               "other"
             ],
             "title": "Type",
@@ -36035,7 +36708,8 @@
                     "work_order",
                     "expense",
                     "owner",
-                    "inspection"
+                    "inspection",
+                    "organization"
                   ],
                   "type": "string"
                 },
@@ -36087,6 +36761,13 @@
                     "title",
                     "cab_card",
                     "ach_authorization",
+                    "mvr",
+                    "clearinghouse",
+                    "road_test",
+                    "drug_test",
+                    "authority",
+                    "ucr",
+                    "ifta_license",
                     "other"
                   ],
                   "type": "string"
@@ -36136,6 +36817,25 @@
               ],
               "description": "Only documents already expired or expiring soon",
               "title": "Expiring"
+            }
+          },
+          {
+            "description": "compliance: licences, medical cards, test results, insurance, registrations and the company's authority, which safety reviews before they count",
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "compliance",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "compliance: licences, medical cards, test results, insurance, registrations and the company's authority, which safety reviews before they count",
+              "title": "Group"
             }
           }
         ],
@@ -56280,6 +56980,468 @@
         ]
       }
     },
+    "/api/v1/safety/matrix": {
+      "get": {
+        "description": "Each driver, truck or trailer with every item of their file, or the company's own documents.",
+        "operationId": "compliance_matrix_api_v1_safety_matrix_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity",
+            "required": false,
+            "schema": {
+              "default": "driver",
+              "enum": [
+                "driver",
+                "vehicle",
+                "trailer",
+                "organization"
+              ],
+              "title": "Entity",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplianceMatrix"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Compliance Matrix",
+        "tags": [
+          "safety"
+        ]
+      }
+    },
+    "/api/v1/safety/matrix.csv": {
+      "get": {
+        "description": "The matrix as a spreadsheet: one row per record, the date and state of each item.",
+        "operationId": "export_matrix_api_v1_safety_matrix_csv_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "entity",
+            "required": false,
+            "schema": {
+              "default": "driver",
+              "enum": [
+                "driver",
+                "vehicle",
+                "trailer",
+                "organization"
+              ],
+              "title": "Entity",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Export Matrix",
+        "tags": [
+          "safety"
+        ]
+      }
+    },
+    "/api/v1/safety/reminders": {
+      "get": {
+        "description": "The company's reminder rules and qualification file, when reminders next go out and how many went this week.",
+        "operationId": "reminder_rules_api_v1_safety_reminders_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRules"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reminder Rules",
+        "tags": [
+          "safety"
+        ]
+      },
+      "put": {
+        "description": "Change the rules. The qualification file decides at once who can be dispatched.",
+        "operationId": "save_reminder_rules_api_v1_safety_reminders_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderRulesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRules"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Reminder Rules",
+        "tags": [
+          "safety"
+        ]
+      }
+    },
+    "/api/v1/safety/reminders/sent": {
+      "get": {
+        "description": "The latest reminders, newest first.",
+        "operationId": "reminders_sent_api_v1_safety_reminders_sent_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReminderSent"
+                  },
+                  "title": "Response Reminders Sent Api V1 Safety Reminders Sent Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reminders Sent",
+        "tags": [
+          "safety"
+        ]
+      }
+    },
     "/api/v1/safety/summary": {
       "get": {
         "operationId": "summary_api_v1_safety_summary_get",
@@ -56288,7 +57450,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SafetySummary"
+                  "$ref": "#/components/schemas/SafetyOverview"
                 }
               }
             },

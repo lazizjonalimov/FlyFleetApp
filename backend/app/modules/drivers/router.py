@@ -5,8 +5,8 @@ from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from sqlalchemy import func, literal, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import exists, func, literal, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from app.core import scope as team_scope
 from app.core.crud import ListParams, child_router, ensure_exists, resource_router
@@ -21,15 +21,16 @@ from app.modules.organizations.models import Membership, Terminal
 from app.modules.owners.models import EquipmentOwnership, Owner
 from app.modules.people import service as people
 from app.modules.people.models import Person
-from app.modules.safety.rules import WARN_DAYS, Compliance, driver_issues, summarize
+from app.modules.safety.rules import WARN_DAYS, Compliance, FileItem, driver_issues, summarize
+from app.modules.safety.settings import checklist_of
 
 DriverType = Literal["company", "owner_operator", "contractor"]
 DriverStatus = Literal["active", "inactive", "terminated"]
 PayType = Literal["per_mile", "percent", "flat"]
 PayBy = Literal["carrier", "owner", "carrier_for_owner"]
 DriverKind = Literal["company", "owners_drivers", "owner_operators", "team", "available", "on_load", "not_dispatchable"]
-QualificationType = Literal["mvr", "drug_test", "road_test", "employment_application", "annual_review", "hazmat",
-                            "twic", "training", "other"]
+QualificationType = Literal["mvr", "clearinghouse", "drug_test", "road_test", "employment_application",
+                            "annual_review", "hazmat", "twic", "training", "other"]
 
 
 # ---------------------------------------------------------------- schemas
@@ -218,17 +219,46 @@ def _busy_drivers():
     return Driver.id.in_(on) | Driver.id.in_(co)
 
 
-def _blocked(today: date):
-    """Papers that stop a driver from being dispatched: a lapsed CDL or medical card, or a required item."""
-    return or_(Driver.cdl_expiry < today, Driver.medical_cert_expiry < today,
-               Driver.id.in_(select(DriverQualification.driver_id).where(DriverQualification.required.is_(True),
-                                                                         DriverQualification.expires_on < today)))
+def _held(kind: str, good_from: date | None = None):
+    """The driver has a record of this kind, still good on the day given when one is."""
+    q = select(DriverQualification.id).where(DriverQualification.driver_id == Driver.id, DriverQualification.type == kind)
+    if good_from is not None:
+        q = q.where(or_(DriverQualification.expires_on.is_(None), DriverQualification.expires_on >= good_from))
+    return exists(q)
 
 
-def _expiring(today: date):
+def _lapsed(today: date, *, required: bool, checklist: list[FileItem]):
+    """Drivers whose latest record of a kind outside the company's file has run out, marked required or not."""
+    renewal = aliased(DriverQualification)
+    renewed = exists(select(renewal.id).where(
+        renewal.driver_id == DriverQualification.driver_id, renewal.type == DriverQualification.type,
+        or_(renewal.expires_on.is_(None), renewal.expires_on >= today)))
+    return Driver.id.in_(select(DriverQualification.driver_id).where(
+        DriverQualification.required.is_(required), DriverQualification.expires_on < today,
+        DriverQualification.type.notin_([i.type for i in checklist]), ~renewed))
+
+
+def _blocked(today: date, checklist: list[FileItem]):
+    """What stops a driver from being dispatched, as the rules say: no CDL or medical card in date, an item of
+    the company's file that blocks and isn't held in date, or another required item run out."""
+    return or_(Driver.cdl_expiry.is_(None), Driver.medical_cert_expiry.is_(None), Driver.cdl_expiry < today,
+               Driver.medical_cert_expiry < today, _lapsed(today, required=True, checklist=checklist),
+               *[~_held(i.type, today) for i in checklist if i.blocks])
+
+
+def _expiring(today: date, checklist: list[FileItem]):
+    """What warns without blocking: something running out within the warning window, an item of the file that
+    doesn't block but is missing or run out, or another item run out that isn't required."""
     soon = today + timedelta(days=WARN_DAYS)
+    renewal = aliased(DriverQualification)
+    longer = exists(select(renewal.id).where(
+        renewal.driver_id == DriverQualification.driver_id, renewal.type == DriverQualification.type,
+        or_(renewal.expires_on.is_(None), renewal.expires_on > soon)))
     return or_(Driver.cdl_expiry.between(today, soon), Driver.medical_cert_expiry.between(today, soon),
-               Driver.id.in_(select(DriverQualification.driver_id).where(DriverQualification.expires_on.between(today, soon))))
+               Driver.id.in_(select(DriverQualification.driver_id).where(
+                   DriverQualification.expires_on.between(today, soon), ~longer)),
+               _lapsed(today, required=False, checklist=checklist),
+               *[~_held(i.type, today) for i in checklist if not i.blocks])
 
 
 def _search_also(pattern: str) -> list:
@@ -244,6 +274,7 @@ def present(db: Session, drivers: list[Driver], p: Principal) -> list[DriverRead
     sensitive = p.can("drivers.sensitive.read")
     ids = [d.id for d in drivers]
     quals = qualifications_by_driver(db, ids)
+    checklist = checklist_of(db)
     on_load = current_loads(db, "driver", ids)
     today = p.today()
     seats = seats_of(db, ids)
@@ -269,7 +300,7 @@ def present(db: Session, drivers: list[Driver], p: Principal) -> list[DriverRead
         pay_by=d.pay_by, owner_id=owned.get(d.person_id), unit=seats.get(d.id),
         medical_cert_expiry=d.medical_cert_expiry, pay_type=d.pay_type if sensitive else None,
         pay_rate=d.pay_rate if sensitive else None, status=d.status, notes=d.notes,
-        compliance=summarize(driver_issues(d, quals.get(d.id, []), today)), current_load=on_load.get(d.id),
+        compliance=summarize(driver_issues(d, quals.get(d.id, []), today, checklist)), current_load=on_load.get(d.id),
         created_at=d.created_at) for d in drivers]
 
 
@@ -337,20 +368,21 @@ def _list_filter(db: Session, stmt, params: DriverListParams, p: Principal):
     if params.endorsement:
         stmt = stmt.where(func.concat(" ", func.replace(func.coalesce(Driver.endorsements, ""), ",", " "), " ")
                           .ilike(f"% {params.endorsement.upper()} %"))
+    checklist = checklist_of(db) if params.qualification or params.kind in ("available", "not_dispatchable") else []
     if params.qualification == "blocked":
-        stmt = stmt.where(_blocked(today))
+        stmt = stmt.where(_blocked(today, checklist))
     elif params.qualification == "expiring":
-        stmt = stmt.where(~_blocked(today), _expiring(today))
+        stmt = stmt.where(~_blocked(today, checklist), _expiring(today, checklist))
     elif params.qualification == "ok":
-        stmt = stmt.where(~_blocked(today), ~_expiring(today))
+        stmt = stmt.where(~_blocked(today, checklist), ~_expiring(today, checklist))
     if params.app is not None:
         stmt = stmt.where(Driver.user_id.is_not(None) if params.app else Driver.user_id.is_(None))
     if params.kind == "available":
-        stmt = stmt.where(Driver.status == "active", ~_busy_drivers(), ~_blocked(today))
+        stmt = stmt.where(Driver.status == "active", ~_busy_drivers(), ~_blocked(today, checklist))
     elif params.kind == "on_load":
         stmt = stmt.where(_busy_drivers())
     elif params.kind == "not_dispatchable":
-        stmt = stmt.where(Driver.status == "active", _blocked(today))
+        stmt = stmt.where(Driver.status == "active", _blocked(today, checklist))
     if params.employer_owner_id:
         stmt = stmt.where(Driver.employer_owner_id == params.employer_owner_id)
     if params.kind == "company":

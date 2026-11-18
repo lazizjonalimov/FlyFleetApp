@@ -522,7 +522,8 @@ def sync(db: Session, p: Principal) -> None:
     # Paperwork that has run out, which keeps a driver or unit off the road.
     from app.modules.safety.router import items
     from app.modules.safety.rules import ITEM_LABELS
-    t = items()
+    from app.modules.safety.settings import checklist_of
+    t = items(checklist_of(db))
     for row in db.execute(select(t).where(t.c.expires_on < p.today(), t.c.blocks_dispatch.is_(True))).mappings():
         label = ITEM_LABELS.get(row["item"], str(row["item"]).replace("_", " ").capitalize())
         keep(kind="documents", key=f"doc:{row['entity_type']}:{row['entity_id']}:{row['item']}", severity="high",

@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { day, nav, open, PASSWORD, signIn, signUp, unique, viaApp } from "./helpers";
+import { day, nav, open, PASSWORD, qualify, signIn, signUp, unique, viaApp } from "./helpers";
 
 const QUALIFIED = { cdl_expiry: day(400), medical_cert_expiry: day(400) };
 
 test("messages: a driver on the app gets a message, the office sees it read, and their reply comes in", async ({ page, browser }) => {
   const account = await signUp(page);
   const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Rosa", last_name: "Diaz", ...QUALIFIED });
+  await qualify(page, driver.id);
   const email = `${unique("rosa")}@example.com`;
   const member = await viaApp<{ user_id: string }>(page, "POST", "/members", { email, full_name: "Rosa Diaz", password: PASSWORD, role: "driver" });
   await viaApp(page, "PATCH", `/drivers/${driver.id}`, { user_id: member.user_id });
@@ -51,7 +52,7 @@ test("messages: a driver on the app gets a message, the office sees it read, and
 
 test("messages: nothing is sent where no channel reaches them, and a team conversation", async ({ page }) => {
   const account = await signUp(page);
-  await viaApp(page, "POST", "/drivers", { first_name: "Ken", last_name: "Ito", ...QUALIFIED });
+  await qualify(page, (await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Ken", last_name: "Ito", ...QUALIFIED })).id);
   await viaApp(page, "POST", "/members", { email: `${unique("dee")}@example.com`, full_name: "Dee Dispatcher", password: PASSWORD, role: "dispatcher" });
 
   await open(page, account, "messages");

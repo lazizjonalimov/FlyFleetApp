@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import DBAPIError
 
-from tests.conftest import deliver, new_load, seed, stops
+from tests.conftest import deliver, new_load, qualify, seed, stops
 
 TODAY = datetime.now(UTC).date()      # test companies run on UTC
 WEEK = {"period_start": str(TODAY - timedelta(days=6)), "period_end": str(TODAY)}
@@ -177,8 +177,8 @@ def test_only_delivered_loads_hauled_by_the_driver_count(org):
     terms(org, s, "flat", "400")
     delivered(org, s)
     # Another driver's delivered load, and this driver's load still on the road.
-    other = org.post("/drivers", {"first_name": "Omar", "last_name": "Other", "cdl_expiry": "2035-01-01",
-                                  "medical_cert_expiry": "2035-01-01"}, 201).json()
+    other = qualify(org, org.post("/drivers", {"first_name": "Omar", "last_name": "Other", "cdl_expiry": "2035-01-01",
+                                               "medical_cert_expiry": "2035-01-01"}, 201).json()["id"])
     truck = org.post("/vehicles", {"unit_number": "T-OTHER", "insurance_expiry": "2035-01-01",
                                    "registration_expiry": "2035-01-01", "inspection_expiry": "2035-01-01"}, 201).json()
     delivered(org, {**s, "driver": other, "truck": truck})

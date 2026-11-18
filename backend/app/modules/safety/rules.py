@@ -14,14 +14,38 @@ WARN_DAYS = 30
 Severity = Literal["blocking", "warning", "info"]
 
 QUALIFICATION_LABELS = {
-    "mvr": "Motor vehicle record", "drug_test": "Drug and alcohol test", "road_test": "Road test",
+    "mvr": "MVR review", "clearinghouse": "Clearinghouse query", "drug_test": "Drug test", "road_test": "Road test",
     "employment_application": "Employment application", "annual_review": "Annual review",
     "hazmat": "Hazmat endorsement", "twic": "TWIC card", "training": "Training", "other": "Qualification",
 }
+# The items of a carrier's own file: authority, insurance and registrations filed with the company.
+ORGANIZATION_ITEMS = {"authority": "Operating authority", "insurance": "Liability insurance",
+                      "ucr": "UCR registration", "ifta_license": "IFTA license"}
 ITEM_LABELS = {
-    "cdl": "CDL", "medical": "Medical certificate", "insurance": "Insurance", "registration": "Registration",
+    "cdl": "CDL", "medical": "Medical card", "insurance": "Insurance", "registration": "Registration",
     "inspection": "Annual inspection", **QUALIFICATION_LABELS,
 }
+# The document that renews an item, by the record it is filed with. A reviewer approving one updates the record.
+RENEWED_BY = {
+    "driver": {"license": "cdl", "medical": "medical", "mvr": "mvr", "clearinghouse": "clearinghouse",
+               "road_test": "road_test", "drug_test": "drug_test"},
+    "vehicle": {"insurance": "insurance", "registration": "registration", "inspection": "inspection"},
+    "trailer": {"insurance": "insurance", "registration": "registration", "inspection": "inspection"},
+    "organization": {t: t for t in ORGANIZATION_ITEMS},
+}
+
+
+class FileItem(BaseModel):
+    """One line of a company's driver qualification file."""
+    type: str
+    # Missing or expired, it keeps the driver off loads.
+    blocks: bool = True
+
+
+# The federal qualification file (49 CFR 391.51 and 382.701): the annual MVR review, the annual clearinghouse
+# query, the road test certificate and the pre-employment drug test, on top of the CDL and medical card.
+STANDARD_FILE = [FileItem(type="mvr"), FileItem(type="clearinghouse"), FileItem(type="road_test"),
+                 FileItem(type="drug_test")]
 
 
 class Issue(BaseModel):
@@ -56,15 +80,46 @@ def dated(label: str, code: str, expires_on: date | None, today: date, *, blocks
     return None
 
 
-def driver_issues(driver, qualifications, today: date) -> list[Issue]:
-    found = [
-        dated("CDL", "CDL", driver.cdl_expiry, today),
-        dated("Medical certificate", "MEDICAL", driver.medical_cert_expiry, today),
-    ]
+def latest(qualifications) -> dict[str, object]:
+    """The record that counts for each kind of item: the one that runs longest (no expiry runs forever). A renewal
+    supersedes the record it renews."""
+    out: dict[str, object] = {}
     for q in qualifications:
+        held = out.get(q.type)
+        if held is None or (held.expires_on is not None and (q.expires_on is None or q.expires_on > held.expires_on)):
+            out[q.type] = q
+    return out
+
+
+def lower(label: str) -> str:
+    """ "Road test" -> "road test", while "MVR review" and "CDL" keep their capitals."""
+    return label[0].lower() + label[1:] if len(label) > 1 and label[1].islower() else label
+
+
+def missing(label: str, code: str, blocks: bool) -> Issue:
+    return Issue(code=f"{code}_MISSING", message=f"No {lower(label)} on file",
+                 severity="blocking" if blocks else "warning")
+
+
+def driver_issues(driver, qualifications, today: date, checklist: list[FileItem] | None = None) -> list[Issue]:
+    """A driver needs a CDL and a medical card on file and in date, and every item of the company's file."""
+    found = [
+        dated("CDL", "CDL", driver.cdl_expiry, today, flag_missing=False) if driver.cdl_expiry
+        else missing("CDL", "CDL", True),
+        dated("Medical card", "MEDICAL", driver.medical_cert_expiry, today, flag_missing=False)
+        if driver.medical_cert_expiry else missing("Medical card", "MEDICAL", True),
+    ]
+    current = latest(qualifications)
+    required = {item.type: item for item in checklist or []}
+    for item in required.values():
+        if item.type not in current:
+            found.append(missing(QUALIFICATION_LABELS.get(item.type, "Qualification"),
+                                 f"QUALIFICATION_{item.type.upper()}", item.blocks))
+    for q in current.values():
         label = QUALIFICATION_LABELS.get(q.type, "Qualification")
-        # Only items the company marked as required stop a driver from being dispatched.
-        found.append(dated(label, f"QUALIFICATION_{q.type.upper()}", q.expires_on, today, blocks=q.required,
+        # Items of the company's file block as the file says; any other item only when marked as required.
+        blocks = required[q.type].blocks if q.type in required else q.required
+        found.append(dated(label, f"QUALIFICATION_{q.type.upper()}", q.expires_on, today, blocks=blocks,
                            flag_missing=False))
     return [i for i in found if i]
 

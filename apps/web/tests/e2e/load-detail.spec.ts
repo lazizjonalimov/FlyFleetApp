@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { day, open, PASSWORD, signIn, signUp, unique, viaApp } from "./helpers";
+import { day, open, PASSWORD, qualify, signIn, signUp, unique, viaApp } from "./helpers";
 
 const at = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString();
 const route = (pickup: string, delivery: string) => [
@@ -12,6 +12,7 @@ test("a load's drawer and page: the POD asked for, rates asked for, and a stop a
   const account = await signUp(page);
   const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Globex" });
   const driver = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Dana", last_name: "Reyes", phone: "469-555-0103", cdl_number: "D1234567", cdl_state: "TX", cdl_expiry: day(900), medical_cert_expiry: day(900) });
+  await qualify(page, driver.id);
   const truck = await viaApp<{ id: string }>(page, "POST", "/vehicles", { unit_number: "T-55", registration_expiry: day(400), insurance_expiry: day(400), inspection_expiry: day(400) });
   let hauled = await viaApp<Load>(page, "POST", "/loads", { customer_id: customer.id, commodity: "Paper", customer_rate: "1900.00", stops: route(at(-10), at(-2)) });
   hauled = await viaApp<Load>(page, "POST", "/dispatch/assignments", { load_id: hauled.id, driver_id: driver.id, vehicle_id: truck.id, version: hauled.version });

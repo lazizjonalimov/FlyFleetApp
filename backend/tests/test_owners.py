@@ -1,7 +1,7 @@
 """Owners: people stored once, ownership shares that always add up, agreements, who drives, the owner portal."""
 from datetime import UTC, datetime, timedelta
 
-from tests.conftest import PASSWORD, deliver, login, new_load, seed, stops
+from tests.conftest import PASSWORD, deliver, login, new_load, qualify, seed, stops
 
 TODAY = datetime.now(UTC).date()  # test companies run on UTC
 DATES = {"insurance_expiry": "2035-01-01", "registration_expiry": "2035-01-01", "inspection_expiry": "2035-01-01"}
@@ -18,8 +18,9 @@ def trailer(api, unit):
 
 
 def driver(api, first, last, **extra):
-    return api.post("/drivers", {"first_name": first, "last_name": last, "cdl_expiry": "2035-01-01",
-                                 "medical_cert_expiry": "2035-01-01", **extra}, 201).json()
+    """A driver with every paper on file."""
+    return qualify(api, api.post("/drivers", {"first_name": first, "last_name": last, "cdl_expiry": "2035-01-01",
+                                              "medical_cert_expiry": "2035-01-01", **extra}, 201).json()["id"])
 
 
 def owner_operator(api, d, t, **extra):

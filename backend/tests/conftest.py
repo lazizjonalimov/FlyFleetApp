@@ -146,6 +146,18 @@ def stops(pickup: str = "2031-03-10T14:00:00Z", delivery: str = "2031-03-12T14:0
     ]
 
 
+# The standard qualification file beyond the CDL and medical card: the annual MVR review and clearinghouse query
+# (which run out), the road test and the pre-employment drug test (on file once).
+FILE = {"mvr": "2035-01-01", "clearinghouse": "2035-01-01", "road_test": None, "drug_test": None}
+
+
+def qualify(api: Api, driver_id: str) -> dict:
+    """Put a complete qualification file on a driver, so nothing but the test's own conditions keeps them off loads."""
+    for kind, expires in FILE.items():
+        api.post(f"/drivers/{driver_id}/qualifications", {"type": kind, "expires_on": expires}, 201)
+    return api.get(f"/drivers/{driver_id}").json()
+
+
 def seed(api: Api, *, with_login: bool = False) -> dict:
     """A customer, a qualified driver, a truck and a trailer."""
     out = {"customer": api.post("/customers", {"name": "Globex", "payment_terms_days": 15}, 201).json()}
@@ -154,7 +166,7 @@ def seed(api: Api, *, with_login: bool = False) -> dict:
     if with_login:
         out["driver_api"] = api.add_user("driver")
         driver["user_id"] = out["driver_api"].user_id
-    out["driver"] = api.post("/drivers", driver, 201).json()
+    out["driver"] = qualify(api, api.post("/drivers", driver, 201).json()["id"])
     dates = {"insurance_expiry": "2035-01-01", "registration_expiry": "2035-01-01", "inspection_expiry": "2035-01-01"}
     out["truck"] = api.post("/vehicles", {"unit_number": f"T-{uuid.uuid4().hex[:5]}", **dates}, 201).json()
     out["trailer"] = api.post("/trailers", {"unit_number": f"TR-{uuid.uuid4().hex[:5]}", "type": "dry_van", **dates},

@@ -3,7 +3,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
-from tests.conftest import act, assign, deliver, new_load, seed, stops
+from tests.conftest import act, assign, deliver, new_load, qualify, seed, stops
 
 
 def iso(days: float = 0, hours: float = 0) -> str:
@@ -23,12 +23,15 @@ def test_the_panel_explains_who_can_take_a_load_and_why_not(org):
     s = seed(org)
     yesterday = str((datetime.now(UTC) - timedelta(days=2)).date())
     soon = str((datetime.now(UTC) + timedelta(days=10)).date())
-    expired = org.post("/drivers", {"first_name": "Ed", "last_name": "Expired", "cdl_expiry": yesterday,
+    expired = qualify(org, org.post("/drivers", {"first_name": "Ed", "last_name": "Expired", "cdl_expiry": yesterday,
+                                                 "medical_cert_expiry": "2035-01-01"}, 201).json()["id"])
+    expiring = qualify(org, org.post("/drivers", {"first_name": "Sue", "last_name": "Soon", "cdl_expiry": "2035-01-01",
+                                                  "medical_cert_expiry": soon}, 201).json()["id"])
+    inactive = qualify(org, org.post("/drivers", {"first_name": "Ian", "last_name": "Inactive", "status": "inactive",
+                                                  "cdl_expiry": "2035-01-01", "medical_cert_expiry": "2035-01-01"},
+                                     201).json()["id"])
+    unfiled = org.post("/drivers", {"first_name": "Nell", "last_name": "New", "cdl_expiry": "2035-01-01",
                                     "medical_cert_expiry": "2035-01-01"}, 201).json()
-    expiring = org.post("/drivers", {"first_name": "Sue", "last_name": "Soon", "cdl_expiry": "2035-01-01",
-                                     "medical_cert_expiry": soon}, 201).json()
-    inactive = org.post("/drivers", {"first_name": "Ian", "last_name": "Inactive", "status": "inactive",
-                                     "cdl_expiry": "2035-01-01", "medical_cert_expiry": "2035-01-01"}, 201).json()
     shop = org.post("/vehicles", {"unit_number": "SHOP-1", "status": "in_maintenance", "insurance_expiry": "2035-01-01",
                                   "registration_expiry": "2035-01-01", "inspection_expiry": "2035-01-01"}, 201).json()
     lapsed = org.post("/vehicles", {"unit_number": "LAPSED-1", "insurance_expiry": yesterday,
@@ -44,13 +47,17 @@ def test_the_panel_explains_who_can_take_a_load_and_why_not(org):
     assert not by_id[expired["id"]]["eligible"] and reasons(by_id[expired["id"]]) == {"CDL_EXPIRED"}
     assert by_id[expiring["id"]]["eligible"] and reasons(by_id[expiring["id"]]) == {"MEDICAL_EXPIRING"}   # a warning only
     assert not by_id[inactive["id"]]["eligible"] and reasons(by_id[inactive["id"]]) == {"DRIVER_NOT_ACTIVE"}
+    # A driver whose qualification file isn't on file can't be dispatched until it is.
+    assert not by_id[unfiled["id"]]["eligible"] and reasons(by_id[unfiled["id"]]) == {
+        "QUALIFICATION_MVR_MISSING", "QUALIFICATION_CLEARINGHOUSE_MISSING", "QUALIFICATION_ROAD_TEST_MISSING",
+        "QUALIFICATION_DRUG_TEST_MISSING"}
     assert not by_id[shop["id"]]["eligible"] and reasons(by_id[shop["id"]]) == {"UNIT_NOT_ACTIVE"}
     assert not by_id[lapsed["id"]]["eligible"] and reasons(by_id[lapsed["id"]]) == {"INSURANCE_EXPIRED"}
     assert by_id[flatbed["id"]]["eligible"] and reasons(by_id[flatbed["id"]]) == {"EQUIPMENT_MISMATCH"}
 
     # What the panel shows is what the API enforces.
-    for swap in ({"driver_id": expired["id"]}, {"driver_id": inactive["id"]}, {"vehicle_id": shop["id"]},
-                 {"vehicle_id": lapsed["id"]}):
+    for swap in ({"driver_id": expired["id"]}, {"driver_id": inactive["id"]}, {"driver_id": unfiled["id"]},
+                 {"vehicle_id": shop["id"]}, {"vehicle_id": lapsed["id"]}):
         body = assign(org, load, s, expect=409, **swap)["error"]
         assert body["code"] == "ASSIGNMENT_CONFLICT" and body["details"]["reasons"][0]["severity"] == "blocking"
     assert assign(org, load, s, driver_id=expiring["id"], trailer_id=flatbed["id"])["status"] == "assigned"
@@ -128,8 +135,8 @@ def test_a_double_click_assigns_once(org):
 
 def test_reassign_keeps_history_and_unassign_returns_the_load_to_planned(org):
     s = seed(org)
-    other = org.post("/drivers", {"first_name": "Rita", "last_name": "Relief", "cdl_expiry": "2035-01-01",
-                                  "medical_cert_expiry": "2035-01-01"}, 201).json()
+    other = qualify(org, org.post("/drivers", {"first_name": "Rita", "last_name": "Relief", "cdl_expiry": "2035-01-01",
+                                               "medical_cert_expiry": "2035-01-01"}, 201).json()["id"])
     load = assign(org, new_load(org, s["customer"]["id"]), s)
     first_assignment = load["assignment"]["id"]
 
@@ -154,8 +161,8 @@ def test_reassign_keeps_history_and_unassign_returns_the_load_to_planned(org):
 
 def test_swapping_drivers_mid_trip_needs_a_reason_and_dispatched_loads_cannot_be_unassigned(org):
     s = seed(org)
-    relief = org.post("/drivers", {"first_name": "Rita", "last_name": "Relief", "cdl_expiry": "2035-01-01",
-                                   "medical_cert_expiry": "2035-01-01"}, 201).json()
+    relief = qualify(org, org.post("/drivers", {"first_name": "Rita", "last_name": "Relief", "cdl_expiry": "2035-01-01",
+                                                "medical_cert_expiry": "2035-01-01"}, 201).json()["id"])
     load = act(org, assign(org, new_load(org, s["customer"]["id"]), s), "dispatch")
     url = f"/dispatch/assignments/{load['assignment']['id']}"
     assert org.error("PATCH", url, 422, "VALIDATION_ERROR", json={"driver_id": relief["id"], "version": load["version"]})[

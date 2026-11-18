@@ -9,8 +9,8 @@ from sqlalchemy.types import Uuid
 from app.core.crypto import EncryptedText
 from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 
-QUALIFICATION_TYPES = ("mvr", "drug_test", "road_test", "employment_application", "annual_review", "hazmat",
-                       "twic", "training", "other")
+QUALIFICATION_TYPES = ("mvr", "clearinghouse", "drug_test", "road_test", "employment_application", "annual_review",
+                       "hazmat", "twic", "training", "other")
 
 
 class Driver(Base, IdMixin, TenantScoped, TimestampMixin):

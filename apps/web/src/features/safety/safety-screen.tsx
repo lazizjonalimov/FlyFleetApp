@@ -1,95 +1,137 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
+import { useId, useState } from "react";
+import { Dialog, Problem } from "@/components/feedback/dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
+import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
-import { useSoon } from "@/features/console/use-action";
 import { DOCUMENT_TYPES } from "@/features/documents/documents-screen";
 import { monthYear } from "@/features/fleet/labels";
+import { leadLine, ReminderRulesDialog } from "@/features/safety/reminder-rules";
 import { api, unwrap } from "@/lib/api/client";
+import { errorMessage } from "@/lib/api/errors";
 import type { Schema } from "@/lib/api/types";
-import { formatDateTime, todayIn } from "@/lib/format/dates";
+import { formatDate, formatStamp, timeZoneLabel, todayIn } from "@/lib/format/dates";
 import { formatNumber, initials, plural } from "@/lib/format/text";
+import { useMinuteClock } from "@/lib/time/clock";
+import { ACCEPT, checkFile, uploadDocument, type DocumentType } from "@/lib/upload";
 
-type Compliance = Schema<"Compliance">;
-const OK = "M5 12l5 5 9-10";
-const CLOCK = "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2";
-const BAD = "M18 6L6 18M6 6l12 12";
+type Entity = Schema<"ComplianceMatrix">["entity"];
+type Row = Schema<"ComplianceRow">;
+type Cell = Schema<"ComplianceCell">;
+type Doc = Schema<"DocumentOut">;
+type Filter = "expired" | "expiring" | "missing" | "qualified" | null;
+const TABS: [Entity, string][] = [["driver", "Drivers"], ["vehicle", "Trucks"], ["trailer", "Trailers"], ["organization", "Organization"]];
 const DAY = 86_400_000;
-
-/** One cell of the matrix: valid, expiring within 30 days, expired, or not on file. */
-function dated(expires: string | null | undefined, today: string, missing = "Missing") {
-  if (!expires) return { k: "bad", t: missing, ic: BAD };
-  const days = Math.round((Date.parse(`${expires}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / DAY);
-  if (days < 0) return { k: "bad", t: "Expired", ic: BAD };
-  if (days <= 30) return { k: "warn", t: plural(days, "day"), ic: CLOCK };
-  return { k: "ok", t: monthYear(expires), ic: OK };
-}
-const verdict = (compliance: Compliance) => {
-  const blocking = compliance.issues.some((issue) => issue.severity === "blocking");
-  const warning = compliance.issues.some((issue) => issue.severity === "warning");
-  return blocking ? { k: "bad", l: "Blocked" } : warning ? { k: "warn", l: "Expiring" } : { k: "ok", l: "Yes" };
+const VERDICT: Record<string, [label: string, tone: string]> = {
+  qualified: ["Qualified", "ok"], expiring: ["Expiring", "warn"], review: ["In review", "info"], expired: ["Expired", "bad"],
+  missing: ["Missing", "bad"], lapsed: ["Expired", "warn"], incomplete: ["Incomplete", "warn"], inactive: ["Off the road", "mu"],
 };
+const ORG_VERDICT: Record<string, [label: string, tone: string]> = {
+  qualified: ["Valid", "ok"], expiring: ["Expiring", "warn"], review: ["In review", "info"], lapsed: ["Expired", "bad"], incomplete: ["Missing", "bad"],
+};
+const SOURCE: Record<string, string> = { "driver app": "Driver app scan", web: "Upload", system: "Added by FlyFleet" };
+
+/** "Aug 2028", "6 days", "Expired Nov 2", "Missing", "On file", "In review": one item of a record's file. */
+function show(c: Cell, label: string): { k: string; t: string; ic: string; title: string } {
+  const until = c.expires_on ? formatDate(c.expires_on) : "";
+  if (c.in_review) {
+    const now = c.state === "valid" ? (c.expires_on ? `good to ${until}` : "on file") : c.state === "missing" ? "not on file" : c.state === "expired" ? `expired ${until}` : `expires ${until}`;
+    return { k: "info", t: "In review", ic: I.eye, title: `${label}: a replacement is waiting for review (${now})` };
+  }
+  if (c.state === "missing") return { k: "bad", t: "Missing", ic: I.alert, title: `${label}: not on file` };
+  if (c.state === "expired") return { k: "bad", t: `Expired ${until.replace(/, \d{4}$/, "")}`, ic: I.alert, title: `${label}: expired ${until}` };
+  if (c.state === "expiring") return { k: "warn", t: plural(c.days_left ?? 0, "day"), ic: I.clock, title: `${label}: expires ${until}` };
+  return { k: "ok", t: c.expires_on ? monthYear(c.expires_on) : "On file", ic: I.check, title: c.expires_on ? `${label}: good to ${until}` : `${label}: on file` };
+}
+
+/** What a row is filtered by when a figure at the top is chosen. */
+function matches(row: Row, filter: Filter): boolean {
+  if (!filter) return true;
+  if (filter === "qualified") return row.verdict === "qualified";
+  return row.cells.some((c) => c.state === filter);
+}
+
+const ago = (iso: string, now: number | null) => {
+  if (now === null) return "";
+  const days = Math.floor((now - Date.parse(iso)) / DAY);
+  return days >= 1 ? `oldest ${plural(days, "day")}` : "oldest today";
+};
+
+/** "Tonight · 02:00 CST": when the next reminders go out, on the company's clock. */
+function nextRun(iso: string | null | undefined, zone: string, now: number | null): string {
+  if (!iso) return "Off";
+  const at = new Date(iso);
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
+  const label = timeZoneLabel(zone, at);
+  if (now === null) return `${time} ${label}`;
+  const today = todayIn(zone, new Date(now));
+  const day = todayIn(zone, at);
+  const tomorrow = todayIn(zone, new Date(now + DAY));
+  const hour = Number(time.slice(0, 2));
+  const when = day === today ? (hour >= 18 ? "Tonight" : "Today") : day === tomorrow ? (hour < 6 ? "Tonight" : "Tomorrow") : formatDate(day);
+  return `${when} · ${time} ${label}`;
+}
 
 /** Compliance: who and what may be dispatched, what is about to expire, and documents waiting for a review. */
 export function SafetyScreen() {
-  const { me, can, state, set } = useConsole();
-  const soon = useSoon();
+  const { me, can, state, set, notify } = useConsole();
   const org = me.organization;
-  const today = todayIn(org.timezone);
-  const tab = state.sftab === "trucks" || state.sftab === "trailers" ? state.sftab : "drivers";
+  const now = useMinuteClock();
+  const tab: Entity = TABS.some(([key]) => key === state.sftab) ? (state.sftab as Entity) : "driver";
+  const filter = (["expired", "expiring", "missing", "qualified"] as const).find((f) => f === state.sff) ?? null;
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [filing, setFiling] = useState<Row | null>(null);
   const summary = useQuery({ queryKey: [org.id, "safety", "summary"], queryFn: () => unwrap(api.GET("/api/v1/safety/summary")), refetchInterval: 60_000 });
-  const drivers = useQuery({ queryKey: [org.id, "drivers", "safety"], queryFn: () => unwrap(api.GET("/api/v1/drivers", { params: { query: { status: "active", sort: "name", limit: 100, count: true } } })), enabled: can("drivers.read") });
-  const trucks = useQuery({ queryKey: [org.id, "vehicles", "safety"], queryFn: () => unwrap(api.GET("/api/v1/vehicles", { params: { query: { sort: "unit_number", limit: 100, count: true } } })), enabled: can("equipment.read") });
-  const trailers = useQuery({ queryKey: [org.id, "trailers", "safety"], queryFn: () => unwrap(api.GET("/api/v1/trailers", { params: { query: { sort: "unit_number", limit: 100, count: true } } })), enabled: can("equipment.read") });
-  const queue = useQuery({ queryKey: [org.id, "documents", "review-queue"], queryFn: () => unwrap(api.GET("/api/v1/documents", { params: { query: { review_status: "pending", sort: "created_at", limit: 6, count: true } } })), enabled: can("documents.read"), refetchInterval: 60_000 });
+  const matrix = useQuery({ queryKey: [org.id, "safety", "matrix", tab], queryFn: () => unwrap(api.GET("/api/v1/safety/matrix", { params: { query: { entity: tab } } })) });
+  const queue = useQuery({ queryKey: [org.id, "safety", "review-queue"], queryFn: () => unwrap(api.GET("/api/v1/documents", { params: { query: { review_status: "pending", group: "compliance", sort: "created_at", limit: 6, count: true } } })), enabled: can("documents.read"), refetchInterval: 60_000 });
+  const rules = useQuery({ queryKey: [org.id, "safety", "reminders"], queryFn: () => unwrap(api.GET("/api/v1/safety/reminders")) });
   const s = summary.data;
-  const activeDrivers = drivers.data?.items ?? [];
-  const qualified = activeDrivers.filter((driver) => driver.compliance.status === "ok").length;
+  const r = rules.data;
   const waiting = queue.data?.page.total_count ?? queue.data?.items.length ?? 0;
-  const kpis = [
-    { label: "Expired", value: s ? formatNumber(s.expired) : "—", suffix: "", sub: s ? `${plural(s.drivers_blocked, "driver")} · ${plural(s.units_blocked, "unit")} blocked` : "", k: "bad", sk: s?.expired ? "bad" : "mu" },
-    { label: "Expiring ≤ 30 days", value: s ? formatNumber(s.expiring) : "—", suffix: "", sub: "Renew before they block dispatch", k: "warn", sk: s?.expiring ? "warn" : "mu" },
-    { label: "Missing", value: s ? formatNumber(s.missing) : "—", suffix: "", sub: "Required, not on file", k: "bad", sk: s?.missing ? "bad" : "mu" },
-    { label: "Waiting for review", value: queue.data ? formatNumber(waiting) : "—", suffix: "", sub: queue.data?.items[0] ? `oldest ${formatDateTime(queue.data.items[0].created_at, org.timezone)}` : "Nothing to review", k: "info", sk: "mu" },
-    { label: "Fully qualified", value: drivers.data ? formatNumber(qualified) : "—", suffix: drivers.data ? ` / ${formatNumber(activeDrivers.length)}` : "", sub: "active drivers", k: "ok", sk: "mu" },
+  const oldest = queue.data?.items[0]?.created_at;
+  const expiringSub = s ? [plural(s.expiring_drivers, "driver"), plural(s.expiring_trucks, "truck"), plural(s.expiring_trailers, "trailer"), s.expiring_company ? plural(s.expiring_company, "company document") : ""].filter((x, i) => x && (i === 0 || !x.startsWith("0 "))).join(" · ") : "";
+  const kpis: { key: Filter | "review"; label: string; value: string; suffix: string; sub: string; k: string; sk: string }[] = [
+    { key: "expired", label: "Expired", value: s ? formatNumber(s.expired) : "—", suffix: "", sub: s ? (s.expired_first ?? "Nothing has run out") : "", k: "bad", sk: s?.expired ? "bad" : "mu" },
+    { key: "expiring", label: "Expiring ≤ 30 days", value: s ? formatNumber(s.expiring) : "—", suffix: "", sub: s ? (s.expiring ? expiringSub : "Nothing due this month") : "", k: "warn", sk: s?.expiring ? "warn" : "mu" },
+    { key: "missing", label: "Missing", value: s ? formatNumber(s.missing) : "—", suffix: "", sub: s ? (s.missing_items.length ? s.missing_items.slice(0, 2).join(" · ") + (s.missing_items.length > 2 ? ` +${s.missing_items.length - 2}` : "") : "Every file complete") : "", k: "bad", sk: "mu" },
+    { key: "review", label: "Waiting for review", value: queue.data ? formatNumber(waiting) : "—", suffix: "", sub: queue.data ? (oldest ? ago(oldest, now) : "Nothing to review") : "", k: "info", sk: "mu" },
+    { key: "qualified", label: "Fully qualified", value: s ? formatNumber(s.drivers_qualified) : "—", suffix: s ? ` / ${formatNumber(s.drivers_active)}` : "", sub: "active drivers", k: "ok", sk: "mu" },
   ];
+  const pick = (key: Filter | "review") => {
+    if (key === "review") return set(goTo("documents"));
+    const next = filter === key ? null : key;
+    set({ sff: next, ...(next === "qualified" ? { sftab: "driver" } : {}) });
+  };
 
-  type Row = { id: string; n: string; ini: string; cells: { k: string; t: string; ic: string; title?: string }[]; ok: string; ol: string; open: () => void };
-  const head = tab === "drivers" ? ["Driver", "CDL", "Medical card", "Qualifications", "Dispatchable"] : [tab === "trucks" ? "Truck" : "Trailer", "Registration", "Insurance", "Annual inspection", "Dispatchable"];
-  const cols = "minmax(0,1.3fr) repeat(3,minmax(0,1fr)) 112px";
-  const rows: Row[] =
-    tab === "drivers"
-      ? activeDrivers.map((driver) => {
-          const other = driver.compliance.issues.find((issue) => !issue.code.startsWith("CDL") && !issue.code.startsWith("MEDICAL"));
-          const v = verdict(driver.compliance);
-          return {
-            id: driver.id,
-            n: driver.full_name,
-            ini: initials(driver.full_name),
-            cells: [dated(driver.cdl_expiry, today), dated(driver.medical_cert_expiry, today), other ? { ...(other.expires_on ? dated(other.expires_on, today) : { k: other.severity === "blocking" ? "bad" : "info", t: other.severity === "blocking" ? "Missing" : "Check", ic: other.severity === "blocking" ? BAD : CLOCK }), title: other.message } : { k: "ok", t: "On file", ic: OK }],
-            ok: v.k,
-            ol: v.l,
-            open: () => set({ screen: "driver", driverId: driver.id, overlay: "none", modal: "none" }),
-          };
-        })
-      : (tab === "trucks" ? (trucks.data?.items ?? []) : (trailers.data?.items ?? [])).map((unit) => {
-          const v = unit.status === "active" ? verdict(unit.compliance) : { k: "mu", l: unit.status === "retired" ? "Retired" : "Off the road" };
-          return {
-            id: unit.id,
-            n: unit.unit_number,
-            ini: unit.unit_number.slice(0, 3),
-            cells: [dated(unit.registration_expiry, today), dated(unit.insurance_expiry, today), dated(unit.inspection_expiry, today)],
-            ok: v.k,
-            ol: v.l,
-            open: () => set({ screen: "truck", unitId: unit.id, unitKind: tab === "trucks" ? "truck" : "trailer", overlay: "none", modal: "none" }),
-          };
-        });
-  const source = tab === "drivers" ? drivers : tab === "trucks" ? trucks : trailers;
-  const count = (query: typeof drivers | typeof trucks | typeof trailers) => (query.data ? formatNumber(query.data.page.total_count ?? query.data.items.length) : "");
+  const columns = matrix.data?.columns ?? [];
+  const rows = (matrix.data?.rows ?? []).filter((row) => matches(row, filter));
+  const isOrg = tab === "organization";
+  const head = isOrg ? ["Document", "File", "Expires", "Reviewed", "Status"] : [{ driver: "Driver", vehicle: "Truck", trailer: "Trailer", organization: "" }[tab], ...columns.map((c) => c.label), "Dispatchable"];
+  const cols = isOrg ? "minmax(0,1.2fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.2fr) 112px" : `minmax(0,1.3fr) repeat(${columns.length},minmax(0,1fr)) 112px`;
+  const open = (row: Row) => {
+    if (tab === "driver") return set({ screen: "driver", driverId: row.id, overlay: "none", modal: "none" });
+    if (tab === "vehicle" || tab === "trailer") return set({ screen: "truck", unitId: row.id, unitKind: tab === "vehicle" ? "truck" : "trailer", overlay: "none", modal: "none" });
+    if (row.document) return set({ screen: "docreview", docId: row.document.id, overlay: "none", modal: "none" });
+    if (can("documents.upload")) setFiling(row);
+  };
+  const count = (key: Entity) => (s?.tabs[key] !== undefined ? formatNumber(s.tabs[key]!) : "");
+
+  const exportMatrix = async () => {
+    const response = await window.fetch(`/api/v1/safety/matrix.csv?entity=${tab}`);
+    if (!response.ok) return notify("The export couldn’t be made", true);
+    const name = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? "compliance.csv";
+    const url = URL.createObjectURL(await response.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="col">
@@ -104,19 +146,20 @@ export function SafetyScreen() {
           <p className="sub">Qualification files, expirations and document reviews</p>
         </div>
         <div className="r g8">
-          <button className="btn" onClick={soon("Reminder rules")}>
-            <Icon className="s14" d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
+          <button className="btn" onClick={() => setRulesOpen(true)} disabled={!r}>
+            <Icon className="s14" d={I.bell} />
             Reminder rules
           </button>
-          <button className="btn" onClick={soon("Exporting compliance")}>
-            <Icon className="s14" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+          <button className="btn" onClick={() => void exportMatrix()}>
+            <Icon className="s14" d={I.download} />
             Export
           </button>
         </div>
       </div>
       <div className="kpis" style={{ margin: "0 24px", gridTemplateColumns: "repeat(5,minmax(0,1fr))" }}>
         {kpis.map((k) => (
-          <button key={k.label} className="kpi" onClick={() => k.label === "Waiting for review" && set(goTo("documents"))}>
+          <button key={k.label} className="kpi" aria-pressed={k.key !== "review" ? filter === k.key : undefined} onClick={() => pick(k.key)}
+            style={k.key !== "review" && filter === k.key ? { boxShadow: "inset 0 -2px 0 var(--pri)" } : undefined}>
             <span className="kl">
               <span className="dot" data-k={k.k}></span>
               <span>{k.label}</span>
@@ -130,12 +173,18 @@ export function SafetyScreen() {
         ))}
       </div>
       <div className="tabs" style={{ marginTop: "12px" }}>
-        {([["drivers", "Drivers", drivers], ["trucks", "Trucks", trucks], ["trailers", "Trailers", trailers]] as const).map(([key, label, query]) => (
-          <button key={key} className={clsx("tab", tab === key && "on")} onClick={() => set({ sftab: key })}>
+        {TABS.map(([key, label]) => (
+          <button key={key} className={clsx("tab", tab === key && "on")} onClick={() => set({ sftab: key, ...(filter === "qualified" && key !== "driver" ? { sff: null } : {}) })}>
             {label}
-            {count(query) ? <span className="tcnt">{count(query)}</span> : null}
+            {count(key) ? <span className="tcnt">{count(key)}</span> : null}
           </button>
         ))}
+        {filter ? (
+          <button className="chip" style={{ marginLeft: "auto", alignSelf: "center" }} onClick={() => set({ sff: null })} aria-label="Show every row">
+            {`${kpis.find((k) => k.key === filter)?.label ?? ""} only`}
+            <Icon className="s12" d={I.x} />
+          </button>
+        ) : null}
       </div>
       <div className="sfg">
         <section className="card oh c" style={{ minHeight: "0" }}>
@@ -145,42 +194,42 @@ export function SafetyScreen() {
             ))}
           </div>
           <div className="tbody">
-            {source.isPending ? <Skeleton /> : null}
-            {source.isError ? <ErrorState error={source.error} retry={() => void source.refetch()} /> : null}
-            {source.data && !rows.length ? <EmptyState icon={OK} title={`No ${tab} yet`} /> : null}
-            {rows.map((r) => (
-              <div key={r.id} className="trow" style={{ gridTemplateColumns: cols }} onClick={r.open}>
-                <div className="r g8 mw0">
-                  <span className="av sm"><span>{r.ini}</span></span>
-                  <span className="ell w5"><span>{r.n}</span></span>
-                </div>
-                {r.cells.map((x, i2) => (
-                  <span key={i2} className="qp" data-k={x.k} title={x.title ?? x.t} style={{ maxWidth: "100%", overflow: "hidden" }}>
-                    <Icon className="s12 b" d={x.ic} />
-                    <span className="ell">{x.t}</span>
+            {matrix.isPending ? <Skeleton /> : null}
+            {matrix.isError ? <ErrorState error={matrix.error} retry={() => void matrix.refetch()} /> : null}
+            {matrix.data && !matrix.data.rows.length ? <EmptyState icon={I.check} title={{ driver: "No active drivers yet", vehicle: "No trucks yet", trailer: "No trailers yet", organization: "" }[tab]} /> : null}
+            {matrix.data && matrix.data.rows.length && !rows.length ? <EmptyState icon={I.check} title="Nothing matches" text="No row on this tab has that state." /> : null}
+            {rows.map((row) =>
+              isOrg ? (
+                <OrganizationRow key={row.id} row={row} cols={cols} onOpen={() => open(row)} canFile={can("documents.upload")} />
+              ) : (
+                <div key={row.id} className="trow" style={{ gridTemplateColumns: cols }} onClick={() => open(row)}>
+                  <div className="r g8 mw0">
+                    <span className="av sm"><span>{tab === "driver" ? initials(row.name) : row.name.slice(0, 3)}</span></span>
+                    <span className="ell w5"><span>{row.name}</span></span>
+                  </div>
+                  {row.cells.map((c, i) => {
+                    const x = show(c, columns[i]?.label ?? c.item);
+                    return (
+                      <span key={c.item} className="qp" data-k={x.k} title={x.title}>
+                        <Icon className="s12 b" d={x.ic} />
+                        <span>{x.t}</span>
+                      </span>
+                    );
+                  })}
+                  <span className="badge" data-k={(VERDICT[row.verdict] ?? VERDICT.qualified!)[1]}>
+                    <i></i>
+                    <span>{row.verdict === "inactive" && row.status === "retired" ? "Retired" : (VERDICT[row.verdict] ?? VERDICT.qualified!)[0]}</span>
                   </span>
-                ))}
-                <span className="badge" data-k={r.ok}>
-                  <i></i>
-                  <span>{r.ol}</span>
-                </span>
-              </div>
-            ))}
+                </div>
+              ),
+            )}
           </div>
           <div className="tfoot">
             <span className="r g12">
-              <span className="r g6">
-                <span className="qd" data-k="ok"></span>
-                Valid
-              </span>
-              <span className="r g6">
-                <span className="qd" data-k="warn"></span>
-                Expires ≤ 30 days
-              </span>
-              <span className="r g6">
-                <span className="qd" data-k="bad"></span>
-                Expired or missing
-              </span>
+              <span className="r g6"><span className="qd" data-k="ok"></span>Valid</span>
+              <span className="r g6"><span className="qd" data-k="warn"></span>Expires ≤ 30 days</span>
+              <span className="r g6"><span className="qd" data-k="bad"></span>Expired or missing</span>
+              <span className="r g6"><span className="qd" data-k="info"></span>Awaiting review</span>
             </span>
             <span className="sp"></span>
             <span>Dates are calendar dates, not times</span>
@@ -194,36 +243,146 @@ export function SafetyScreen() {
               <span className="sp"></span>
               <button className="lnk" onClick={() => set(goTo("documents"))}>Documents</button>
             </div>
+            {!can("documents.read") ? <div className="cb fs13 mu">Your role doesn’t include documents.</div> : null}
             {queue.data && !queue.data.items.length ? <div className="cb fs13 mu">Nothing is waiting for a review.</div> : null}
-            {(queue.data?.items ?? []).map((q) => (
-              <div key={q.id} className="wl" style={{ alignItems: "flex-start" }}>
-                <span className="eqic"><Icon className="s14" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></span>
-                <div className="f1">
-                  <div className="fs13 w5"><span>{DOCUMENT_TYPES[q.type] ?? q.type}</span></div>
-                  <div className="fs12 mu"><span>{[q.links.map((link) => link.label).filter(Boolean).join(", "), q.expires_on ? `expires ${monthYear(q.expires_on)}` : ""].filter(Boolean).join(" · ")}</span></div>
-                  <div className="r g6 fs11 mu" style={{ marginTop: "3px" }}>
-                    <span>{`${q.uploaded_by_name ?? "Uploaded"} · ${formatDateTime(q.created_at, org.timezone)}`}</span>
-                  </div>
-                </div>
-                <button className="btn xs" onClick={() => set({ screen: "docreview", docId: q.id, overlay: "none", modal: "none" })}>Review</button>
-              </div>
-            ))}
+            {(queue.data?.items ?? []).map((q) => <QueueRow key={q.id} doc={q} zone={org.timezone} now={now} onReview={() => set({ screen: "docreview", docId: q.id, overlay: "none", modal: "none" })} />)}
           </section>
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Reminder schedule</h2>
               <span className="sp"></span>
-              <span className="tag" data-k="mu">Off</span>
+              {r ? <span className="tag" data-k={r.enabled ? "ok" : "mu"}>{r.enabled ? "On" : "Off"}</span> : null}
             </div>
             <div className="cb c g10">
+              {rules.isError ? <ErrorState error={rules.error} retry={() => void rules.refetch()} /> : null}
+              {r ? (
+                <dl className="kv">
+                  <dt>Lead times</dt>
+                  <dd>{leadLine(r.lead_days)}</dd>
+                  <dt>Channels</dt>
+                  <dd>{r.channels.map((c) => r.channel_options.find((o) => o.key === c)?.label ?? c).join(", ")}</dd>
+                  <dt>Copies to</dt>
+                  <dd>{r.copy_to.length ? r.copy_to.map((c) => r.copy_options.find((o) => o.key === c)?.label ?? c).join(", ") : "Nobody"}</dd>
+                  <dt>Next run</dt>
+                  <dd className="num">{r.enabled ? nextRun(r.next_run_at, org.timezone, now) : "Off"}</dd>
+                  <dt>Sent this week</dt>
+                  <dd className="num">{`${formatNumber(r.sent_week)} · ${formatNumber(r.failed_week)} failed`}</dd>
+                </dl>
+              ) : null}
               <p className="note">
-                <Icon className="s14" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01" />
-                Automatic reminders aren’t sent yet. Everything expiring within 30 days is listed here and on the dashboard, and an expired item blocks dispatch on its own.
+                <Icon className="s14" d={I.info} />
+                Each reminder is sent once per document and window. A reminder never marks anything compliant — a reviewer approves the replacement.
               </p>
             </div>
           </section>
         </div>
       </div>
+      {rulesOpen && r ? <ReminderRulesDialog rules={r} onClose={() => setRulesOpen(false)} /> : null}
+      {filing ? <CompanyFileDialog row={filing} onClose={() => setFiling(null)} /> : null}
     </div>
+  );
+}
+
+/** One of the company's own documents: the file on record, when it runs out, who approved it. */
+function OrganizationRow({ row, cols, onOpen, canFile }: { row: Row; cols: string; onOpen: () => void; canFile: boolean }) {
+  const { me } = useConsole();
+  const c = row.cells[0]!;
+  const x = show(c, row.name);
+  const doc = row.document;
+  const [label, tone] = ORG_VERDICT[row.verdict] ?? ["Missing", "bad"];
+  return (
+    <div className="trow" style={{ gridTemplateColumns: cols }} onClick={onOpen}>
+      <div className="r g8 mw0">
+        <span className="eqic"><Icon className="s14" d={I.file} /></span>
+        <span className="ell w5"><span>{row.name}</span></span>
+      </div>
+      <span className={clsx("ell fs13", !doc && "mu")}>{doc ? doc.filename : canFile ? "Not on file · upload" : "Not on file"}</span>
+      {doc && doc.review_status !== "pending" ? (
+        <span className="qp" data-k={x.k} title={x.title} style={{ maxWidth: "100%", overflow: "hidden" }}>
+          <Icon className="s12 b" d={x.ic} />
+          <span className="ell">{c.expires_on ? x.t : "No expiry"}</span>
+        </span>
+      ) : (
+        <span className="fs13 mu">—</span>
+      )}
+      <span className="ell fs12 t3">{doc ? (doc.review_status === "pending" ? "Waiting for review" : doc.reviewed_by_name ? `${doc.reviewed_by_name} · ${formatStamp(doc.reviewed_at, me.organization.timezone)}` : "Filed") : "—"}</span>
+      <span className="badge" data-k={tone}>
+        <i></i>
+        <span>{label}</span>
+      </span>
+    </div>
+  );
+}
+
+/** A document waiting for safety: what it is, whose, how sure the reading is, where it came from. */
+function QueueRow({ doc, zone, now, onReview }: { doc: Doc; zone: string; now: number | null; onReview: () => void }) {
+  const who = doc.links.map((link) => link.label).filter(Boolean).join(", ");
+  const expires = doc.expires_on ? `expires ${monthYear(doc.expires_on)}${doc.read_confidence !== null && doc.read_confidence !== undefined ? " (read)" : ""}` : "";
+  const today = now !== null && todayIn(zone, new Date(now)) === todayIn(zone, new Date(doc.created_at));
+  const when = today ? new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(doc.created_at)) : formatStamp(doc.created_at, zone).split(" · ")[0];
+  return (
+    <div className="wl" style={{ alignItems: "flex-start" }}>
+      <span className="eqic"><Icon className="s14" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5" /></span>
+      <div className="f1">
+        <div className="fs13 w5"><span>{DOCUMENT_TYPES[doc.type] ?? doc.type}</span></div>
+        <div className="fs12 mu"><span>{[who, expires].filter(Boolean).join(" · ")}</span></div>
+        <div className="r g6 fs11 mu" style={{ marginTop: "3px" }}>
+          {doc.read_confidence !== null && doc.read_confidence !== undefined ? <span className="tag" data-k={doc.read_confidence >= 90 ? "ok" : "warn"}>{`OCR ${doc.read_confidence}%`}</span> : null}
+          <span>{`${SOURCE[doc.source] ?? "Upload"} · ${when}`}</span>
+        </div>
+      </div>
+      <button className="btn xs" onClick={onReview}>Review</button>
+    </div>
+  );
+}
+
+/** Files one of the company's own documents: the file and the date it runs to. It waits for a review like any other. */
+function CompanyFileDialog({ row, onClose }: { row: Row; onClose: () => void }) {
+  const { me, notify } = useConsole();
+  const id = useId();
+  const queryClient = useQueryClient();
+  const [file, setFile] = useState<File | null>(null);
+  const [expires, setExpires] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const type = row.cells[0]!.item as DocumentType;
+
+  async function go() {
+    if (!file) return setError("Choose the file");
+    const problem = checkFile(file);
+    if (problem) return setError(problem);
+    setPending(true);
+    setError(null);
+    try {
+      await uploadDocument({ file, type, entityType: "organization", entityId: me.organization.id, expiresOn: expires || null });
+      await queryClient.invalidateQueries({ queryKey: [me.organization.id, "safety"] });
+      notify(`${row.name} filed · waiting for review`);
+      onClose();
+    } catch (e) {
+      setError(errorMessage(e));
+      setPending(false);
+    }
+  }
+
+  return (
+    <Dialog title={`File ${row.name.toLowerCase().replace(/^(ucr|ifta)/i, (m) => m.toUpperCase())}`} sub="It counts once a safety manager approves it" icon={I.upload} onClose={() => !pending && onClose()}
+      footer={
+        <>
+          <span className="sp"></span>
+          <button className="btn" onClick={onClose} disabled={pending}>Cancel</button>
+          <button className="btn pri" onClick={() => void go()} disabled={pending}>{pending ? "Uploading…" : "Upload"}</button>
+        </>
+      }>
+      <Problem message={error} />
+      <div className="fld">
+        <label htmlFor={`${id}-file`}>File</label>
+        <input id={`${id}-file`} className="inp" type="file" accept={ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </div>
+      <div className="fld">
+        <label htmlFor={`${id}-exp`}>Expires</label>
+        <input id={`${id}-exp`} className="inp" type="date" value={expires} onChange={(e) => setExpires(e.target.value)} />
+        <span className="fs12 mu">Leave empty if it doesn’t run out, like operating authority.</span>
+      </div>
+    </Dialog>
   );
 }

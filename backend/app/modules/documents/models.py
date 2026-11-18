@@ -20,9 +20,10 @@ from app.core.db import Base, IdMixin, TenantScoped
 
 DOCUMENT_TYPES = ("bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance", "registration",
                   "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card", "ach_authorization",
-                  "other")
-# What a document can be attached to.
-ENTITY_TYPES = ("load", "driver", "vehicle", "trailer", "customer", "work_order", "invoice", "expense", "owner", "inspection")
+                  "mvr", "clearinghouse", "road_test", "drug_test", "authority", "ucr", "ifta_license", "other")
+# What a document can be attached to. "organization" is the company itself: its authority, insurance, registrations.
+ENTITY_TYPES = ("load", "driver", "vehicle", "trailer", "customer", "work_order", "invoice", "expense", "owner", "inspection",
+                "organization")
 
 
 class Document(Base, IdMixin, TenantScoped):

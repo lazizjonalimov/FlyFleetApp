@@ -11,7 +11,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -106,7 +106,9 @@ def driver_conversation(db: Session, org_id: uuid.UUID, driver_id: uuid.UUID,
     db.execute(insert(Conversation).values(id=uuid.uuid4(), organization_id=org_id, kind="driver", driver_id=driver_id,
                                            created_by=created_by)
                .on_conflict_do_nothing(index_elements=["organization_id", "driver_id"],
-                                       index_where=Conversation.kind == "driver"))
+                                       # A literal, not a parameter: once psycopg prepares the statement, a
+                                       # parameter here no longer matches the partial unique index.
+                                       index_where=text("kind = 'driver'")))
     return db.scalar(select(Conversation).where(Conversation.kind == "driver", Conversation.driver_id == driver_id))
 
 

@@ -1,7 +1,7 @@
 """Customers, drivers and equipment: the records everything else refers to."""
 from datetime import UTC, datetime, timedelta
 
-from tests.conftest import complete, new_load, seed
+from tests.conftest import FILE, complete, new_load, qualify, seed
 
 
 def day(offset: int) -> str:
@@ -48,16 +48,22 @@ def test_driver_compliance_status_is_worked_out_from_dates(org):
     def driver(name, **dates):
         return org.post("/drivers", {"first_name": name, "last_name": "Test", **dates}, 201).json()
 
-    good = driver("Good", cdl_expiry=day(400), medical_cert_expiry=day(400))
-    soon = driver("Soon", cdl_expiry=day(400), medical_cert_expiry=day(12))
-    bad = driver("Bad", cdl_expiry=day(-1), medical_cert_expiry=day(400))
+    # Each with the company's qualification file complete, so only the CDL and medical card decide.
+    good = qualify(org, driver("Good", cdl_expiry=day(400), medical_cert_expiry=day(400))["id"])
+    soon = qualify(org, driver("Soon", cdl_expiry=day(400), medical_cert_expiry=day(12))["id"])
+    bad = qualify(org, driver("Bad", cdl_expiry=day(-1), medical_cert_expiry=day(400))["id"])
     blank = driver("Blank")
-    today = driver("Today", cdl_expiry=day(0), medical_cert_expiry=day(400))        # good through its last day
+    today = qualify(org, driver("Today", cdl_expiry=day(0), medical_cert_expiry=day(400))["id"])  # good through its last day
 
     assert good["compliance"] == {"status": "ok", "issues": []}
     assert soon["compliance"]["status"] == "expiring" and soon["compliance"]["issues"][0]["code"] == "MEDICAL_EXPIRING"
     assert bad["compliance"]["status"] == "expired" and bad["compliance"]["issues"][0]["severity"] == "blocking"
-    assert blank["compliance"]["status"] == "incomplete" and {i["code"] for i in blank["compliance"]["issues"]} == {"CDL_MISSING", "MEDICAL_MISSING"}
+    # Nothing on file keeps a driver off loads: no CDL, no medical card, none of the file.
+    assert blank["compliance"]["status"] == "expired" and {i["code"] for i in blank["compliance"]["issues"]} == {
+        "CDL_MISSING", "MEDICAL_MISSING", "QUALIFICATION_MVR_MISSING", "QUALIFICATION_CLEARINGHOUSE_MISSING",
+        "QUALIFICATION_ROAD_TEST_MISSING", "QUALIFICATION_DRUG_TEST_MISSING"}
+    assert {i["severity"] for i in blank["compliance"]["issues"]} == {"blocking"}
+    assert blank["compliance"]["issues"][0]["message"] == "No CDL on file"
     assert today["compliance"]["status"] == "expiring"
 
     names = [d["first_name"] for d in org.items("/drivers", sort="cdl_expiry")]
@@ -82,7 +88,7 @@ def test_driver_links_and_qualifications(org):
     assert org.error("POST", f"{url}/qualifications", 422, "VALIDATION_ERROR",
                      json={"type": "drug_test", "issued_on": day(0), "expires_on": day(-5)})["field_errors"].keys() == {"expires_on"}
     assert org.patch(f"{url}/qualifications/{q['id']}", {"required": True}, 200).json()["required"] is True
-    assert [x["type"] for x in org.get(f"{url}/qualifications").json()] == ["mvr"]
+    assert sorted(x["type"] for x in org.get(f"{url}/qualifications").json()) == sorted([*FILE, "mvr"])
     org.add_user("viewer").error("POST", f"{url}/qualifications", 403, "FORBIDDEN", json={"type": "twic"})
     org.delete(f"{url}/qualifications/{q['id']}", expect=204)
 

@@ -75,3 +75,12 @@ export async function viaApp<T = unknown>(page: Page, method: "GET" | "POST" | "
 
 /** A date some days from today, as the API takes dates. */
 export const day = (offset: number): string => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * Puts a complete qualification file on a driver: the annual MVR review and clearinghouse query, the road test and the
+ * pre-employment drug test. Without them a driver can't be dispatched.
+ */
+export async function qualify(page: Page, driverId: string): Promise<void> {
+  for (const [type, expires_on] of [["mvr", day(365)], ["clearinghouse", day(365)], ["road_test", null], ["drug_test", null]] as const)
+    await viaApp(page, "POST", `/drivers/${driverId}/qualifications`, { type, expires_on });
+}
