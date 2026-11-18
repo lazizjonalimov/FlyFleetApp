@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { cell } from "@/components/data-table/cell";
+import { Confirm } from "@/components/feedback/dialog";
 import { useConsole } from "@/features/console/console-provider";
 import { addOf } from "@/features/console/shell";
-import { useSoon } from "@/features/console/use-action";
 import { carrierName, monthYear, PAY_TYPES } from "@/features/fleet/labels";
 import { ListScreen } from "@/features/lists/list-screen";
 import { BulkMessage } from "@/features/messages/bulk-message";
@@ -40,10 +40,10 @@ function qualification(d: Driver) {
 
 /** Drivers: who can be dispatched, who they work for, what each is on, and what is about to expire. */
 export function DriversScreen() {
-  const { me, can, I, set } = useConsole();
-  const soon = useSoon();
+  const { me, can, I, set, notify } = useConsole();
   const [bulk, setBulk] = useState<Driver[] | null>(null);
   const [inviting, setInviting] = useState<Driver[] | null>(null);
+  const [asking, setAsking] = useState<Driver[] | null>(null);
   const org = me.organization;
   const carrier = carrierName(org.name);
   const today = todayIn(org.timezone);
@@ -61,7 +61,16 @@ export function DriversScreen() {
   const status = (d: Driver) => {
     if (d.status !== "active") return cell.badge(d.status === "terminated" ? "Terminated" : "Inactive", "mu");
     if (d.hire_date && d.hire_date > today) return cell.badge(`Starts ${formatDate(d.hire_date).replace(/, \d{4}$/, "")}`, "info");
-    if (d.current_load) return cell.badge(d.current_load.status === "at_pickup" ? "At pickup" : "On load", "assigned");
+    if (d.current_load) {
+      const load = d.current_load;
+      // Not started yet: when it starts, on the company's clock.
+      if ((load.status === "assigned" || load.status === "dispatched") && load.pickup_at) {
+        const day = todayIn(org.timezone, new Date(load.pickup_at));
+        const when = day === today ? new Intl.DateTimeFormat("en-US", { timeZone: org.timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(load.pickup_at)) : formatDate(day).replace(/, \d{4}$/, "");
+        return cell.badge(`Starts ${when}`, "assigned");
+      }
+      return cell.badge(load.status === "at_pickup" ? "At pickup" : load.status === "on_hold" ? "On hold load" : "On load", load.status === "on_hold" ? "hold" : "assigned");
+    }
     if (d.compliance.status === "expired") return cell.badge("Not dispatchable", "bad");
     return cell.badge("Available", "ok");
   };
@@ -123,7 +132,7 @@ export function DriversScreen() {
     frozen: 2,
     bulk: [
       ...(can("messages.send") ? [{ label: "Message", go: (rows: Driver[]) => setBulk(rows) }] : []),
-      { label: "Request documents", go: soon("Requesting documents from drivers") },
+      ...(can("safety.manage") || can("drivers.manage") ? [{ label: "Request documents", go: (rows: Driver[]) => setAsking(rows) }] : []),
       ...(can("users.manage") ? [{ label: "Invite to app", go: (rows: Driver[]) => setInviting(rows) }] : []),
       "export" as const,
     ],
@@ -155,7 +164,7 @@ export function DriversScreen() {
       { label: "", width: "28px", cell: () => cell.more() },
     ],
     actions: [
-      ...(add ? [{ l: "Import", cls: "", ic: I.upload, go: () => set({ ...addOf("driver"), mstep: "import" }) }, ...(can("users.manage") ? [{ l: "Invite to app", cls: "", ic: I.mobile, go: () => setInviting([]) }] : [])] : []),
+      ...(add ? [{ l: "Import", cls: "", ic: I.sheet, go: () => set({ ...addOf("driver"), mstep: "import" }) }, ...(can("users.manage") ? [{ l: "Invite to app", cls: "", ic: I.mobile, go: () => setInviting([]) }] : [])] : []),
       ...(add ? [{ l: "Add driver", cls: "pri", ic: I.plus, go: add }] : []),
     ],
     empty: {
@@ -170,6 +179,19 @@ export function DriversScreen() {
       <ListScreen list={list} />
       {bulk ? <BulkMessage drivers={bulk} onClose={() => setBulk(null)} /> : null}
       {inviting ? <InviteDrivers drivers={inviting.length ? inviting : undefined} onClose={() => setInviting(null)} /> : null}
+      {asking ? (
+        <Confirm
+          title={`Ask ${plural(asking.length, "driver")} for documents?`}
+          text="Each is asked for what their file is missing, has run out or runs out within 30 days, in their conversation and in the app when they’re on it."
+          confirm="Send requests"
+          onClose={() => setAsking(null)}
+          run={async () => {
+            const out = await unwrap(api.POST("/api/v1/drivers/document-requests", { body: { driver_ids: asking.map((d) => d.id) } }));
+            const parts = [out.asked ? `${plural(out.asked, "driver")} asked` : "", out.asked - out.reached ? `${out.asked - out.reached} not on the app (it’s in their conversation)` : "", out.nothing_due ? `${plural(out.nothing_due, "driver")} had nothing due` : ""].filter(Boolean);
+            notify(parts.join(" · ") || "Nothing to ask for");
+          }}
+        />
+      ) : null}
     </>
   );
 }

@@ -2014,6 +2014,88 @@
         "title": "Body_start_import_api_v1_imports_post",
         "type": "object"
       },
+      "BulkRequestIn": {
+        "properties": {
+          "driver_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Driver Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "driver_ids"
+        ],
+        "title": "BulkRequestIn",
+        "type": "object"
+      },
+      "BulkRequestOut": {
+        "properties": {
+          "asked": {
+            "title": "Asked",
+            "type": "integer"
+          },
+          "nothing_due": {
+            "title": "Nothing Due",
+            "type": "integer"
+          },
+          "reached": {
+            "title": "Reached",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/BulkRequestRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows",
+          "asked",
+          "reached",
+          "nothing_due"
+        ],
+        "title": "BulkRequestOut",
+        "type": "object"
+      },
+      "BulkRequestRow": {
+        "properties": {
+          "driver_id": {
+            "format": "uuid",
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "sent": {
+            "title": "Sent",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "driver_id",
+          "name",
+          "items",
+          "sent"
+        ],
+        "title": "BulkRequestRow",
+        "type": "object"
+      },
       "Candidate": {
         "properties": {
           "current_load": {
@@ -39385,6 +39467,93 @@
           }
         ],
         "summary": "Create a driver",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/api/v1/drivers/document-requests": {
+      "post": {
+        "description": "Ask several drivers at once, each for what their file is missing, has run out or runs out within 30 days.",
+        "operationId": "request_documents_api_v1_drivers_document_requests_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Documents",
         "tags": [
           "drivers"
         ]

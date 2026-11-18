@@ -43,3 +43,31 @@ test("a driver's profile: the file item by item, asking for a document, revealin
   await expect(page.locator(".card", { hasText: "From the audit log" })).toContainText("Sensitive revealed");
   await expect(page.locator(".card", { hasText: "From the audit log" })).toContainText("Document requested");
 });
+
+test("the drivers list: when an assigned load starts, and drivers asked for their documents together", async ({ page }) => {
+  const account = await signUp(page);
+  const customer = await viaApp<{ id: string }>(page, "POST", "/customers", { name: "Globex" });
+  const ready = await viaApp<{ id: string }>(page, "POST", "/drivers", { first_name: "Ana", last_name: "Ruiz", cdl_expiry: day(900), medical_cert_expiry: day(900) });
+  await qualify(page, ready.id);
+  await viaApp(page, "POST", "/drivers", { first_name: "Gil", last_name: "Gap", cdl_expiry: day(900), medical_cert_expiry: day(9) });
+  const truck = await viaApp<{ id: string }>(page, "POST", "/vehicles", { unit_number: "T-9", registration_expiry: day(400), insurance_expiry: day(400), inspection_expiry: day(400) });
+  const pickup = new Date(Date.now() + 3 * 86_400_000);
+  const load = await viaApp<{ id: string; version: number }>(page, "POST", "/loads", { customer_id: customer.id, commodity: "Paper", stops: [
+    { type: "pickup", city: "Dallas", state: "TX", appt_start: pickup.toISOString() },
+    { type: "delivery", city: "Austin", state: "TX", appt_start: new Date(pickup.getTime() + 86_400_000).toISOString() }] });
+  await viaApp(page, "POST", "/dispatch/assignments", { load_id: load.id, driver_id: ready.id, vehicle_id: truck.id, version: load.version });
+
+  await open(page, account, "drivers");
+  const row = (name: string) => page.locator(".tb2 .trow", { hasText: name });
+  // The company runs on the browser's time zone, which the test shares.
+  const day3 = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(pickup);
+  await expect(row("Ana Ruiz")).toContainText(`Starts ${day3}`);
+  await expect(row("Gil Gap")).toContainText("Not dispatchable");
+
+  await row("Ana Ruiz").locator(".chk").click();
+  await row("Gil Gap").locator(".chk").click();
+  await page.getByRole("region", { name: "Bulk actions" }).getByRole("button", { name: "Request documents" }).click();
+  const confirm = page.getByRole("dialog", { name: "Ask 2 drivers for documents?" });
+  await confirm.getByRole("button", { name: "Send requests" }).click();
+  await expect(page.locator(".toastw")).toContainText("1 driver asked · 1 not on the app (it’s in their conversation) · 1 driver had nothing due");
+});

@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -255,6 +255,59 @@ def driver_overview(driver_id: uuid.UUID, p: Principal = Depends(require("driver
     count, miles, judged, on_time = row
     return DriverOverview(loads=count, miles=int(miles), on_time_pct=round(100 * on_time / judged) if judged else None,
                           speeding=speeding, position=position)
+
+
+class BulkRequestIn(BaseModel):
+    driver_ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
+
+
+class BulkRequestRow(BaseModel):
+    driver_id: uuid.UUID
+    name: str
+    items: list[str]
+    sent: bool
+
+
+class BulkRequestOut(BaseModel):
+    rows: list[BulkRequestRow]
+    asked: int
+    reached: int
+    nothing_due: int
+
+
+def _item_of(code: str) -> str:
+    return code.rsplit("_", 1)[0].removeprefix("QUALIFICATION_").lower()
+
+
+@router.post("/document-requests", response_model=BulkRequestOut)
+def request_documents(body: BulkRequestIn, p: Principal = Depends(require("safety.manage", "drivers.manage")),
+                      db: Session = Depends(get_db)):
+    """Ask several drivers at once, each for what their file is missing, has run out or runs out within 30 days."""
+    from app.modules.messaging.service import reached, tell_driver
+    stmt = select(Driver).where(Driver.id.in_(body.driver_ids), Driver.status == "active")
+    seen = team_scope.drivers(p.scope, Driver.id)
+    drivers = list(db.scalars(stmt.where(seen) if seen is not None else stmt))
+    quals = qualifications_by_driver(db, [d.id for d in drivers])
+    checklist = checklist_of(db)
+    today = p.today()
+    rows, nothing = [], 0
+    for d in drivers:
+        due = list(dict.fromkeys(_item_of(i.code) for i in driver_issues(d, quals.get(d.id, []), today, checklist)
+                                 if i.severity in ("blocking", "warning")))
+        labels = [lower(FULL.get(item) or QUALIFICATION_LABELS.get(item, item)) for item in due]
+        if not labels:
+            nothing += 1
+            continue
+        many = len(labels) > 1
+        said = f"{', '.join(labels[:-1])} and {labels[-1]}" if many else labels[0]
+        msg = tell_driver(db, p.org_id, d.id, event="compliance.request",
+                          title="Please send your documents" if many else f"Please send your {labels[0]}",
+                          body=f"Please send a photo of your {said} in the app. The safety team reviews "
+                               f"{'them before they count' if many else 'it before it counts'}.")
+        rows.append(BulkRequestRow(driver_id=d.id, name=f"{d.first_name} {d.last_name}", items=due, sent=bool(reached(msg))))
+        audit(db, p, "driver.document_requested", "driver", d.id, {"items": due, "reached": reached(msg)})
+    db.commit()
+    return BulkRequestOut(rows=rows, asked=len(rows), reached=sum(r.sent for r in rows), nothing_due=nothing)
 
 
 @router.post("/{driver_id}/document-requests", response_model=DocumentRequestOut)

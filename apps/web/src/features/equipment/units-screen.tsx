@@ -174,7 +174,7 @@ export function UnitsScreen({ kind }: { kind: "truck" | "trailer" }) {
     open: (u) => openUnit(u.id, kind),
     columns: truck ? truckColumns : trailerColumns,
     actions: [
-      ...(manage ? [{ l: "Import", cls: "", ic: I.upload, go: () => set({ ...addOf(kind), mstep: "import" }) }] : []),
+      ...(manage ? [{ l: "Import", cls: "", ic: I.sheet, go: () => set({ ...addOf(kind), mstep: "import" }) }] : []),
       ...(add ? [{ l: truck ? "Add truck" : "Add trailer", cls: "pri", ic: I.plus, go: add }] : []),
     ],
     empty: {

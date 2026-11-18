@@ -1209,6 +1209,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/drivers/document-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Documents
+         * @description Ask several drivers at once, each for what their file is missing, has run out or runs out within 30 days.
+         */
+        post: operations["request_documents_api_v1_drivers_document_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/drivers/summary": {
         parameters: {
             query?: never;
@@ -5075,6 +5095,36 @@ export interface components {
              * @enum {string}
              */
             kind: "drivers" | "trucks" | "trailers" | "mileage" | "loads";
+        };
+        /** BulkRequestIn */
+        BulkRequestIn: {
+            /** Driver Ids */
+            driver_ids: string[];
+        };
+        /** BulkRequestOut */
+        BulkRequestOut: {
+            /** Asked */
+            asked: number;
+            /** Nothing Due */
+            nothing_due: number;
+            /** Reached */
+            reached: number;
+            /** Rows */
+            rows: components["schemas"]["BulkRequestRow"][];
+        };
+        /** BulkRequestRow */
+        BulkRequestRow: {
+            /**
+             * Driver Id
+             * Format: uuid
+             */
+            driver_id: string;
+            /** Items */
+            items: string[];
+            /** Name */
+            name: string;
+            /** Sent */
+            sent: boolean;
         };
         /** Candidate */
         Candidate: {
@@ -19549,6 +19599,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DriverRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    request_documents_api_v1_drivers_document_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkRequestOut"];
                 };
             };
             /** @description Unauthorized */

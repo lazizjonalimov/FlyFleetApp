@@ -283,3 +283,15 @@ def test_the_driver_overview_counts_the_last_30_days(org):
     o = org.get(f"/drivers/{s['driver']['id']}/overview").json()
     assert (o["loads"], o["miles"], o["speeding"], o["on_time_pct"]) == (1, 920, 0, 100)
     assert o["position"] is None
+
+
+def test_several_drivers_are_asked_for_what_their_file_lacks(org):
+    s = seed(org)
+    gap = org.post("/drivers", {"first_name": "Gil", "last_name": "Gap", "cdl_expiry": day(400), "medical_cert_expiry": day(9)}, 201).json()
+    out = org.post("/drivers/document-requests", {"driver_ids": [s["driver"]["id"], gap["id"]]}, 200).json()
+    assert (out["asked"], out["reached"], out["nothing_due"]) == (1, 0, 1)
+    assert out["rows"][0]["name"] == "Gil Gap" and out["rows"][0]["items"] == ["medical", "mvr", "clearinghouse", "road_test", "drug_test"]
+    thread = org.post("/conversations", {"kind": "driver", "driver_id": gap["id"]}).json()
+    [card] = [m for m in thread["messages"] if m["event"] == "compliance.request"]
+    assert card["title"] == "Please send your documents" and "MVR — annual review" in card["body"]
+    org.add_user("viewer").error("POST", "/drivers/document-requests", 403, "FORBIDDEN", json={"driver_ids": [gap["id"]]})
