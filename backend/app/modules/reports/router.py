@@ -261,10 +261,12 @@ def dashboard_attention(limit: int = Query(default=6, ge=1, le=100), p: Principa
 
 # ---------------------------------------------------------------- search
 class SearchResult(BaseModel):
-    type: Literal["load", "customer", "driver", "vehicle", "trailer", "invoice", "work_order"]
+    type: Literal["load", "customer", "driver", "vehicle", "trailer", "invoice", "work_order", "document"]
     id: uuid.UUID
     title: str
     subtitle: str | None
+    status: str | None = Field(default=None, description="The record's state where it has one: a load's status, a "
+                                                         "document's review state")
 
 
 @router.get("/search", response_model=list[SearchResult], tags=["search"])
@@ -278,16 +280,24 @@ def search(q: str = Query(min_length=2, max_length=100), limit: int = Query(defa
     scoped = {"load": team_scope.loads(p.scope), "driver": team_scope.drivers(p.scope, Driver.id),
               "vehicle": team_scope.vehicles(p.scope, Vehicle.id)}
 
-    def run(permission: str, kind: str, stmt, title, subtitle) -> None:
+    def run(permission: str, kind: str, stmt, title, subtitle, status=lambda x: None) -> None:
         if p.can(permission):
             for row in db.scalars(team_scope.where(stmt, scoped.get(kind)).limit(limit)):
-                out.append(SearchResult(type=kind, id=row.id, title=title(row), subtitle=subtitle(row)))
+                out.append(SearchResult(type=kind, id=row.id, title=title(row), subtitle=subtitle(row), status=status(row)))
+
+    customers = p.can("customers.read")
+    names = {}
+
+    def route(load: Load) -> str:
+        where = " → ".join(c for c in (load.origin_city, load.destination_city) if c)
+        if customers and load.customer_id not in names:
+            names[load.customer_id] = db.scalar(select(Customer.name).where(Customer.id == load.customer_id))
+        return " · ".join(x for x in (where, names.get(load.customer_id) if customers else None) if x) or "No stops yet"
 
     run("loads.read", "load",
         select(Load).where(or_(Load.load_number.ilike(pattern), Load.reference.ilike(pattern),
                                Load.bol_number.ilike(pattern))).order_by(Load.created_at.desc()),
-        lambda x: x.load_number,
-        lambda x: " to ".join(c for c in (x.origin_city, x.destination_city) if c) or x.status.replace("_", " "))
+        lambda x: x.load_number, route, lambda x: x.status)
     run("customers.read", "customer",
         select(Customer).where(or_(Customer.name.ilike(pattern), Customer.code.ilike(pattern))).order_by(Customer.name),
         lambda x: x.name, lambda x: x.code)
@@ -310,6 +320,15 @@ def search(q: str = Query(min_length=2, max_length=100), limit: int = Query(defa
         select(WorkOrder).where(or_(WorkOrder.number.ilike(pattern), WorkOrder.title.ilike(pattern)))
         .order_by(WorkOrder.created_at.desc()),
         lambda x: f"Work order {x.number}", lambda x: f"{x.title} · {x.status.replace('_', ' ')}")
+    from app.modules.documents.models import TYPE_LABELS
+    from app.modules.documents.router import readable
+    review = {"pending": "needs review", "approved": "approved", "rejected": "sent back"}
+    run("documents.read", "document",
+        select(Document).where(Document.upload_status == "uploaded", Document.filename.ilike(pattern), *readable(p))
+        .order_by(Document.created_at.desc()),
+        lambda x: x.filename,
+        lambda x: " · ".join(v for v in (TYPE_LABELS.get(x.type, "Document"), review.get(x.review_status)) if v),
+        lambda x: x.review_status)
     return out
 
 

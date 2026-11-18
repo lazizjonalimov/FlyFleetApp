@@ -217,3 +217,13 @@ def test_audit_log_records_who_did_what_and_is_searchable(org):
     assert org.items("/audit-logs", action="member.added")[0]["data"]["role"] == "dispatcher"
     assert org.items("/audit-logs", actor_user_id=dispatcher.user_id)[0]["action"] == "load.created"
     assert org.get("/audit-logs", params={"count": "true", "limit": 2}).json()["page"]["total_count"] >= 5
+
+
+def test_a_person_renames_themselves_and_only_themselves(org):
+    member = org.add_user("dispatcher")
+    renamed = member.patch("/auth/me", {"full_name": "  Devon   Price "}, 200).json()
+    assert renamed["full_name"] == "Devon Price" and member.get("/auth/me").json()["user"]["full_name"] == "Devon Price"
+    assert org.get("/auth/me").json()["user"]["full_name"] != "Devon Price"            # nobody else changed
+    member.error("PATCH", "/auth/me", 422, "VALIDATION_ERROR", json={"full_name": "   "})
+    entry = org.items("/audit-logs", action="user.renamed")[0]
+    assert entry["data"]["to"] == "Devon Price"

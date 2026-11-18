@@ -164,6 +164,24 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     )
 
 
+class ProfileIn(BaseModel):
+    full_name: str = Field(min_length=1, max_length=120)
+
+
+@router.patch("/me", response_model=s.MeUser)
+def update_me(body: ProfileIn, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Change the name your teammates see. Your email is how you sign in and stays as it is."""
+    name = " ".join(body.full_name.split())
+    if not name:
+        raise Invalid("Enter your name", field="full_name")
+    user = db.get(User, p.user_id)
+    if name != user.full_name:
+        audit(db, p, "user.renamed", "user", p.user_id, {"from": user.full_name, "to": name})
+        user.full_name = name
+        db.commit()
+    return s.MeUser(id=user.id, email=p.email, full_name=user.full_name)
+
+
 @router.post("/password", response_model=s.SessionOut)
 def change_password(body: s.PasswordChangeIn, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     """Change your own password. Every token issued before the change stops working; a fresh one is returned."""

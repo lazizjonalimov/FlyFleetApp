@@ -8,10 +8,11 @@ import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
 import type { ConsoleState } from "@/features/console/state";
+import { loadLabel, loadTone } from "@/features/fleet/labels";
 import { useDebounced } from "@/hooks/use-debounced";
 import { api, unwrap } from "@/lib/api/client";
 
-type Item = { key: string; t: string; s: string; ic: string; go: () => void; kbd?: string };
+type Item = { key: string; t: string; s: string; ic: string; go: () => void; kbd?: string; badge?: { l: string; k: string } };
 
 const KINDS: Record<string, { label: string; ic: string; open: (id: string) => ConsoleState }> = {
   load: { label: "Loads", ic: I.loads, open: (id) => ({ screen: "loads", drawer: id }) },
@@ -21,11 +22,15 @@ const KINDS: Record<string, { label: string; ic: string; open: (id: string) => C
   trailer: { label: "Trailers", ic: I.trailer, open: (id) => ({ screen: "truck", unitId: id, unitKind: "trailer" }) },
   invoice: { label: "Invoices", ic: I.invoice, open: () => goTo("invoices") },
   work_order: { label: "Work orders", ic: I.wrench, open: () => goTo("maintenance") },
+  document: { label: "Documents", ic: I.file, open: (id) => ({ ...goTo("docreview"), docId: id }) },
 };
+/** A result's state, where it has one, as a badge. */
+const badgeOf = (type: string, status: string | null | undefined): Item["badge"] =>
+  !status ? undefined : type === "load" ? { l: loadLabel(status), k: loadTone(status) } : type === "document" && status === "pending" ? { l: "Review", k: "info" } : undefined;
 
 /** Search every record the role may see, and jump anywhere, opened with ⌘K. */
 export function CommandPalette() {
-  const { me, isPalette, closeOverlay, nav, CR, set } = useConsole();
+  const { me, isPalette, closeOverlay, nav, CR, set, can } = useConsole();
   const [text, setText] = useState("");
   const [cursor, setCursor] = useState(0);
   const q = useDebounced(text.trim(), 200);
@@ -38,20 +43,27 @@ export function CommandPalette() {
     closeOverlay();
   };
   const groups: { l: string; items: Item[] }[] = [];
-  if (q.length >= 2) {
-    for (const [type, kind] of Object.entries(KINDS)) {
-      const found = (search.data ?? []).filter((result) => result.type === type);
-      if (found.length) groups.push({ l: kind.label, items: found.map((result) => ({ key: result.id, t: result.title, s: result.subtitle ?? "", ic: kind.ic, go: () => { close(); set({ ...kind.open(result.id), overlay: "none", modal: "none" }); } })) });
-    }
+  const found = q.length >= 2 ? (search.data ?? []) : [];
+  for (const [type, kind] of Object.entries(KINDS)) {
+    const mine = found.filter((result) => result.type === type);
+    if (mine.length) groups.push({ l: kind.label, items: mine.map((result) => ({ key: result.id, t: result.title, s: result.subtitle ?? "", ic: kind.ic, badge: badgeOf(type, result.status), go: () => { close(); set({ ...kind.open(result.id), overlay: "none", modal: "none" }); } })) });
   }
   const words = text.trim().toLowerCase();
   const places = nav.flatMap((group) => group.items).filter((item) => !item.locked && (!words || item.label.toLowerCase().includes(words)));
-  groups.push({ l: "Go to", items: places.slice(0, words ? 6 : 5).map((item) => ({ key: `go-${item.label}`, t: item.label, s: "Open", ic: item.d, go: () => { close(); item.go(); } })) });
-  const creates = CR.filter((item) => !words || item.t.toLowerCase().includes(words));
-  if (creates.length) groups.push({ l: "Create", items: creates.slice(0, 4).map((item) => ({ key: `new-${item.t}`, t: item.t, s: item.s, ic: item.ic, go: () => { close(); item.go(); } })) });
+  if (places.length) groups.push({ l: "Go to", items: places.slice(0, words ? 6 : 5).map((item) => ({ key: `go-${item.label}`, t: item.label, s: "Open", ic: item.d, go: () => { close(); item.go(); } })) });
+  // What can be done with what was found, then what can be made: the matching kinds, or the most common two.
+  const loads = found.filter((result) => result.type === "load");
+  const actions: Item[] = [
+    ...(can("dispatch.assign") ? loads.filter((l) => l.status === "planned").slice(0, 2).map((l) => ({ key: `assign-${l.id}`, t: `Assign a driver to ${l.title}`, s: "Opens the assignment panel", ic: I.user, go: () => { close(); set({ ...goTo("dispatch"), panel: "assign", assignLoad: l.id }); } })) : []),
+    ...(can("loads.close") ? loads.filter((l) => l.status === "pod_review").slice(0, 2).map((l) => ({ key: `pod-${l.id}`, t: `Review the POD for ${l.title}`, s: "Opens the load", ic: I.file, go: () => { close(); set({ screen: "loads", drawer: l.id, overlay: "none", modal: "none" }); } })) : []),
+  ];
+  const matching = CR.filter((item) => words && item.t.toLowerCase().includes(words));
+  const creates = (matching.length ? matching : CR.slice(0, 2)).slice(0, 4);
+  actions.push(...creates.map((item) => ({ key: `new-${item.t}`, t: item.t, s: item.s, ic: item.ic, go: () => { close(); item.go(); } })));
+  if (actions.length) groups.push({ l: "Actions", items: actions });
   const flat = groups.flatMap((group) => group.items);
   const active = Math.min(cursor, Math.max(0, flat.length - 1));
-  const foot = q.length >= 2 ? (search.isFetching ? "Searching…" : `${search.data?.length ?? 0} records found`) : "Type 2 letters to search records";
+  const foot = q.length >= 2 && search.isFetching ? "Searching…" : "Only results your role can open are shown";
 
   return (
     <>
@@ -95,6 +107,7 @@ export function CommandPalette() {
                     <span className="fs13 w5 tx ell"><span>{it.t}</span></span>
                     <span className="fs12 mu ell"><span>{it.s}</span></span>
                   </span>
+                  {it.badge ? <span className="badge" data-k={it.badge.k}><i></i>{it.badge.l}</span> : null}
                   {it.kbd ? <span className="kbd"><span>{it.kbd}</span></span> : null}
                 </button>
               ))}

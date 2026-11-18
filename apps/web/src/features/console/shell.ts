@@ -58,11 +58,11 @@ const CREATE: [kind: string, title: string, sub: string, icon: keyof typeof I, a
 /** The permission needed to add each kind of record. */
 export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(CREATE.map(([kind, , , , anyOf]) => [kind, anyOf])), fuel: ["expenses.manage"], mileage: ["expenses.manage"], customer: ["customers.manage"], payment: ["payments.record"], statement: ["settlements.manage"], payout: ["settlements.manage"], workorder: ["maintenance.manage"], member: ["users.manage"] };
 
-const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string][] = [
-  ["Profile & preferences", "user", ""],
-  ["Notification settings", "bell", ""],
-  ["Keyboard shortcuts", "kbd", "?"],
-  ["Help & support", "help", ""],
+const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string, dialog: string][] = [
+  ["Profile & preferences", "user", "", "profile"],
+  ["Notification settings", "bell", "", "notify"],
+  ["Keyboard shortcuts", "kbd", "?", "keys"],
+  ["Help & support", "help", "", "help"],
 ];
 
 /** A stable colour for a company's mark, from the design's palette. */
@@ -163,7 +163,8 @@ export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, 
     toggleCreate: () => set({ overlay: overlay === "create" ? "none" : "create" }),
     toggleAcct: () => set({ overlay: overlay === "account" ? "none" : "account" }),
     CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "owner" ? { ...goTo("ownerform"), ownerForm: "new", ownerId: null } : addOf(key)) })),
-    ACCT: ACCOUNT.map(([t, icon, kbd]) => ({ t, ic: I[icon], kbd })),
+    ACCT: ACCOUNT.map(([t, icon, kbd, dialog]) => ({ t, ic: I[icon], kbd, go: () => set({ overlay: "none", acct: dialog }) })),
+    openHelp: () => set({ overlay: "none", acct: "help" }),
     hasModal: modal !== "none" && can(...(ADD_PERMISSION[kind] ?? [])),
     closeModal: () => set({ modal: "none" }),
     hasToast: !!toast,

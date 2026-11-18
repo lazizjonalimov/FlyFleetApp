@@ -9,6 +9,7 @@ import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
 import { usePreference } from "@/hooks/use-preference";
+import { MUTED_KEY } from "./account-dialogs";
 import { api, unwrap } from "@/lib/api/client";
 import { formatNumber } from "@/lib/format/text";
 
@@ -25,8 +26,9 @@ export function NotificationsPanel() {
   const [filter, setFilter] = useState<"all" | "high">("all");
   const query = useQuery({ queryKey: [me.organization.id, "dashboard", "exceptions"], queryFn: () => unwrap(api.GET("/api/v1/dashboard/exceptions")), enabled: can("dashboard.read"), refetchInterval: 60_000 });
   const [seen, setSeen] = usePreference<Seen>("notifications.seen", {});
+  const [muted] = usePreference<string[]>(MUTED_KEY, []);
   if (!isNotif) return null;
-  const alerts = query.data ?? [];
+  const alerts = (query.data ?? []).filter((alert) => !muted.includes(alert.code));
   const fresh = unseen(alerts, seen);
   const shown = alerts.filter((alert) => filter === "all" || alert.severity === "high");
   const markRead = () => setSeen(Object.fromEntries(alerts.map((alert) => [alert.code, alert.count])));

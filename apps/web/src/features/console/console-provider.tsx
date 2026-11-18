@@ -48,9 +48,11 @@ const subscribeTheme = (onChange: () => void) => {
   media.addEventListener("change", onChange);
   return () => media.removeEventListener("change", onChange);
 };
-/** Light or dark, following the device. */
+/** Light or dark: as chosen under Profile & preferences, or following the device. */
 export function useTheme(): "light" | "dark" {
-  return useSyncExternalStore(subscribeTheme, () => (window.matchMedia(DARK).matches ? "dark" : "light"), () => "light");
+  const [choice] = useLocalPreference("ff.theme", "system");
+  const device = useSyncExternalStore<"light" | "dark">(subscribeTheme, () => (window.matchMedia(DARK).matches ? "dark" : "light"), () => "light");
+  return choice === "light" || choice === "dark" ? choice : device;
 }
 
 /**
@@ -159,9 +161,17 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
         else now.openPalette();
         return;
       }
+      const target = event.target as HTMLElement | null;
+      const typing = !!target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+      if (event.key === "?" && !typing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        now.set({ overlay: "none", acct: "keys" });
+        return;
+      }
       if (event.key !== "Escape") return;
       // close the top-most layer only
-      if (now.state.dd) now.set({ dd: null, ddq: "" });
+      if (now.state.acct) now.set({ acct: null });
+      else if (now.state.dd) now.set({ dd: null, ddq: "" });
       else if (now.hasModal) now.closeModal();
       else if (now.isPalette || now.isNotif || now.isAI || now.isCreate || now.isAcct) now.closeOverlay();
       else if (now.state.drawer) now.closeDrawer();

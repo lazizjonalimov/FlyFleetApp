@@ -297,7 +297,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update Me
+         * @description Change the name your teammates see. Your email is how you sign in and stays as it is.
+         */
+        patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
     };
     "/api/v1/auth/password": {
@@ -11371,6 +11375,11 @@ export interface components {
             /** Trucks */
             trucks: number;
         };
+        /** ProfileIn */
+        ProfileIn: {
+            /** Full Name */
+            full_name: string;
+        };
         /** Purchase */
         Purchase: {
             /** Amount */
@@ -12370,6 +12379,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Status
+             * @description The record's state where it has one: a load's status, a document's review state
+             */
+            status?: string | null;
             /** Subtitle */
             subtitle: string | null;
             /** Title */
@@ -12378,7 +12392,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "load" | "customer" | "driver" | "vehicle" | "trailer" | "invoice" | "work_order";
+            type: "load" | "customer" | "driver" | "vehicle" | "trailer" | "invoice" | "work_order" | "document";
         };
         /**
          * Seat
@@ -15990,6 +16004,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeUser"];
                 };
             };
             /** @description Unauthorized */

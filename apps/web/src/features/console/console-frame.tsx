@@ -8,6 +8,7 @@ import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { goTo } from "@/features/console/shell";
 import { plural } from "@/lib/format/text";
+import { AccountDialogs } from "@/features/shell/account-dialogs";
 import { CommandPalette } from "@/features/shell/command-palette";
 import { Forbidden } from "@/features/shell/forbidden";
 import { NotificationsPanel } from "@/features/shell/notifications-panel";
@@ -46,6 +47,7 @@ export function ConsoleFrame({ children }: { children: React.ReactNode }) {
       <CommandPalette />
       <NotificationsPanel />
       <AskFlyFleet />
+      <AccountDialogs />
       <AddModal />
       <Toast />
     </div>

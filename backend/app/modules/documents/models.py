@@ -21,6 +21,15 @@ from app.core.db import Base, IdMixin, TenantScoped
 DOCUMENT_TYPES = ("bol", "pod", "rate_confirmation", "receipt", "license", "medical", "insurance", "registration",
                   "inspection", "maintenance", "invoice", "lease", "w9", "title", "cab_card", "ach_authorization",
                   "mvr", "clearinghouse", "road_test", "drug_test", "authority", "ucr", "ifta_license", "other")
+# How each type reads in a sentence.
+TYPE_LABELS = {
+    "bol": "Bill of lading", "pod": "Proof of delivery", "rate_confirmation": "Rate confirmation", "receipt": "Receipt",
+    "license": "Driver’s license", "medical": "Medical card", "insurance": "Insurance", "registration": "Registration",
+    "inspection": "Inspection report", "maintenance": "Maintenance record", "invoice": "Invoice", "lease": "Lease",
+    "w9": "W-9", "title": "Title", "cab_card": "Cab card", "ach_authorization": "ACH authorization", "mvr": "MVR",
+    "clearinghouse": "Clearinghouse query", "road_test": "Road test", "drug_test": "Drug test",
+    "authority": "Operating authority", "ucr": "UCR registration", "ifta_license": "IFTA license", "other": "Document",
+}
 # What a document can be attached to. "organization" is the company itself: its authority, insurance, registrations.
 ENTITY_TYPES = ("load", "driver", "vehicle", "trailer", "customer", "work_order", "invoice", "expense", "owner", "inspection",
                 "organization")

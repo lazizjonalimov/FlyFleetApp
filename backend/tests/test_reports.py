@@ -146,12 +146,24 @@ def test_search_finds_records_of_every_kind_the_role_may_see(org):
     assert {(x["type"], x["title"]) for x in found} == {("load", load["load_number"]), ("customer", "Globex"),
                                                         ("vehicle", "Truck GLOBEX-TRUCK")}
     assert [x["title"] for x in org.get("/search", params={"q": "dana dri"}).json()] == ["Dana Driver"]
-    assert org.get("/search", params={"q": load["load_number"]}).json()[0]["subtitle"] == "Chicago to Dallas"
+    hit = org.get("/search", params={"q": load["load_number"]}).json()[0]
+    assert (hit["subtitle"], hit["status"]) == ("Chicago → Dallas · Globex", "planned")
+    # Documents by file name, with their review state; a driver's medical card only for those who may see it.
+    upload(org, "load", load["id"], filename="pod-globex-77.pdf")
+    upload(org, "driver", s["driver"]["id"], "medical", filename="medical-globex.pdf")
+    docs = [x for x in org.get("/search", params={"q": "globex"}).json() if x["type"] == "document"]
+    assert {(x["title"], x["subtitle"], x["status"]) for x in docs} == {
+        ("pod-globex-77.pdf", "Proof of delivery · needs review", "pending"),
+        ("medical-globex.pdf", "Medical card · needs review", "pending")}
+    dispatcher_docs = [x["title"] for x in org.add_user("dispatcher").get("/search", params={"q": "globex"}).json()
+                       if x["type"] == "document"]
+    assert dispatcher_docs == ["pod-globex-77.pdf"]
     assert org.get("/search", params={"q": "100%"}).json() == []
     org.error("GET", "/search", 422, "VALIDATION_ERROR", params={"q": "x"})
     # A fleet manager can't see customers, so search doesn't show them.
     limited = org.add_user("fleet_manager").get("/search", params={"q": "globex"}).json()
-    assert {x["type"] for x in limited} == {"load", "vehicle"}
+    assert {x["type"] for x in limited} == {"load", "vehicle", "document"}
+    assert next(x for x in limited if x["type"] == "load")["subtitle"] == "Chicago → Dallas"     # no customer name
     assert org.add_user("driver").get("/search", params={"q": "globex"}).json() == []
 
 

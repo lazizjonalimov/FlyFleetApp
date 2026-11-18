@@ -209,6 +209,20 @@ def _check_entity(db: Session, p: Principal, entity_type: str, entity_id: uuid.U
         raise Forbidden("Your role does not allow handling tax or bank documents")
 
 
+def readable(p: Principal) -> list:
+    """The conditions on the documents a person may read: their dispatch team's, and sensitive files only with the
+    permission for them."""
+    out = []
+    outside = _outside_team(p)
+    if outside is not None:
+        out.append(~outside)
+    if not _see_sensitive(p):
+        out.append(Document.type.notin_(SENSITIVE))
+    if not p.can("owners.sensitive.read"):
+        out.append(Document.type.notin_(OWNER_SENSITIVE))
+    return out
+
+
 def _outside_team(p: Principal):
     """Documents filed with a load, driver or truck the caller's dispatch team doesn't cover; None for everyone
     who sees the whole fleet."""
@@ -413,14 +427,8 @@ def list_documents(params: Annotated[DocumentListParams, Query()],
                    p: Principal = Depends(require("documents.read")), db: Session = Depends(get_db)):
     # Files still arriving show only on the processing tab, and only for a day: after that the upload was abandoned.
     arriving = (Document.upload_status == "pending") & (Document.created_at >= datetime.now(UTC) - timedelta(days=1))
-    stmt = select(Document).where(arriving if params.state == "processing" else Document.upload_status == "uploaded")
-    outside = _outside_team(p)
-    if outside is not None:
-        stmt = stmt.where(~outside)
-    if not _see_sensitive(p):
-        stmt = stmt.where(Document.type.notin_(SENSITIVE))
-    if not p.can("owners.sensitive.read"):
-        stmt = stmt.where(Document.type.notin_(OWNER_SENSITIVE))
+    stmt = select(Document).where(arriving if params.state == "processing" else Document.upload_status == "uploaded",
+                                  *readable(p))
     if params.entity_type or params.entity_id:
         link = select(DocumentLink.id).where(DocumentLink.document_id == Document.id)
         if params.entity_type:

@@ -8,7 +8,7 @@ import { plural } from "@/lib/format/text";
 
 /** Search, Ask FlyFleet, Create, help, notifications and the account menu. */
 export function TopBar() {
-  const { me, toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT } = useConsole();
+  const { me, toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT, openHelp } = useConsole();
   // A dispatch team's dispatcher sees only the team's trucks; the chip says so wherever they are.
   const scope = me.scope;
   const scopeLabel = scope ? (scope.team_name ? `${scope.team_name} · ${plural(scope.trucks, "truck")}` : "No team · no trucks") : "";
@@ -53,7 +53,7 @@ export function TopBar() {
           </div>
         ) : null}
       </div>
-      <button className="btn ghost icon" aria-label="Help">
+      <button className="btn ghost icon" aria-label="Help" onClick={openHelp}>
         <Icon className="s18" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
       </button>
       <button className={clsx("btn ghost icon", notifOn)} style={{ position: "relative" }} onClick={toggleNotif} aria-label={alertCount ? `Notifications, ${alertCount} to look at` : "Notifications"}>
@@ -87,7 +87,7 @@ export function TopBar() {
             </div>
             <div className="hr"></div>
             {ACCT.map((m, i) => (
-              <button key={i} className="menui" role="menuitem">
+              <button key={i} className="menui" role="menuitem" onClick={m.go}>
                 <Icon d={m.ic} />
                 <span className="f1"><span>{m.t}</span></span>
                 {m.kbd ? (
