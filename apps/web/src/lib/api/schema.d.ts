@@ -1246,6 +1246,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/drivers/{driver_id}/document-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Document
+         * @description Ask the driver for a document of their file. Sent in their conversation, and by the app when they are on it.
+         */
+        post: operations["request_document_api_v1_drivers__driver_id__document_requests_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/drivers/{driver_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Driver File
+         * @description The qualification file, item by item, as the rules see it.
+         */
+        get: operations["driver_file_api_v1_drivers__driver_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/drivers/{driver_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Driver Overview
+         * @description The last 30 days, and where the driver's truck was last seen.
+         */
+        get: operations["driver_overview_api_v1_drivers__driver_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/drivers/{driver_id}/reveal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reveal
+         * @description The driver's full licence number, date of birth and pay. Every reveal is in the audit log.
+         */
+        post: operations["reveal_api_v1_drivers__driver_id__reveal_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/drivers/{item_id}": {
         parameters: {
             query?: never;
@@ -5948,6 +6028,25 @@ export interface components {
              */
             in_portal?: boolean | null;
         };
+        /** DocumentRequestIn */
+        DocumentRequestIn: {
+            /** Item */
+            item: string;
+        };
+        /** DocumentRequestOut */
+        DocumentRequestOut: {
+            /**
+             * Conversation Id
+             * Format: uuid
+             */
+            conversation_id: string;
+            /** Item */
+            item: string;
+            /** Reached */
+            reached: string[];
+            /** Sent */
+            sent: boolean;
+        };
         /** Draft */
         Draft: {
             /**
@@ -6067,6 +6166,13 @@ export interface components {
              */
             user_id?: string | null;
         };
+        /** DriverFile */
+        DriverFile: {
+            /** Dispatchable */
+            dispatchable: boolean;
+            /** Rows */
+            rows: components["schemas"]["FileRow"][];
+        };
         /** DriverInbox */
         DriverInbox: {
             /** Messages */
@@ -6157,6 +6263,18 @@ export interface components {
             document_ids?: string[];
             /** Load Id */
             load_id?: string | null;
+        };
+        /** DriverOverview */
+        DriverOverview: {
+            /** Loads */
+            loads: number;
+            /** Miles */
+            miles: number;
+            /** On Time Pct */
+            on_time_pct: number | null;
+            position: components["schemas"]["Position"] | null;
+            /** Speeding */
+            speeding: number;
         };
         /** DriverPositionsIn */
         DriverPositionsIn: {
@@ -6927,6 +7045,40 @@ export interface components {
              * @enum {string}
              */
             type: "mvr" | "clearinghouse" | "drug_test" | "road_test" | "employment_application" | "annual_review" | "hazmat" | "twic" | "training";
+        };
+        /** FileRow */
+        FileRow: {
+            /** Blocks */
+            blocks: boolean;
+            /** Days Left */
+            days_left: number | null;
+            /** Document Id */
+            document_id: string | null;
+            /** Expires On */
+            expires_on: string | null;
+            /** In Review */
+            in_review: boolean;
+            /** Item */
+            item: string;
+            /** Label */
+            label: string;
+            /** Record Id */
+            record_id: string | null;
+            /** Reminders */
+            reminders: components["schemas"]["Reminder"][];
+            /** Review Document Id */
+            review_document_id: string | null;
+            /** Short */
+            short: string;
+            /** Source */
+            source: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "valid" | "expiring" | "expired" | "missing";
+            /** Sub */
+            sub: string;
         };
         /** FiledDocument */
         FiledDocument: {
@@ -10475,6 +10627,20 @@ export interface components {
              */
             user_id: string;
         };
+        /** Position */
+        Position: {
+            /** Place */
+            place: string;
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Source */
+            source: string;
+            /** Unit Number */
+            unit_number: string;
+        };
         /** PositionsIn */
         PositionsIn: {
             /** Samples */
@@ -10886,6 +11052,18 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Reminder */
+        Reminder: {
+            /** Failed */
+            failed: boolean;
+            /** Reached */
+            reached: string[];
+            /**
+             * Sent At
+             * Format: date-time
+             */
+            sent_at: string;
+        };
         /** ReminderOption */
         ReminderOption: {
             /**
@@ -11144,6 +11322,17 @@ export interface components {
              * @enum {string}
              */
             unit_type: "vehicle" | "trailer";
+        };
+        /** Revealed */
+        Revealed: {
+            /** Cdl Number */
+            cdl_number: string | null;
+            /** Date Of Birth */
+            date_of_birth: string | null;
+            /** Pay Rate */
+            pay_rate: string | null;
+            /** Pay Type */
+            pay_type: string | null;
         };
         /** Revenue */
         Revenue: {
@@ -19492,6 +19681,278 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DriverChannels"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    request_document_api_v1_drivers__driver_id__document_requests_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driver_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentRequestOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_file_api_v1_drivers__driver_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driver_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverFile"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    driver_overview_api_v1_drivers__driver_id__overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driver_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverOverview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reveal_api_v1_drivers__driver_id__reveal_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driver_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Revealed"];
                 };
             };
             /** @description Unauthorized */

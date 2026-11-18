@@ -15,6 +15,7 @@ from app.modules.customers.router import router as customers_router
 from app.modules.dispatch.driver_router import router as driver_router
 from app.modules.dispatch.router import router as dispatch_router
 from app.modules.documents.router import router as documents_router
+from app.modules.drivers.profile import router as driver_profile_router
 from app.modules.drivers.router import router as drivers_router
 from app.modules.equipment.router import router as equipment_router
 from app.modules.expenses.router import router as expenses_router
@@ -78,7 +79,7 @@ def create_app() -> FastAPI:
     errors = {code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422)}
     v1 = APIRouter(prefix="/api/v1", responses=errors)
     for router in (auth_router, account_router, organization_router, access_router, customers_router, fleet_summary_router,
-                   drivers_router, people_router,
+                   drivers_router, driver_profile_router, people_router,
                    owners_router, ownership_router, owner_portal_router,
                    equipment_router, loads_router, load_places_router, dispatch_router, driver_router, documents_router,
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,

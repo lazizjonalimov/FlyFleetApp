@@ -234,3 +234,52 @@ def test_the_matrix_exports_as_a_spreadsheet(org):
     company = list(csv.reader(io.StringIO(org.get("/safety/matrix.csv", params={"entity": "organization"}).text)))
     assert company[0] == ["Document", "File", "Expires", "State", "Review", "Status"] and len(company) == 5
     org.add_user("accountant").error("GET", "/safety/matrix.csv", 403, "FORBIDDEN")
+
+
+def test_the_driver_profile_reads_the_file_item_by_item(org):
+    s = seed(org)
+    driver_id = s["driver"]["id"]
+    org.patch(f"/drivers/{driver_id}", {"medical_cert_expiry": day(6), "cdl_class": "A", "endorsements": "T"}, 200)
+    org.get("/safety/reminders")                                   # the reminders catch up
+    f = org.get(f"/drivers/{driver_id}/file").json()
+    assert [r["label"] for r in f["rows"]] == ["CDL — Class A", "Medical certificate", "MVR — annual review",
+                                               "Drug & alcohol clearinghouse query", "Road test certificate",
+                                               "Pre-employment drug test"]
+    cdl, medical = f["rows"][0], f["rows"][1]
+    assert cdl["sub"] == "Illinois · endorsements: T" and cdl["source"] == "Entered on the driver record"
+    assert medical["state"] == "expiring" and medical["days_left"] == 6 and medical["short"] == "Medical card"
+    assert medical["sub"].startswith("Reminder ") and medical["sub"].endswith("didn’t reach the driver")
+    assert f["rows"][4]["source"].startswith("Entered by hand · on file since") and f["dispatchable"] is True
+
+    # An approved scan stands behind the date it brought.
+    doc = upload(org, "driver", driver_id, "medical", filename="card.pdf", expires_on=day(700))
+    assert org.get(f"/drivers/{driver_id}/file").json()["rows"][1]["in_review"] is True
+    org.post(f"/documents/{doc['id']}/review", {"decision": "approved"}, 200)
+    medical = org.get(f"/drivers/{driver_id}/file").json()["rows"][1]
+    assert medical["state"] == "valid" and medical["document_id"] == doc["id"]
+    assert medical["source"] == "Upload · reviewed by Olive Owner"
+
+    # Asking the driver for a document: they aren't on the app, so it waits in their conversation.
+    asked = org.post(f"/drivers/{driver_id}/document-requests", {"item": "road_test"}, 200).json()
+    assert asked["sent"] is False and asked["reached"] == []
+    thread = org.get(f"/conversations/{asked['conversation_id']}").json()
+    assert [m["title"] for m in thread["messages"] if m["event"] == "compliance.request"] == ["Please send your road test certificate"]
+    org.error("POST", f"/drivers/{driver_id}/document-requests", 422, "VALIDATION_ERROR", json={"item": "pizza"})
+
+    # Revealing sensitive details is logged; a dispatcher may not.
+    shown = org.post(f"/drivers/{driver_id}/reveal", expect=200).json()
+    assert shown["cdl_number"] == "D1234567"
+    assert org.items("/audit-logs", action="driver.sensitive_revealed")[0]["entity_id"] == driver_id
+    org.add_user("dispatcher").error("POST", f"/drivers/{driver_id}/reveal", 403, "FORBIDDEN")
+
+
+def test_the_driver_overview_counts_the_last_30_days(org):
+    from tests.conftest import deliver
+    s = seed(org)
+    load = deliver(org, new_load(org, s["customer"]["id"], stops=[
+        {"type": "pickup", "city": "Chicago", "state": "IL", "appt_start": (datetime.now(UTC) - timedelta(days=2)).isoformat()},
+        {"type": "delivery", "city": "Dallas", "state": "TX", "appt_start": (datetime.now(UTC) + timedelta(days=1)).isoformat()}]), s)
+    assert load["status"] == "delivered"
+    o = org.get(f"/drivers/{s['driver']['id']}/overview").json()
+    assert (o["loads"], o["miles"], o["speeding"], o["on_time_pct"]) == (1, 920, 0, 100)
+    assert o["position"] is None

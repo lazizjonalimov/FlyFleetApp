@@ -5062,6 +5062,51 @@
         "title": "DocumentPatch",
         "type": "object"
       },
+      "DocumentRequestIn": {
+        "properties": {
+          "item": {
+            "title": "Item",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item"
+        ],
+        "title": "DocumentRequestIn",
+        "type": "object"
+      },
+      "DocumentRequestOut": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "reached": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reached",
+            "type": "array"
+          },
+          "sent": {
+            "title": "Sent",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "item",
+          "sent",
+          "reached",
+          "conversation_id"
+        ],
+        "title": "DocumentRequestOut",
+        "type": "object"
+      },
       "Draft": {
         "properties": {
           "for_message_id": {
@@ -5442,6 +5487,27 @@
         "title": "DriverCreate",
         "type": "object"
       },
+      "DriverFile": {
+        "properties": {
+          "dispatchable": {
+            "title": "Dispatchable",
+            "type": "boolean"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/FileRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "rows",
+          "dispatchable"
+        ],
+        "title": "DriverFile",
+        "type": "object"
+      },
       "DriverInbox": {
         "properties": {
           "messages": {
@@ -5742,6 +5808,52 @@
           }
         },
         "title": "DriverMessageIn",
+        "type": "object"
+      },
+      "DriverOverview": {
+        "properties": {
+          "loads": {
+            "title": "Loads",
+            "type": "integer"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "integer"
+          },
+          "on_time_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Pct"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Position"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "speeding": {
+            "title": "Speeding",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "loads",
+          "on_time_pct",
+          "miles",
+          "speeding",
+          "position"
+        ],
+        "title": "DriverOverview",
         "type": "object"
       },
       "DriverPositionsIn": {
@@ -8362,6 +8474,132 @@
           "type"
         ],
         "title": "FileItemIn",
+        "type": "object"
+      },
+      "FileRow": {
+        "properties": {
+          "blocks": {
+            "title": "Blocks",
+            "type": "boolean"
+          },
+          "days_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Left"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "in_review": {
+            "title": "In Review",
+            "type": "boolean"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "record_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Id"
+          },
+          "reminders": {
+            "items": {
+              "$ref": "#/components/schemas/Reminder"
+            },
+            "title": "Reminders",
+            "type": "array"
+          },
+          "review_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Document Id"
+          },
+          "short": {
+            "title": "Short",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "valid",
+              "expiring",
+              "expired",
+              "missing"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "sub": {
+            "title": "Sub",
+            "type": "string"
+          }
+        },
+        "required": [
+          "item",
+          "label",
+          "short",
+          "sub",
+          "state",
+          "expires_on",
+          "days_left",
+          "in_review",
+          "review_document_id",
+          "document_id",
+          "source",
+          "blocks",
+          "record_id",
+          "reminders"
+        ],
+        "title": "FileRow",
         "type": "object"
       },
       "FiledDocument": {
@@ -19673,6 +19911,35 @@
         "title": "PortalUserOut",
         "type": "object"
       },
+      "Position": {
+        "properties": {
+          "place": {
+            "title": "Place",
+            "type": "string"
+          },
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "place",
+          "recorded_at",
+          "source",
+          "unit_number"
+        ],
+        "title": "Position",
+        "type": "object"
+      },
       "PositionsIn": {
         "properties": {
           "samples": {
@@ -20930,6 +21197,33 @@
         "title": "ReleaseIn",
         "type": "object"
       },
+      "Reminder": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "boolean"
+          },
+          "reached": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reached",
+            "type": "array"
+          },
+          "sent_at": {
+            "format": "date-time",
+            "title": "Sent At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sent_at",
+          "reached",
+          "failed"
+        ],
+        "title": "Reminder",
+        "type": "object"
+      },
       "ReminderOption": {
         "properties": {
           "connected": {
@@ -21706,6 +22000,63 @@
           "unit_id"
         ],
         "title": "ReturnToServiceIn",
+        "type": "object"
+      },
+      "Revealed": {
+        "properties": {
+          "cdl_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cdl Number"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "pay_rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Rate"
+          },
+          "pay_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pay Type"
+          }
+        },
+        "required": [
+          "cdl_number",
+          "date_of_birth",
+          "pay_type",
+          "pay_rate"
+        ],
+        "title": "Revealed",
         "type": "object"
       },
       "Revenue": {
@@ -39201,6 +39552,372 @@
         "summary": "Driver Channels",
         "tags": [
           "messages"
+        ]
+      }
+    },
+    "/api/v1/drivers/{driver_id}/document-requests": {
+      "post": {
+        "description": "Ask the driver for a document of their file. Sent in their conversation, and by the app when they are on it.",
+        "operationId": "request_document_api_v1_drivers__driver_id__document_requests_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "driver_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Driver Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentRequestIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRequestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Document",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/api/v1/drivers/{driver_id}/file": {
+      "get": {
+        "description": "The qualification file, item by item, as the rules see it.",
+        "operationId": "driver_file_api_v1_drivers__driver_id__file_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "driver_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Driver Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverFile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Driver File",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/api/v1/drivers/{driver_id}/overview": {
+      "get": {
+        "description": "The last 30 days, and where the driver's truck was last seen.",
+        "operationId": "driver_overview_api_v1_drivers__driver_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "driver_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Driver Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverOverview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Driver Overview",
+        "tags": [
+          "drivers"
+        ]
+      }
+    },
+    "/api/v1/drivers/{driver_id}/reveal": {
+      "post": {
+        "description": "The driver's full licence number, date of birth and pay. Every reveal is in the audit log.",
+        "operationId": "reveal_api_v1_drivers__driver_id__reveal_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "driver_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Driver Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Revealed"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reveal",
+        "tags": [
+          "drivers"
         ]
       }
     },

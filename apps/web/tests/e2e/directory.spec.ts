@@ -32,8 +32,9 @@ test("adding a driver from Create, then opening and editing the record", async (
   await expect(page.getByRole("heading", { name: "Casey Lund", level: 1 })).toBeVisible();
   await expect(page.locator(".main")).toContainText("Medical certificate");
   // Nothing of the qualification file is on file yet, so the driver can't be dispatched.
-  await expect(page.locator(".ph")).toContainText("Not dispatchable");
-  await expect(page.locator(".main")).toContainText("No MVR review on file");
+  await expect(page.locator(".ph")).toContainText("MVR review · Missing");
+  await expect(page.locator(".banner")).toContainText("MVR — annual review — missing");
+  await expect(page.locator(".banner")).toContainText("FlyFleet won’t assign new loads to Casey until a reviewed replacement is on file");
 
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   const edit = page.getByRole("dialog", { name: "Edit driver" });
