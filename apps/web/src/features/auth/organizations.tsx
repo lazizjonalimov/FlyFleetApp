@@ -48,7 +48,7 @@ export function Organizations({ email, organizations, currentId, pending, error,
                     <span className="tag" data-k="warn">{humanize(organization.status)}</span>
                   ) : null}
                 </div>
-                <div className="fs12 mu"><span>{humanize(organization.role)}</span></div>
+                <div className="fs12 mu"><span>{organization.role_label || humanize(organization.role)}</span></div>
               </div>
               <button className={clsx("btn sm", current && "pri")} disabled={pending !== null} onClick={() => choose(organization)}>
                 <span>{pending === organization.id ? "Opening…" : current ? "Continue" : "Open"}</span>

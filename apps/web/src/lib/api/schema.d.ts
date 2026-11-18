@@ -9985,6 +9985,8 @@ export interface components {
             name: string;
             /** Role */
             role: string;
+            /** Role Label */
+            role_label: string;
             /** Slug */
             slug: string;
             /** Status */
@@ -12901,6 +12903,11 @@ export interface components {
         SessionOut: {
             /** Access Token */
             access_token?: string | null;
+            /**
+             * Last Organization Id
+             * @description The company worked in last, offered first
+             */
+            last_organization_id?: string | null;
             organization?: components["schemas"]["OrgRef"] | null;
             /**
              * Organizations

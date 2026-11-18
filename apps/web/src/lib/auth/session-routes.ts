@@ -27,7 +27,7 @@ export async function exchange(request: Request, { path, authenticated = false }
   if (data.access_token) setSession(await cookies(), request, data.access_token);
   // The token stays on the server. The browser learns which company it is now in, and nothing more.
   return Response.json(
-    { organization: data.organization ?? null, organizations: data.organizations ?? [], requires_organization_selection: data.requires_organization_selection ?? false },
+    { organization: data.organization ?? null, organizations: data.organizations ?? [], requires_organization_selection: data.requires_organization_selection ?? false, last_organization_id: data.last_organization_id ?? null },
     { status: upstream.status, headers: { "Cache-Control": "no-store" } },
   );
 }

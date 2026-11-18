@@ -14958,10 +14958,10 @@
           "name",
           "slug",
           "role",
+          "role_label",
           "status",
           "timezone",
-          "base_currency",
-          "role_label"
+          "base_currency"
         ],
         "title": "MeOrganization",
         "type": "object"
@@ -16105,6 +16105,10 @@
             "title": "Role",
             "type": "string"
           },
+          "role_label": {
+            "title": "Role Label",
+            "type": "string"
+          },
           "slug": {
             "title": "Slug",
             "type": "string"
@@ -16119,6 +16123,7 @@
           "name",
           "slug",
           "role",
+          "role_label",
           "status"
         ],
         "title": "OrgRef",
@@ -25231,6 +25236,19 @@
               }
             ],
             "title": "Access Token"
+          },
+          "last_organization_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The company worked in last, offered first",
+            "title": "Last Organization Id"
           },
           "organization": {
             "anyOf": [

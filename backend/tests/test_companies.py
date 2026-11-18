@@ -22,8 +22,11 @@ def test_owner_adds_a_company_and_switches_into_it(org, client):
     me = second.get("/auth/me").json()
     assert me["organization"]["name"] == "Bravo Logistics" and me["organization"]["role"] == "owner"
     assert {m["name"] for m in me["memberships"]} == {"Acme Trucking", "Bravo Logistics"}
-    # The company the owner last worked in is where the next sign-in lands.
-    assert login(client, org.email).org_id == created["id"]
+    # With two companies, the next sign-in asks which, offering the one worked in last first.
+    asked = client.post("/api/v1/auth/login", json={"email": org.email, "password": PASSWORD}).json()
+    assert asked["requires_organization_selection"] is True and asked["access_token"] is None
+    assert asked["last_organization_id"] == created["id"] and asked["organizations"][0]["id"] == created["id"]
+    assert [o["role_label"] for o in asked["organizations"]] == ["Main Admin", "Main Admin"]
     # ...and an explicit choice at sign-in wins.
     assert login(client, org.email, org.org_id).org_id == org.org_id
 

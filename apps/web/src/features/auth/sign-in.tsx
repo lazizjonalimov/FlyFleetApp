@@ -23,7 +23,7 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean };
+type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean; last_organization_id?: string | null };
 
 /** Sign in, then choose an organization when the account belongs to more than one. */
 export function SignIn() {
@@ -33,6 +33,7 @@ export function SignIn() {
   const [pending, setPending] = useState<string | null>(null);
   // Set when the person belongs to several companies and has to say which one to open.
   const [choices, setChoices] = useState<OrgRef[] | null>(null);
+  const [last, setLast] = useState<string | null>(null);
   const errors = form.formState.errors;
 
   async function signIn(values: Values, organization?: OrgRef) {
@@ -42,6 +43,7 @@ export function SignIn() {
       const reply = await postJson<SessionReply>("/api/auth/login", { ...values, ...(organization ? { organization_id: organization.id } : {}) });
       if (reply.requires_organization_selection || !reply.organization) {
         setChoices(reply.organizations);
+        setLast(reply.last_organization_id ?? null);
         setPending(null);
         return;
       }
@@ -62,6 +64,7 @@ export function SignIn() {
         <Organizations
           email={form.getValues("email")}
           organizations={choices}
+          currentId={last ?? undefined}
           pending={pending}
           error={formError}
           choose={(organization) => void signIn(form.getValues(), organization)}

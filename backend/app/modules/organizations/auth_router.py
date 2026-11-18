@@ -120,14 +120,16 @@ def login(body: s.LoginIn, request: Request):
 
     if not orgs:
         raise Unauthorized("This account no longer has access to any company")
-    wanted = body.organization_id or row.last_organization_id
-    chosen = next((o for o in orgs if o.id == wanted), None)
+    # One company: straight in. Several: the person picks, with the one they worked in last offered first.
+    chosen = next((o for o in orgs if o.id == body.organization_id), None) if body.organization_id else None
     if body.organization_id and chosen is None:
         raise Unauthorized("You are not a member of that company")
     if chosen is None and len(orgs) == 1:
         chosen = orgs[0]
     if chosen is None:
-        return s.SessionOut(requires_organization_selection=True, organizations=orgs)
+        last = row.last_organization_id if any(o.id == row.last_organization_id for o in orgs) else None
+        return s.SessionOut(requires_organization_selection=True, last_organization_id=last,
+                            organizations=sorted(orgs, key=lambda o: o.id != last))
     _remember(row.id, chosen.id)
     return s.SessionOut(access_token=create_token(row.id, chosen.id, row.token_version), organization=chosen,
                         organizations=orgs)

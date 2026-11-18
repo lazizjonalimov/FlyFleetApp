@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from zoneinfo import available_timezones
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.core.crud import ListParams
 
@@ -45,13 +45,30 @@ class PasswordChangeIn(BaseModel):
     new_password: Password
 
 
+def role_label_of(role: str | None) -> str:
+    """A built-in role's name as people read it; a company's own role by its key until the company is open."""
+    from app.core.permissions import ROLE_LABELS, Role
+    try:
+        return ROLE_LABELS[Role(role)][0]
+    except (ValueError, KeyError):
+        return (role or "").replace("_", " ").capitalize()
+
+
 class OrgRef(BaseModel):
     """A company the user can work in."""
     id: uuid.UUID
     name: str
     slug: str
     role: str
+    role_label: str
     status: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _label(cls, data):
+        if isinstance(data, dict) and not data.get("role_label"):
+            data = {**data, "role_label": role_label_of(data.get("role"))}
+        return data
 
 
 class SessionOut(BaseModel):
@@ -61,6 +78,7 @@ class SessionOut(BaseModel):
     # Set instead of a token when the user belongs to several companies and has not chosen one.
     requires_organization_selection: bool = False
     organizations: list[OrgRef] = []
+    last_organization_id: uuid.UUID | None = Field(default=None, description="The company worked in last, offered first")
 
 
 class MeUser(BaseModel):
