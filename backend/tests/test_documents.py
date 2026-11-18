@@ -141,7 +141,8 @@ def test_compliance_documents_are_reviewed_by_safety(org):
     safety.error("POST", f"/documents/{receipt['id']}/review", 409, "STATE_CONFLICT", json={"decision": "approved"})
     load = deliver(org, new_load(org, s["customer"]["id"]), s)
     pod = upload(org, "load", load["id"])
-    safety.error("POST", f"/documents/{pod['id']}/review", 409, "STATE_CONFLICT", json={"decision": "approved"})
+    # A proof of delivery is decided by those who close loads, since deciding it moves the load on.
+    safety.error("POST", f"/documents/{pod['id']}/review", 403, "FORBIDDEN", json={"decision": "approved"})
 
 
 def test_the_proof_behind_a_completed_load_cannot_be_removed(org):

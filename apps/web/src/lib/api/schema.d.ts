@@ -1050,7 +1050,8 @@ export interface paths {
         put?: never;
         /**
          * Review
-         * @description Approve or reject a compliance document. Proof of delivery is reviewed on its load instead.
+         * @description Approve and attach, or send back. A proof of delivery moves its load on: approved, the load is completed;
+         *     sent back, it waits for a new one. A compliance document approved renews the record it is filed with.
          */
         post: operations["review_api_v1_documents__document_id__review_post"];
         delete?: never;
@@ -2044,6 +2045,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/intake/documents/{document_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest reading of a document, with its checks, for the review screen */
+        get: operations["document_read_api_v1_intake_documents__document_id__read_get"];
+        put?: never;
+        /** Read a document again, as the kind of document the reviewer says it is */
+        post: operations["read_again_api_v1_intake_documents__document_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/intake/reader": {
         parameters: {
             query?: never;
@@ -2106,6 +2125,23 @@ export interface paths {
         put?: never;
         /** A record was saved from this document: keep the corrections and file the document with it */
         post: operations["apply_api_v1_intake_reads__read_id__apply_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/intake/reads/{read_id}/fields/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** A reviewer's decision on one field: confirmed as read, corrected with a reason, or unreadable */
+        put: operations["decide_field_api_v1_intake_reads__read_id__fields__key__put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6035,11 +6071,18 @@ export interface components {
             in_portal: boolean;
             /** Links */
             links: components["schemas"]["LinkOut"][];
+            /** Pages */
+            pages?: number | null;
             /**
              * Read Confidence
              * @description When it was read automatically: how sure the reading was, 0-100, across the fields it found
              */
             read_confidence?: number | null;
+            /**
+             * Read Status
+             * @description The latest automatic reading: read, waiting for the photo reader, or unreadable
+             */
+            read_status?: ("done" | "needs_reader" | "failed") | null;
             /** Review Note */
             review_note: string | null;
             /** Review Status */
@@ -6059,6 +6102,12 @@ export interface components {
              * @enum {string}
              */
             source: "driver app" | "web" | "system";
+            /**
+             * State
+             * @default filed
+             * @enum {string}
+             */
+            state: "needs_review" | "processing" | "failed" | "approved" | "rejected" | "filed";
             /** Type */
             type: string;
             /** Upload Status */
@@ -7042,6 +7091,18 @@ export interface components {
              */
             radius_m: number;
         };
+        /** FieldDecisionIn */
+        FieldDecisionIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "confirmed" | "corrected" | "unreadable";
+            /** Reason */
+            reason?: string | null;
+            /** Value */
+            value?: string | null;
+        };
         /** FieldOption */
         FieldOption: {
             /** Key */
@@ -7063,6 +7124,10 @@ export interface components {
             note?: string | null;
             /** Page */
             page: number | null;
+            /** Read Value */
+            read_value?: string | null;
+            /** Reason */
+            reason?: string | null;
             /** State */
             state: string;
             /** Type */
@@ -10898,6 +10963,14 @@ export interface components {
         RatesIn: {
             /** Rates */
             rates: components["schemas"]["RateIn"][];
+        };
+        /** ReadAgainIn */
+        ReadAgainIn: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "cdl" | "registration" | "rate_confirmation" | "pod" | "inspection_report" | "fuel_receipt";
         };
         /** ReadIn */
         ReadIn: {
@@ -18134,6 +18207,9 @@ export interface operations {
                 expiring?: boolean | null;
                 /** @description compliance: licences, medical cards, test results, insurance, registrations and the company's authority, which safety reviews before they count */
                 group?: "compliance" | null;
+                state?: ("needs_review" | "processing" | "failed" | "approved" | "rejected") | null;
+                uploaded_by?: string | null;
+                source?: ("driver_app" | "web" | "system") | null;
             };
             header?: never;
             path?: never;
@@ -23478,6 +23554,144 @@ export interface operations {
             };
         };
     };
+    document_read_api_v1_intake_documents__document_id__read_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadOut"] | null;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_again_api_v1_intake_documents__document_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadAgainIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     reader_api_v1_intake_reader_get: {
         parameters: {
             query?: never;
@@ -23691,6 +23905,78 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ApplyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    decide_field_api_v1_intake_reads__read_id__fields__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                read_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldDecisionIn"];
             };
         };
         responses: {

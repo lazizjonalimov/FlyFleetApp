@@ -43,6 +43,8 @@ class Document(Base, IdMixin, TenantScoped):
     reviewed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_on: Mapped[date | None] = mapped_column(Date)
+    # Counted when the file arrives: a PDF's pages, 1 for a photo.
+    pages: Mapped[int | None] = mapped_column(Integer)
     # Whether an owner's portal users can open it (only ever documents about that owner or their units).
     in_portal: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     uploaded_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)

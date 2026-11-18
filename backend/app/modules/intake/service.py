@@ -40,8 +40,12 @@ class FieldOut(BaseModel):
     page: int | None
     box: list[float]
     # read: read with confidence | check: read but worth a look | missing: not found on the document
+    # | confirmed: a reviewer confirmed it as read | corrected: a reviewer changed it | unreadable: marked unreadable
     state: str
     note: str | None = None
+    # As read, before any decision; the reviewer's reason when they changed it.
+    read_value: str | None = None
+    reason: str | None = None
 
 
 class CheckOut(BaseModel):
@@ -144,6 +148,9 @@ def checks(db: Session, p: Principal, r: DocumentRead) -> tuple[list[CheckOut], 
     suggest: dict[str, str] = {}
     notes: dict[str, str] = {}
     org = p.org_name or "this company"
+    # The records the document is already filed with: a value found on one of them is a match, not a duplicate.
+    filed = set(db.execute(select(DocumentLink.entity_type, DocumentLink.entity_id)
+                           .where(DocumentLink.document_id == r.document_id)).all())
     if r.kind == "registration":
         vin = _value(r, "vin")
         unit = next_unit_number(db, Vehicle)
@@ -174,9 +181,14 @@ def checks(db: Session, p: Principal, r: DocumentRead) -> tuple[list[CheckOut], 
                 existing = db.scalar(select(model).where(func.upper(model.vin) == d.vin))
                 if existing:
                     noun = "Truck" if kind == "vehicle" else "Trailer"
-                    out.append(CheckOut(tone="bad", title="Already in FlyFleet",
-                                        detail=f"{noun} {existing.unit_number} has this VIN.",
-                                        field="vin", record_type=kind, record_id=existing.id))
+                    if (kind, existing.id) in filed:
+                        out.append(CheckOut(tone="ok", title=f"Matches {noun.lower()} {existing.unit_number}",
+                                            detail="The VIN on the card is the one on file.", field="vin",
+                                            record_type=kind, record_id=existing.id))
+                    else:
+                        out.append(CheckOut(tone="bad", title="Already in FlyFleet",
+                                            detail=f"{noun} {existing.unit_number} has this VIN.",
+                                            field="vin", record_type=kind, record_id=existing.id))
     elif r.kind == "cdl":
         number, first, last = _value(r, "cdl_number"), _value(r, "first_name"), _value(r, "last_name")
         matches = people.find_matches(db, cdl_number=number, first_name=first, last_name=last)
@@ -184,10 +196,15 @@ def checks(db: Session, p: Principal, r: DocumentRead) -> tuple[list[CheckOut], 
         if by_cdl:
             person = by_cdl[0].person
             driver = db.scalar(select(Driver).where(Driver.person_id == person.id))
-            out.append(CheckOut(tone="bad", title="Already a driver",
-                                detail=f"{people.full_name(person)} has this CDL number at {org}.",
-                                field="cdl_number", record_type="driver" if driver else "person",
-                                record_id=driver.id if driver else person.id))
+            if driver is not None and ("driver", driver.id) in filed:
+                out.append(CheckOut(tone="ok", title=f"Matches {people.full_name(person)}",
+                                    detail="The CDL number is the one on file.", field="cdl_number",
+                                    record_type="driver", record_id=driver.id))
+            else:
+                out.append(CheckOut(tone="bad", title="Already a driver",
+                                    detail=f"{people.full_name(person)} has this CDL number at {org}.",
+                                    field="cdl_number", record_type="driver" if driver else "person",
+                                    record_id=driver.id if driver else person.id))
         elif number:
             out.append(CheckOut(tone="ok", title="No duplicate", detail=f"No driver at {org} has this CDL number."))
         others = [m for m in matches if "cdl_number" not in m.reasons]
@@ -347,9 +364,13 @@ def present(db: Session, p: Principal, r: DocumentRead) -> ReadOut:
             value = f["value"]  # shown as read, for a person to fix
         confidence = f.get("confidence") if f else None
         state = "missing" if not f else ("check" if (confidence or 0) < SURE or spec.key in problems else "read")
+        decided = (r.corrections or {}).get(spec.key) if r.applied_entity_id is None else None
+        read_value, reason = value, None
+        if decided and decided.get("decision"):
+            state, value, reason = decided["decision"], decided.get("saved"), decided.get("reason")
         fields.append(FieldOut(key=spec.key, label=spec.label, type=spec.type, value=value, confidence=confidence,
                                page=f.get("page") if f else None, box=f.get("box") or [] if f else [], state=state,
-                               note=notes.get(spec.key)))
+                               note=notes.get(spec.key), read_value=read_value, reason=reason))
     return ReadOut(id=r.id, document_id=r.document_id, filename=doc.filename if doc else "",
                    content_type=doc.content_type if doc else "",
                    kind=r.kind, kind_label=label, status=r.status, reader=r.reader, pages=r.pages,
@@ -398,4 +419,31 @@ def apply(db: Session, p: Principal, r: DocumentRead, entity_type: str, entity_i
             doc.review_status, doc.reviewed_by, doc.reviewed_at = "approved", p.user_id, datetime.now(UTC)
     audit(db, p, "document.read_applied", entity_type, entity_id,
           {"document_id": str(r.document_id), "kind": r.kind, "corrected": sorted(corrections)})
+    return r
+
+
+def decide(db: Session, p: Principal, r: DocumentRead, key: str, decision: str, value: str | None,
+           reason: str | None) -> DocumentRead:
+    """A reviewer's decision on one field: confirmed as read, corrected (with the reason), or unreadable. Kept next
+    to what was read, never over it."""
+    specs = {s.key: s for s in KINDS[r.kind][1]}
+    spec = specs.get(key)
+    if spec is None:
+        raise Invalid("That field isn't on this kind of document", field="key")
+    raw = _value(r, key)
+    read_value = normalize(spec.type, raw) if raw else None
+    if decision == "corrected":
+        kept = normalize(spec.type, value) if value else None
+        if not kept:
+            raise Invalid(f"Enter the {spec.label.lower()} as the paper shows it", field="value")
+        if kept == (read_value or raw):
+            decision, kept = "confirmed", read_value or raw
+        elif not (reason or "").strip():
+            raise Invalid("Say why the value differs from what was read", field="reason")
+    else:
+        kept = (read_value or raw) if decision == "confirmed" else None
+    r.corrections = {**(r.corrections or {}), key: {
+        "decision": decision, "read": raw, "saved": kept, "reason": (reason or "").strip() or None,
+        "by": str(p.user_id), "at": datetime.now(UTC).isoformat()}}
+    audit(db, p, "document.field_reviewed", "document", r.document_id, {"field": key, "decision": decision})
     return r

@@ -4992,6 +4992,17 @@
             "title": "Links",
             "type": "array"
           },
+          "pages": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages"
+          },
           "read_confidence": {
             "anyOf": [
               {
@@ -5003,6 +5014,23 @@
             ],
             "description": "When it was read automatically: how sure the reading was, 0-100, across the fields it found",
             "title": "Read Confidence"
+          },
+          "read_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "done",
+                  "needs_reader",
+                  "failed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The latest automatic reading: read, waiting for the photo reader, or unreadable",
+            "title": "Read Status"
           },
           "review_note": {
             "anyOf": [
@@ -5059,6 +5087,19 @@
               "system"
             ],
             "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "default": "filed",
+            "enum": [
+              "needs_review",
+              "processing",
+              "failed",
+              "approved",
+              "rejected",
+              "filed"
+            ],
+            "title": "State",
             "type": "string"
           },
           "type": {
@@ -8409,6 +8450,48 @@
         "title": "FenceIn",
         "type": "object"
       },
+      "FieldDecisionIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "confirmed",
+              "corrected",
+              "unreadable"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "FieldDecisionIn",
+        "type": "object"
+      },
       "FieldOption": {
         "properties": {
           "key": {
@@ -8476,6 +8559,28 @@
               }
             ],
             "title": "Page"
+          },
+          "read_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Value"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
           },
           "state": {
             "title": "State",
@@ -20743,6 +20848,27 @@
           "rates"
         ],
         "title": "RatesIn",
+        "type": "object"
+      },
+      "ReadAgainIn": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "cdl",
+              "registration",
+              "rate_confirmation",
+              "pod",
+              "inspection_report",
+              "fuel_receipt"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ReadAgainIn",
         "type": "object"
       },
       "ReadIn": {
@@ -37270,6 +37396,67 @@
               "description": "compliance: licences, medical cards, test results, insurance, registrations and the company's authority, which safety reviews before they count",
               "title": "Group"
             }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "needs_review",
+                    "processing",
+                    "failed",
+                    "approved",
+                    "rejected"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "uploaded_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Uploaded By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "driver_app",
+                    "web",
+                    "system"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
           }
         ],
         "responses": {
@@ -38266,7 +38453,7 @@
     },
     "/api/v1/documents/{document_id}/review": {
       "post": {
-        "description": "Approve or reject a compliance document. Proof of delivery is reviewed on its load instead.",
+        "description": "Approve and attach, or send back. A proof of delivery moves its load on: approved, the load is completed;\nsent back, it waits for a new one. A compliance document approved renews the record it is filed with.",
         "operationId": "review_api_v1_documents__document_id__review_post",
         "parameters": [
           {
@@ -45036,6 +45223,198 @@
         ]
       }
     },
+    "/api/v1/intake/documents/{document_id}/read": {
+      "get": {
+        "operationId": "document_read_api_v1_intake_documents__document_id__read_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ReadOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Document Read Api V1 Intake Documents  Document Id  Read Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The latest reading of a document, with its checks, for the review screen",
+        "tags": [
+          "intake"
+        ]
+      },
+      "post": {
+        "operationId": "read_again_api_v1_intake_documents__document_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadAgainIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read a document again, as the kind of document the reviewer says it is",
+        "tags": [
+          "intake"
+        ]
+      }
+    },
     "/api/v1/intake/reader": {
       "get": {
         "operationId": "reader_api_v1_intake_reader_get",
@@ -45379,6 +45758,113 @@
           }
         ],
         "summary": "A record was saved from this document: keep the corrections and file the document with it",
+        "tags": [
+          "intake"
+        ]
+      }
+    },
+    "/api/v1/intake/reads/{read_id}/fields/{key}": {
+      "put": {
+        "operationId": "decide_field_api_v1_intake_reads__read_id__fields__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "read_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Read Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldDecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "A reviewer's decision on one field: confirmed as read, corrected with a reason, or unreadable",
         "tags": [
           "intake"
         ]

@@ -227,7 +227,7 @@ def dashboard_exceptions(p: Principal = Depends(require("dashboard.read")), db: 
             pending = db.scalar(select(func.count()).select_from(Document).where(
                 Document.upload_status == "uploaded", Document.review_status == "pending", Document.type != "pod"))
             add(pending, "DOCUMENTS_TO_REVIEW", "low", "Compliance documents to review",
-                "Uploaded and waiting for approval", "documents", review_status="pending")
+                "Uploaded and waiting for approval", "documents", state="needs_review")
     if p.can("maintenance.read"):
         shop = maintenance.summary(db, p)
         add(shop.urgent_open, "WORK_ORDERS_URGENT", "high", "Urgent work orders",

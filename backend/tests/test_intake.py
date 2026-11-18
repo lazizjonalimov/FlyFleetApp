@@ -59,9 +59,12 @@ def test_a_registration_pdf_is_read_checked_and_its_corrections_kept(org):
     assert [d["id"] for d in filed] == [doc["id"]]
     org.error("POST", f"/intake/reads/{read['id']}/apply", 409, "ALREADY_APPLIED",
               json={"entity_type": "vehicle", "entity_id": truck["id"], "saved": {}})
-    # The same VIN read again is caught as already in FlyFleet.
+    # Read again, the card filed with the truck matches it; the same VIN on another card is caught as a duplicate.
     again = org.post("/intake/reads", {"document_id": doc["id"], "kind": "registration"}, 201).json()
-    assert any(c["title"] == "Already in FlyFleet" and c["record_id"] == truck["id"] for c in again["checks"])
+    assert any(c["title"] == "Matches truck T-1188" and c["tone"] == "ok" for c in again["checks"])
+    other = upload_unattached(org, registration(vin), "registration", "registration-2.pdf", "application/pdf")
+    dup = org.post("/intake/reads", {"document_id": other["id"], "kind": "registration"}, 201).json()
+    assert any(c["title"] == "Already in FlyFleet" and c["record_id"] == truck["id"] for c in dup["checks"])
 
 
 def test_a_photo_needs_the_photo_reader_and_says_so(org):

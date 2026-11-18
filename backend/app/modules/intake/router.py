@@ -5,11 +5,12 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.deps import Principal, get_db, get_or_404, require
-from app.core.errors import AppError, Forbidden
+from app.core.errors import AppError, Conflict, Forbidden
 from app.modules.documents.router import _get as visible_document
 from app.modules.intake import imports, service, vision
 from app.modules.intake.models import DocumentRead as ReadRow
@@ -90,6 +91,55 @@ def apply(read_id: uuid.UUID, body: ApplyIn, p: Principal = Depends(require("doc
     row = get_or_404(db, ReadRow, read_id, "Read")
     _can(p, NEEDS[row.kind])
     service.apply(db, p, row, body.entity_type, body.entity_id, body.saved)
+    db.commit()
+    return service.present(db, p, row)
+
+
+REVIEWERS = ("safety.manage", "loads.close", "documents.upload")
+
+
+class ReadAgainIn(BaseModel):
+    kind: ReadKind
+
+
+class FieldDecisionIn(BaseModel):
+    decision: Literal["confirmed", "corrected", "unreadable"]
+    value: str | None = Field(default=None, max_length=200)
+    reason: str | None = Field(default=None, max_length=300)
+
+
+def _latest(db: Session, document_id: uuid.UUID) -> ReadRow | None:
+    return db.scalar(select(ReadRow).where(ReadRow.document_id == document_id)
+                     .order_by(ReadRow.created_at.desc()).limit(1))
+
+
+@router.get("/intake/documents/{document_id}/read", response_model=service.ReadOut | None,
+            summary="The latest reading of a document, with its checks, for the review screen")
+def document_read(document_id: uuid.UUID, p: Principal = Depends(require(*REVIEWERS)), db: Session = Depends(get_db)):
+    visible_document(db, p, document_id)
+    row = _latest(db, document_id)
+    return service.present(db, p, row) if row is not None else None
+
+
+@router.post("/intake/documents/{document_id}/read", response_model=service.ReadOut, status_code=201,
+             summary="Read a document again, as the kind of document the reviewer says it is")
+def read_again(document_id: uuid.UUID, body: ReadAgainIn, p: Principal = Depends(require(*REVIEWERS)),
+               db: Session = Depends(get_db)):
+    doc = visible_document(db, p, document_id)
+    row = service.read_document(db, p, doc, body.kind)
+    db.commit()
+    return service.present(db, p, row)
+
+
+@router.put("/intake/reads/{read_id}/fields/{key}", response_model=service.ReadOut,
+            summary="A reviewer's decision on one field: confirmed as read, corrected with a reason, or unreadable")
+def decide_field(read_id: uuid.UUID, key: str, body: FieldDecisionIn,
+                 p: Principal = Depends(require("safety.manage", "loads.close")), db: Session = Depends(get_db)):
+    row = get_or_404(db, ReadRow, read_id, "Read")
+    visible_document(db, p, row.document_id)
+    if row.applied_entity_id is not None:
+        raise Conflict("A record was already saved from this reading", code="ALREADY_APPLIED")
+    service.decide(db, p, row, key, body.decision, body.value, body.reason)
     db.commit()
     return service.present(db, p, row)
 

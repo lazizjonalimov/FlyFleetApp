@@ -23,10 +23,11 @@ export const INVOICE_TABS: Tab[] = [
 ];
 
 export const DOCUMENT_TABS: Tab[] = [
-  { label: "Needs review", params: { review_status: "pending" } },
-  { label: "Approved", params: { review_status: "approved" } },
-  { label: "Rejected", params: { review_status: "rejected" } },
-  { label: "Expiring", params: { expiring: true } },
+  { label: "Needs review", params: { state: "needs_review" } },
+  { label: "Processing", params: { state: "processing" } },
+  { label: "Failed", params: { state: "failed" } },
+  { label: "Approved", params: { state: "approved" } },
+  { label: "Rejected", params: { state: "rejected" } },
   { label: "All" },
 ];
 

@@ -16,7 +16,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core import scope as team_scope
@@ -84,6 +84,14 @@ SIGNATURES = {
 }
 
 
+# Where a document is in the inbox. processing: the file is still arriving. failed: it couldn't be read, or the
+# malware scan blocked it. filed: kept, nothing to decide.
+DocState = Literal["needs_review", "processing", "failed", "approved", "rejected", "filed"]
+# Each kind of document that can be read, by the document type it is filed as.
+READ_KIND = {"license": "cdl", "registration": "registration", "rate_confirmation": "rate_confirmation", "pod": "pod",
+             "inspection": "inspection_report", "receipt": "fuel_receipt"}
+
+
 # ---------------------------------------------------------------- schemas
 class UploadIntentIn(BaseModel):
     filename: str = Field(min_length=1, max_length=255)
@@ -128,6 +136,10 @@ class DocumentOut(BaseModel):
         default="web", description="Where it came in: a driver's phone, the console, or FlyFleet itself")
     read_confidence: int | None = Field(default=None, description="When it was read automatically: how sure the "
                                                                   "reading was, 0-100, across the fields it found")
+    pages: int | None = None
+    read_status: Literal["done", "needs_reader", "failed"] | None = Field(
+        default=None, description="The latest automatic reading: read, waiting for the photo reader, or unreadable")
+    state: DocState = "filed"
 
 
 class UploadTarget(BaseModel):
@@ -161,6 +173,9 @@ class DocumentListParams(ListParams):
     group: Literal["compliance"] | None = Field(
         default=None, description="compliance: licences, medical cards, test results, insurance, registrations and "
                                   "the company's authority, which safety reviews before they count")
+    state: Literal["needs_review", "processing", "failed", "approved", "rejected"] | None = None
+    uploaded_by: uuid.UUID | None = None
+    source: Literal["driver_app", "web", "system"] | None = None
 
 
 # ---------------------------------------------------------------- access
@@ -244,12 +259,16 @@ def _present(db: Session, docs: list[Document]) -> list[DocumentOut]:
     drivers = set(db.scalars(select(Membership.user_id).where(Membership.role == "driver",
                                                               Membership.user_id.in_(uploaders)))) if uploaders else set()
     confidence: dict[uuid.UUID, int] = {}
+    read_status: dict[uuid.UUID, str] = {}
+    read_pages: dict[uuid.UUID, int] = {}
     if ids:
         from app.modules.intake.models import DocumentRead
-        for read in db.scalars(select(DocumentRead).where(DocumentRead.document_id.in_(ids), DocumentRead.status == "done")
+        for read in db.scalars(select(DocumentRead).where(DocumentRead.document_id.in_(ids))
                                .order_by(DocumentRead.created_at)):
+            read_status[read.document_id] = read.status  # the latest wins
+            read_pages[read.document_id] = read.pages
             sure = [float(f["confidence"]) for f in read.fields or [] if isinstance(f.get("confidence"), int | float)]
-            if sure:
+            if read.status == "done" and sure:
                 confidence[read.document_id] = round(100 * sum(sure) / len(sure))
     return [DocumentOut(
         id=d.id, type=d.type, filename=d.filename, content_type=d.content_type, size_bytes=d.size_bytes,
@@ -258,7 +277,27 @@ def _present(db: Session, docs: list[Document]) -> list[DocumentOut]:
         expires_on=d.expires_on, in_portal=d.in_portal, uploaded_by_name=names.get(d.uploaded_by), created_at=d.created_at,
         links=by_doc.get(d.id, []),
         source="system" if d.uploaded_by is None else "driver app" if d.uploaded_by in drivers else "web",
-        read_confidence=confidence.get(d.id)) for d in docs]
+        read_confidence=confidence.get(d.id), pages=d.pages or read_pages.get(d.id), read_status=read_status.get(d.id),
+        state=_state_of(d, read_status.get(d.id))) for d in docs]
+
+
+def _state_of(d: Document, read: str | None) -> str:
+    if d.upload_status != "uploaded":
+        return "processing"
+    if d.scan_status == "failed" or (read == "failed" and d.review_status == "pending"):
+        return "failed"
+    return {"pending": "needs_review", "approved": "approved", "rejected": "rejected"}.get(d.review_status, "filed")
+
+
+def _count_pages(data: bytes, content_type: str) -> int | None:
+    """A PDF's pages; a photo is one page."""
+    if content_type != "application/pdf":
+        return 1
+    try:
+        import pypdfium2
+        return len(pypdfium2.PdfDocument(data))
+    except Exception:  # an unreadable PDF has no page count; that never stops an upload
+        return None
 
 
 # ---------------------------------------------------------------- upload
@@ -345,6 +384,7 @@ def complete_upload(document_id: uuid.UUID, p: Principal = Depends(require("docu
                       field="file")
     doc.checksum = hashlib.sha256(data).hexdigest()
     doc.upload_status = "uploaded"
+    doc.pages = _count_pages(data, doc.content_type)
     links = list(db.scalars(select(DocumentLink).where(DocumentLink.document_id == doc.id)))
     audit(db, p, "document.uploaded", "document", doc.id,
           {"type": doc.type, "filename": doc.filename,
@@ -354,6 +394,15 @@ def complete_upload(document_id: uuid.UUID, p: Principal = Depends(require("docu
         for link in links:
             if link.entity_type == "load":
                 loads.on_pod_uploaded(db, p, link.entity_id)
+    # Read what can be read now, so the reviewer starts from the values on the paper. A reading that fails never
+    # stops the upload; the reviewer reads the document by eye instead.
+    if doc.type in READ_KIND and p.role != "driver":
+        from app.modules.intake import service as intake
+        try:
+            with db.begin_nested():
+                intake.read_document(db, p, doc, READ_KIND[doc.type])
+        except Exception:  # noqa: BLE001
+            pass
     db.commit()
     return _present(db, [doc])[0]
 
@@ -362,7 +411,9 @@ def complete_upload(document_id: uuid.UUID, p: Principal = Depends(require("docu
 @router.get("", response_model=Page[DocumentOut])
 def list_documents(params: Annotated[DocumentListParams, Query()],
                    p: Principal = Depends(require("documents.read")), db: Session = Depends(get_db)):
-    stmt = select(Document).where(Document.upload_status == "uploaded")
+    # Files still arriving show only on the processing tab, and only for a day: after that the upload was abandoned.
+    arriving = (Document.upload_status == "pending") & (Document.created_at >= datetime.now(UTC) - timedelta(days=1))
+    stmt = select(Document).where(arriving if params.state == "processing" else Document.upload_status == "uploaded")
     outside = _outside_team(p)
     if outside is not None:
         stmt = stmt.where(~outside)
@@ -383,13 +434,59 @@ def list_documents(params: Annotated[DocumentListParams, Query()],
         stmt = stmt.where(Document.review_status == params.review_status)
     if params.group == "compliance":
         stmt = stmt.where(Document.type.in_(COMPLIANCE))
+    if params.state:
+        stmt = _in_state(stmt, params.state, p)
+    if params.uploaded_by:
+        stmt = stmt.where(Document.uploaded_by == params.uploaded_by)
+    if params.source:
+        app_users = select(Membership.user_id).where(Membership.role == "driver")
+        stmt = stmt.where(Document.uploaded_by.is_(None) if params.source == "system" else
+                          Document.uploaded_by.in_(app_users) if params.source == "driver_app" else
+                          Document.uploaded_by.is_not(None) & Document.uploaded_by.notin_(app_users))
     if params.expiring:
         stmt = stmt.where(Document.expires_on <= p.today() + timedelta(days=WARN_DAYS))
     if params.q:
-        stmt = stmt.where(Document.filename.ilike(like(params.q.strip())))
+        stmt = stmt.where(_matching(params.q.strip()))
     rows, info = paginate(db, stmt, parse_sort(params.sort, {"created_at": Document.created_at}, "-created_at"),
                           Document.id, cursor=params.cursor, limit=params.limit, count=params.count)
     return envelope(_present(db, rows), info)
+
+
+def _latest_read():
+    from app.modules.intake.models import DocumentRead
+    return (select(DocumentRead.status).where(DocumentRead.document_id == Document.id)
+            .order_by(DocumentRead.created_at.desc()).limit(1).scalar_subquery())
+
+
+def _in_state(stmt, state: str, p: Principal):
+    if state == "processing":
+        return stmt
+    # No reading at all is not a failed one: compare with a value, never with NULL.
+    read = func.coalesce(_latest_read(), "")
+    failed = (Document.scan_status == "failed") | ((Document.review_status == "pending") & (read == "failed"))
+    if state == "failed":
+        return stmt.where(failed)
+    if state == "needs_review":
+        return stmt.where(Document.review_status == "pending", ~failed)
+    return stmt.where(Document.review_status == state)
+
+
+def _matching(q: str):
+    """A file name, the load or record it is filed with, or who uploaded it."""
+    from app.modules.drivers.models import Driver as D
+    from app.modules.loads.models import Load as L
+    pattern = like(q)
+    found = {
+        "load": select(L.id).where(or_(L.load_number.ilike(pattern), L.reference.ilike(pattern))),
+        "driver": select(D.id).where((D.first_name + " " + D.last_name).ilike(pattern)),
+        "vehicle": select(Vehicle.id).where(Vehicle.unit_number.ilike(pattern)),
+        "trailer": select(Trailer.id).where(Trailer.unit_number.ilike(pattern)),
+        "customer": select(Customer.id).where(Customer.name.ilike(pattern)),
+    }
+    linked = or_(*[and_(DocumentLink.entity_type == kind, DocumentLink.entity_id.in_(ids)) for kind, ids in found.items()])
+    return or_(Document.filename.ilike(pattern),
+               exists(select(DocumentLink.id).where(DocumentLink.document_id == Document.id, linked)),
+               Document.uploaded_by.in_(select(User.id).where(User.full_name.ilike(pattern))))
 
 
 @router.get("/{document_id}", response_model=DocumentOut)
@@ -500,18 +597,85 @@ def remove_link(document_id: uuid.UUID, link_id: uuid.UUID, p: Principal = Depen
     db.commit()
 
 
+# What a read value means for the document itself: the date it runs to.
+EXPIRY_FIELDS = ("cdl_expiry", "registration_expiry")
+
+
+def _unchecked(db: Session, doc: Document) -> list[str]:
+    """Fields of the latest reading that were read with too little confidence and nobody has decided on yet."""
+    from app.modules.intake import service as intake
+    from app.modules.intake.models import DocumentRead
+    read = db.scalar(select(DocumentRead).where(DocumentRead.document_id == doc.id)
+                     .order_by(DocumentRead.created_at.desc()).limit(1))
+    if read is None or read.status != "done":
+        return []
+    decided = read.corrections or {}
+    return [f["key"] for f in read.fields
+            if (f.get("confidence") or 0) < intake.SURE and f.get("value") and f["key"] not in decided]
+
+
+def _read_expiry(db: Session, doc: Document) -> date | None:
+    """The expiry date on the paper, as read or as the reviewer settled it."""
+    from app.modules.intake.models import DocumentRead
+    read = db.scalar(select(DocumentRead).where(DocumentRead.document_id == doc.id, DocumentRead.status == "done")
+                     .order_by(DocumentRead.created_at.desc()).limit(1))
+    if read is None:
+        return None
+    from app.modules.intake.normalize import normalize
+    for key in EXPIRY_FIELDS:
+        decided = (read.corrections or {}).get(key)
+        if decided and decided.get("decision") == "unreadable":
+            return None
+        raw = decided.get("saved") if decided else next((f["value"] for f in read.fields if f["key"] == key), None)
+        value = normalize("date", str(raw)) if raw else None  # the paper's "11/30/27" as 2027-11-30
+        if value:
+            try:
+                return date.fromisoformat(value)
+            except ValueError:
+                return None
+    return None
+
+
 @router.post("/{document_id}/review", response_model=DocumentOut)
-def review(document_id: uuid.UUID, body: ReviewIn, p: Principal = Depends(require("safety.manage")),
+def review(document_id: uuid.UUID, body: ReviewIn, p: Principal = Depends(require("safety.manage", "loads.close")),
            db: Session = Depends(get_db)):
-    """Approve or reject a compliance document. Proof of delivery is reviewed on its load instead."""
+    """Approve and attach, or send back. A proof of delivery moves its load on: approved, the load is completed;
+    sent back, it waits for a new one. A compliance document approved renews the record it is filed with."""
     doc = _get(db, p, document_id)
-    if doc.type == "pod":
-        raise Conflict("Review proof of delivery from its load, so the load moves on with it")
     if doc.review_status == "not_required":
         raise Conflict("This kind of document doesn't need a review")
+    if doc.type == "pod" and doc.review_status != "pending":
+        raise Conflict("This proof of delivery has already been reviewed; its load has moved on", code="ALREADY_REVIEWED")
     note = (body.note or "").strip() or None
     if body.decision == "rejected" and not note:
         raise Invalid("Say what is wrong so it can be fixed", field="note")
+    if body.decision == "approved":
+        unchecked = _unchecked(db, doc)
+        if unchecked:
+            raise Conflict("Confirm, correct or mark unreadable the fields marked Check first", code="FIELDS_UNCHECKED",
+                           details={"fields": unchecked})
+    if doc.type == "pod":
+        if not p.can("loads.close"):
+            raise Forbidden("Your role does not allow closing loads", details={"required": ["loads.close"]})
+        load_ids = list(db.scalars(select(DocumentLink.entity_id).where(DocumentLink.document_id == doc.id,
+                                                                        DocumentLink.entity_type == "load")))
+        moved = False
+        for load_id in load_ids:
+            load = loads.lock_load(db, load_id, p)
+            if load.status == "pod_review":
+                loads.transition(db, p, load, "approve_pod" if body.decision == "approved" else "reject_pod",
+                                 reason=note)
+                moved = True
+        if not moved:  # not waiting on a load: the document is decided on its own
+            doc.review_status, doc.review_note = body.decision, note if body.decision == "rejected" else None
+            doc.reviewed_by, doc.reviewed_at = p.user_id, datetime.now(UTC)
+            audit(db, p, f"document.{body.decision}", "document", doc.id, {"note": note} if note else None)
+        db.commit()
+        return _present(db, [doc])[0]
+    if not p.can("safety.manage"):
+        raise Forbidden("Your role does not allow reviewing compliance documents", details={"required": ["safety.manage"]})
+    if body.decision == "approved" and doc.expires_on is None:
+        doc.expires_on = _read_expiry(db, doc)
     doc.review_status, doc.review_note = body.decision, note
     doc.reviewed_by, doc.reviewed_at = p.user_id, datetime.now(UTC)
     # An approved renewal is what makes the record compliant again: its date goes onto the driver or unit.
