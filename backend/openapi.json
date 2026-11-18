@@ -1412,6 +1412,195 @@
         "title": "ApplyIn",
         "type": "object"
       },
+      "AskAnswer": {
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "draft": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AskDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "intro": {
+            "title": "Intro",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/AskPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "records_read": {
+            "title": "Records Read",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "intro",
+          "points",
+          "draft",
+          "records_read",
+          "as_of"
+        ],
+        "title": "AskAnswer",
+        "type": "object"
+      },
+      "AskDraft": {
+        "description": "A message the answer suggests. It is only sent if the person approves it.",
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "customer or driver",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "load_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Id"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "label",
+          "load_id",
+          "body"
+        ],
+        "title": "AskDraft",
+        "type": "object"
+      },
+      "AskIn": {
+        "properties": {
+          "history": {
+            "description": "The conversation so far, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/AskTurn"
+            },
+            "maxItems": 4,
+            "title": "History",
+            "type": "array"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AskIn",
+        "type": "object"
+      },
+      "AskPoint": {
+        "properties": {
+          "refs": {
+            "items": {
+              "$ref": "#/components/schemas/AskRecord"
+            },
+            "title": "Refs",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "refs"
+        ],
+        "title": "AskPoint",
+        "type": "object"
+      },
+      "AskRecord": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What it opens: load, driver, vehicle, incident, conversation, invoices\u2026",
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "label",
+          "id"
+        ],
+        "title": "AskRecord",
+        "type": "object"
+      },
+      "AskTurn": {
+        "properties": {
+          "answer": {
+            "maxLength": 4000,
+            "title": "Answer",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 500,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "AskTurn",
+        "type": "object"
+      },
       "AssignIn": {
         "properties": {
           "driver_id": {
@@ -1585,6 +1774,58 @@
           "release_reason"
         ],
         "title": "AssignmentOut",
+        "type": "object"
+      },
+      "AssistantInfo": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why it can't answer, when it is off",
+            "title": "Detail"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "hidden": {
+            "description": "What this person's role keeps from it",
+            "items": {
+              "type": "string"
+            },
+            "title": "Hidden",
+            "type": "array"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "using": {
+            "description": "What it reads for this person",
+            "items": {
+              "type": "string"
+            },
+            "title": "Using",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "detail",
+          "using",
+          "hidden",
+          "suggestions"
+        ],
+        "title": "AssistantInfo",
         "type": "object"
       },
       "Attention": {
@@ -33200,6 +33441,169 @@
         "summary": "Every saved version, newest first",
         "tags": [
           "tracking"
+        ]
+      }
+    },
+    "/api/v1/assistant": {
+      "get": {
+        "operationId": "info_api_v1_assistant_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Info",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/api/v1/assistant/ask": {
+      "post": {
+        "description": "Answer a question from the records the asker's role can see. Read-only: nothing is changed or sent.",
+        "operationId": "ask_api_v1_assistant_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskAnswer"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ask",
+        "tags": [
+          "assistant"
         ]
       }
     },

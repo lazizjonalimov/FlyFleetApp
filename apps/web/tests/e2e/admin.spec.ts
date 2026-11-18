@@ -23,6 +23,17 @@ test("a member added with a role sees only what the role allows", async ({ page,
   await expect(nav(other, "Invoices")).toHaveAttribute("aria-label", /no access/);
   await open(other, account, "finance/invoices");
   await expect(other.locator(".main")).toContainText("You don’t have access to Invoices");
+  // Asking for it reaches the people who manage the team; asking again says they were already asked.
+  await other.getByRole("button", { name: "Request access" }).click();
+  await expect(other.locator(".toastw")).toContainText("for access to Invoices");
+
+  // The assistant reads what the role can see, says what it can't, and says plainly when it isn't connected.
+  await other.getByRole("button", { name: /Ask FlyFleet/ }).first().click();
+  const assistant = other.getByRole("complementary", { name: "Ask FlyFleet" });
+  await expect(assistant).toContainText("Using: Loads");
+  await expect(assistant).toContainText("Hidden for your role: Finance, Rates");
+  await expect(assistant).toContainText("Ask FlyFleet isn’t connected");
+  await expect(assistant.getByRole("textbox", { name: "Ask FlyFleet" })).toBeDisabled();
 });
 
 test("company settings are saved", async ({ page }) => {

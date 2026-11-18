@@ -169,6 +169,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Info */
+        get: operations["info_api_v1_assistant_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assistant/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask
+         * @description Answer a question from the records the asker's role can see. Read-only: nothing is changed or sent.
+         */
+        post: operations["ask_api_v1_assistant_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -5099,6 +5136,81 @@ export interface components {
                 [key: string]: string | null;
             };
         };
+        /** AskAnswer */
+        AskAnswer: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            draft: components["schemas"]["AskDraft"] | null;
+            /** Intro */
+            intro: string;
+            /** Points */
+            points: components["schemas"]["AskPoint"][];
+            /** Records Read */
+            records_read: number;
+        };
+        /**
+         * AskDraft
+         * @description A message the answer suggests. It is only sent if the person approves it.
+         */
+        AskDraft: {
+            /** Body */
+            body: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @description customer or driver
+             */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Load Id */
+            load_id: string | null;
+        };
+        /** AskIn */
+        AskIn: {
+            /**
+             * History
+             * @description The conversation so far, oldest first
+             */
+            history?: components["schemas"]["AskTurn"][];
+            /** Question */
+            question: string;
+        };
+        /** AskPoint */
+        AskPoint: {
+            /** Refs */
+            refs: components["schemas"]["AskRecord"][];
+            /** Text */
+            text: string;
+        };
+        /** AskRecord */
+        AskRecord: {
+            /** Id */
+            id: string | null;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @description What it opens: load, driver, vehicle, incident, conversation, invoices…
+             */
+            kind: string;
+            /** Label */
+            label: string;
+        };
+        /** AskTurn */
+        AskTurn: {
+            /** Answer */
+            answer: string;
+            /** Question */
+            question: string;
+        };
         /** AssignIn */
         AssignIn: {
             /**
@@ -5162,6 +5274,28 @@ export interface components {
             status: string;
             trailer: components["schemas"]["Ref"] | null;
             vehicle: components["schemas"]["Ref"];
+        };
+        /** AssistantInfo */
+        AssistantInfo: {
+            /**
+             * Detail
+             * @description Why it can't answer, when it is off
+             */
+            detail: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Hidden
+             * @description What this person's role keeps from it
+             */
+            hidden: string[];
+            /** Suggestions */
+            suggestions: string[];
+            /**
+             * Using
+             * @description What it reads for this person
+             */
+            using: string[];
         };
         /** Attention */
         Attention: {
@@ -15368,6 +15502,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VersionOut"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    info_api_v1_assistant_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantInfo"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    ask_api_v1_assistant_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskAnswer"];
                 };
             };
             /** @description Unauthorized */
