@@ -1,6 +1,7 @@
 "use client";
 
 import { clsx } from "clsx";
+import { Logo, LogoMark } from "@/components/layout/logo";
 import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
 import { hardNavigate } from "@/lib/hard-navigation";
@@ -11,8 +12,8 @@ export function Sidebar() {
   return (
     <aside className="sb" aria-label="Main navigation">
       <div className="logo">
-        <span className="mark"><Icon className="s14" d="M4 6l6 6-6 6M13 6l6 6-6 6" /></span>
-        <span className="wm" style={{ fontWeight: "600", fontSize: "15px", letterSpacing: "-0.01em", color: "var(--ntstrong)" }}>FlyFleet</span>
+        <span className="lk"><Logo height={40} /></span>
+        <span className="lkm"><LogoMark size={32} /></span>
       </div>
       <nav className="nav">
         {nav.map((g, i) => (

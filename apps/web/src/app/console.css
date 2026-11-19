@@ -64,7 +64,7 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .blk{display:block}
 /* shell */
 .ff .shell{display:grid;grid-template-columns:232px minmax(0,1fr);height:100%}
-.ff .sb{background:var(--nt);display:flex;flex-direction:column;min-height:0;color:var(--nttx)}
+.ff .sb{background:var(--sf);display:flex;flex-direction:column;min-height:0;color:var(--nttx)}
 .ff .logo{height:56px;flex:none;display:flex;align-items:center;gap:10px;padding:0 16px}
 .ff .mark{width:26px;height:26px;border-radius:7px;background:#1F4FE0;display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);color:#fff;flex:none}
 .ff .mark .ic{stroke-width:2.8}
@@ -569,6 +569,11 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .shell.mini{grid-template-columns:64px minmax(0,1fr)}
 .ff .shell.mini .logo{justify-content:center;padding:0;position:relative}
 .ff .shell.mini .logo .wm{display:none}
+/* the FLYFLEET logo: the lockup in the sidebar, the mark alone when it is collapsed */
+.ff .logo .lk{display:block;flex:none;color:var(--ntstrong)}
+.ff .logo .lkm{display:none;flex:none;color:var(--ntstrong)}
+.ff .shell.mini .logo .lk{display:none}
+.ff .shell.mini .logo .lkm{display:block}
 .ff .shell.mini .navg{height:1px;padding:0;margin:5px 8px 7px;background:var(--ntb);font-size:0;line-height:0;overflow:hidden}
 .ff .shell.mini .navi{justify-content:center;padding:0;height:34px;position:relative}
 .ff .shell.mini .navi .f1,.ff .shell.mini .navi .navc,.ff .shell.mini .navi .ic.s12{display:none}

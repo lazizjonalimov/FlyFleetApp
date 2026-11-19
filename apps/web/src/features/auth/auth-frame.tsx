@@ -1,4 +1,4 @@
-import { Icon } from "@/components/ui/icon";
+import { Logo } from "@/components/layout/logo";
 
 /** The surface around sign-in and sign-up: what FlyFleet is on the left, the form on the right. */
 export function AuthFrame({ children }: { children: React.ReactNode }) {
@@ -6,8 +6,7 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
     <div className="auth">
       <div className="authl">
         <div className="r g10">
-          <span className="mark" style={{ width: "34px", height: "34px", borderRadius: "9px" }}><Icon className="s18" d="M4 6l6 6-6 6M13 6l6 6-6 6" /></span>
-          <span style={{ fontSize: "20px", fontWeight: "600", color: "#fff", letterSpacing: "-0.01em" }}>FlyFleet</span>
+          <Logo height={52} tone="night" />
         </div>
         <svg className="authart" viewBox="0 0 560 420" aria-hidden="true">
           <path d="M-20 360 C 80 330, 140 250, 230 240 S 380 200, 420 120 S 520 40, 600 30" />

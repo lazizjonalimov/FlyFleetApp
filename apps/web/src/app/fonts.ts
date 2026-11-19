@@ -37,3 +37,12 @@ export const geistMono = localFont({
     },
   ],
 });
+
+// Archivo Black, the face of the FLYFLEET wordmark (only the one weight, Latin). Bundled like Geist above, so the
+// wordmark never depends on a font CDN.
+export const archivo = localFont({
+  src: "../../node_modules/@fontsource/archivo/files/archivo-latin-900-normal.woff2",
+  variable: "--font-archivo",
+  weight: "900",
+  adjustFontFallback: false,
+});
