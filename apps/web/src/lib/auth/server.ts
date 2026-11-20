@@ -89,11 +89,12 @@ export async function sessionToken(): Promise<string | undefined> {
  * they can switch to. Asked of the API on each request (once per render), so a role change or removal shows
  * immediately. Returns null when there is no valid session.
  */
-export const getMe = cache(async (): Promise<Me | null> => {
+export const getMe = cache(async (company?: string): Promise<Me | null> => {
   const token = await sessionToken();
   if (!token) return null;
   try {
-    const response = await apiFetch("/auth/me", { token });
+    // The company in the address decides which company the answer is about; the API re-checks membership.
+    const response = await apiFetch("/auth/me", { token, headers: company ? { "X-Company": company } : undefined });
     return response.ok ? ((await response.json()) as Me) : null;
   } catch {
     return null;

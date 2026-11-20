@@ -45,7 +45,7 @@ test("company settings are saved", async ({ page }) => {
   await page.getByLabel("MC number").fill("MC-445566");
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("status")).toContainText("Company settings saved");
-  await expect(page.getByRole("button", { name: "Switch organization" })).toContainText("MC-445566");
+  await expect(page.getByRole("button", { name: "Switch company" })).toContainText("MC-445566");
 });
 
 test("your own account: your name, the keyboard shortcuts, and what the bell tells you", async ({ page }) => {

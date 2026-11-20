@@ -27,6 +27,7 @@ export const cell = {
   /** A risk flag with its icon. */
   risk: (v: string, k: string, ic?: string): Cell => ({ isRisk: 1, v, k, ic: ic ?? (k === "ok" ? I.check : k === "bad" ? I.alert : I.clock) }),
   /** A person: initials, name and a second line. */
+  company: (name: string, code: string, color: string): Cell => ({ isCo: 1, v: name, co: { code, color } }),
   person: (v: string, ini: string, s = "", k = ""): Cell => ({ isP: 1, v, ini, s, k }),
   /** A record's identifier that opens the record. */
   id: (v: string, go: () => void, s = ""): Cell => ({ isId: 1, v, s, go: stop(go), idc: "" }),

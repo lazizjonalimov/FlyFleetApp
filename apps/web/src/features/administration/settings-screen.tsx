@@ -45,6 +45,8 @@ type Form = Record<string, string>;
 const FIELDS: { k: keyof Organization & string; l: string; span: number; hint?: string; mono?: boolean }[] = [
   { k: "name", l: "Company name", span: 3 },
   { k: "legal_name", l: "Legal name", span: 3 },
+  { k: "code", l: "Company code", span: 2, mono: true, hint: "2–6 letters or digits, shown beside numbers where companies mix" },
+  { k: "color", l: "Company colour", span: 2, mono: true, hint: "A hex colour such as #1F4FE0, for the company’s mark" },
   { k: "dot_number", l: "USDOT number", span: 2, mono: true },
   { k: "mc_number", l: "MC number", span: 2, mono: true },
   { k: "timezone", l: "Time zone", span: 2, hint: "“Today” on every screen is today here", mono: true },

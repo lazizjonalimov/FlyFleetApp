@@ -136,6 +136,7 @@ def login(body: s.LoginIn, request: Request):
     if chosen is None:
         last = row.last_organization_id if any(o.id == row.last_organization_id for o in orgs) else None
         return s.SessionOut(requires_organization_selection=True, last_organization_id=last,
+                            last_scope="all" if row.last_scope == "all" and last else "company",
                             organizations=sorted(orgs, key=lambda o: o.id != last))
     _remember(row.id, chosen.id)
     return s.SessionOut(access_token=create_token(row.id, chosen.id, row.token_version), organization=chosen,

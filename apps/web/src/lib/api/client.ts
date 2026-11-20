@@ -1,6 +1,7 @@
 import createClient from "openapi-fetch";
 import { toApiError } from "@/lib/api/errors";
 import { previewTeam } from "@/lib/api/preview";
+import { currentScope, scopedRequest } from "@/lib/api/scope";
 import type { paths } from "@/lib/api/schema";
 import { hardNavigate } from "@/lib/hard-navigation";
 
@@ -15,7 +16,13 @@ api.use({
   onRequest({ request }) {
     const team = previewTeam();
     if (team) request.headers.set("X-Preview-Team", team);
-    return request;
+    if (!currentScope()) return request;
+    const url = new URL(request.url);
+    const target = scopedRequest(url.pathname, request.method);
+    request.headers.set("X-Company", target.company);
+    if (target.path === url.pathname) return request;
+    url.pathname = target.path;
+    return new Request(url, request);
   },
   onResponse({ response }) {
     // The session ended (expired, password changed, access removed): go to sign-in, remembering where we were.

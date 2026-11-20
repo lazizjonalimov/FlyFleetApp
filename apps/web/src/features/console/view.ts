@@ -8,6 +8,11 @@ export type Cell = {
   on?: string;
   go?: Fn;
   isTx?: number;
+  /** A company's mark and name, in the Company column of a combined list. */
+  isCo?: number;
+  co?: { code: string; color: string };
+  /** The company's short code shown before a number where companies mix. */
+  pre?: string;
   v?: string;
   s?: string;
   cls?: string;

@@ -95,3 +95,14 @@ def test_code_and_colour_are_set_per_company_and_unique(org):
     me = org.get("/auth/me").json()["organization"]
     assert me["code"] == "ACM" and me["color"] == "#0E9F6E"
     second.error("PATCH", "/organization", 409, "CODE_TAKEN", json={"code": "acm"})
+
+
+def test_sign_in_offers_the_scope_worked_in_last(org, client):
+    from tests.conftest import PASSWORD
+    two_companies(org)
+    org.post("/auth/switch", {"scope": "all"}, 200)
+    asked = client.post("/api/v1/auth/login", json={"email": org.email, "password": PASSWORD}).json()
+    assert asked["requires_organization_selection"] and asked["last_scope"] == "all"
+    org.post("/auth/switch", {"organization_id": org.org_id}, 200)
+    again = client.post("/api/v1/auth/login", json={"email": org.email, "password": PASSWORD}).json()
+    assert again["last_scope"] == "company"

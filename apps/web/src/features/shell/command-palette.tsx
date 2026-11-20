@@ -10,6 +10,7 @@ import { goTo } from "@/features/console/shell";
 import type { ConsoleState } from "@/features/console/state";
 import { loadLabel, loadTone } from "@/features/fleet/labels";
 import { useDebounced } from "@/hooks/use-debounced";
+import { useSwitchCompany } from "@/features/shell/company-switch";
 import { api, unwrap } from "@/lib/api/client";
 
 type Item = { key: string; t: string; s: string; ic: string; go: () => void; kbd?: string; badge?: { l: string; k: string } };
@@ -31,6 +32,7 @@ const badgeOf = (type: string, status: string | null | undefined): Item["badge"]
 /** Search every record the role may see, and jump anywhere, opened with ⌘K. */
 export function CommandPalette() {
   const { me, isPalette, closeOverlay, nav, CR, set, can } = useConsole();
+  const switchTo = useSwitchCompany();
   const [text, setText] = useState("");
   const [cursor, setCursor] = useState(0);
   const q = useDebounced(text.trim(), 200);
@@ -51,6 +53,13 @@ export function CommandPalette() {
   const words = text.trim().toLowerCase();
   const places = nav.flatMap((group) => group.items).filter((item) => !item.locked && (!words || item.label.toLowerCase().includes(words)));
   if (places.length) groups.push({ l: "Go to", items: places.slice(0, words ? 6 : 5).map((item) => ({ key: `go-${item.label}`, t: item.label, s: "Open", ic: item.d, go: () => { close(); item.go(); } })) });
+  // Moving to another company, or to all of them, without leaving the page.
+  const wantsSwitch = words.includes("switch") || words.includes("compan");
+  const others = [
+    ...(me.all_companies && me.organization.slug !== "all" ? [{ key: "all", t: "All companies", s: "Switch company · every company you can open", target: "all" as const }] : []),
+    ...me.memberships.filter((m) => m.status === "active" && m.slug !== me.organization.slug).map((m) => ({ key: m.id, t: m.name, s: `Switch company · ${m.role_label}`, target: { id: m.id, slug: m.slug } })),
+  ].filter((o) => words && (wantsSwitch || o.t.toLowerCase().includes(words)));
+  if (others.length) groups.push({ l: "Switch company", items: others.slice(0, 5).map((o) => ({ key: `co-${o.key}`, t: o.t, s: o.s, ic: I.building, go: () => { close(); void switchTo(o.target); } })) });
   // What can be done with what was found, then what can be made: the matching kinds, or the most common two.
   const loads = found.filter((result) => result.type === "load");
   const actions: Item[] = [

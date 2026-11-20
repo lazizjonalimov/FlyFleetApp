@@ -14,6 +14,7 @@ import { Forbidden } from "@/features/shell/forbidden";
 import { NotificationsPanel } from "@/features/shell/notifications-panel";
 import { Sidebar } from "@/features/shell/sidebar";
 import { Toast } from "@/features/shell/toast";
+import { WhichCompany } from "@/features/shell/which-company";
 import { TopBar } from "@/features/shell/top-bar";
 import { usePreview } from "@/lib/auth/session";
 
@@ -49,6 +50,7 @@ export function ConsoleFrame({ children }: { children: React.ReactNode }) {
       <AskFlyFleet />
       <AccountDialogs />
       <AddModal />
+      <WhichCompany />
       <Toast />
     </div>
   );

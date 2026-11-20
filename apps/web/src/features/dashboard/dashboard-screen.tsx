@@ -1,5 +1,6 @@
 "use client";
 
+import { AllDashboard } from "./all-dashboard";
 import { clsx } from "clsx";
 import { Fragment, useState } from "react";
 import { cell } from "@/components/data-table/cell";
@@ -55,7 +56,7 @@ type Widget =
   | { kind: "list"; title: string; link?: string; go?: () => void; note?: string; items: { a: string; b: string; chip: string; k: string }[]; empty: string };
 
 /** Role-aware dashboard: KPIs, financials, exceptions, today’s work and fleet availability. */
-export function DashboardScreen() {
+function CompanyDashboard() {
   const { me, can, set } = useConsole();
   const act = useAction();
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
@@ -739,4 +740,10 @@ export function DashboardScreen() {
       </div>
     </div>
   );
+}
+
+/** The dashboard of the company in the address, or the combined one across companies at /all. */
+export function DashboardScreen() {
+  const { me } = useConsole();
+  return me.organization.slug === "all" ? <AllDashboard /> : <CompanyDashboard />;
 }

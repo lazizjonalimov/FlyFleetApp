@@ -1,12 +1,13 @@
 "use client";
 
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { useState, useSyncExternalStore } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { cell as cells } from "@/components/data-table/cell";
 import { useConsole } from "@/features/console/console-provider";
 import type { Cell, FilterMenu, ListView, Row } from "@/features/console/view";
 import { useDebounced } from "@/hooks/use-debounced";
-import type { PageInfo } from "@/lib/api/types";
+import { noteRecords } from "@/lib/api/scope";
+import type { OrgRef, PageInfo } from "@/lib/api/types";
 import { downloadCsv } from "@/lib/csv";
 import { errorMessage } from "@/lib/api/errors";
 import { formatNumber } from "@/lib/format/text";
@@ -20,7 +21,9 @@ export const PAGE_SIZES = [25, 50, 100];
 const EXPORT_LIMIT = 10_000;
 const noop = () => {};
 
-export type ListPage<Item> = { items: Item[]; page: PageInfo };
+/** A page of a list. In All companies each item names its company and the page counts them by company. */
+export type ListPage<Item> = { items: Item[]; page: PageInfo; by_company?: { organization: { name: string; code: string }; count: number }[] };
+type Owned = { organization?: { id: string; code: string; name: string; slug: string; color: string } };
 export type ListQuery = Record<string, string | number | boolean | undefined>;
 
 export type Column<Item> = {
@@ -146,13 +149,51 @@ export function cellText(c: Cell): string {
 }
 
 /**
+ * A list as it reads across companies: a Company column right after the frozen first one, a Company filter,
+ * the company's code before each number, and what is done to a row asked of that row's company. Counts by
+ * company come with the page.
+ */
+function withCompanies<Item extends { id: string }>(spec: ListSpec<Item>, inAll: boolean, companies: OrgRef[]): ListSpec<Item> {
+  if (!inAll) return spec;
+  const of = (item: Item) => (item as Item & Owned).organization;
+  const company: Column<Item> = {
+    label: "Company",
+    width: "170px",
+    cell: (item) => {
+      const o = of(item);
+      return o ? cells.company(o.name, o.code, o.color) : cells.text("—");
+    },
+    csv: (item) => of(item)?.name ?? "",
+  };
+  const [first, ...rest] = spec.columns;
+  const coded = (column: Column<Item>): Column<Item> => ({ ...column, cell: (item) => {
+    const c = column.cell(item);
+    return c.isId && of(item) ? { ...c, pre: of(item)!.code } : c;
+  } });
+  const filter: Filter = { key: "company", label: "Company", options: companies.map((c) => ({ value: c.id, label: c.name })), params: (value) => ({ organization_id: value }) };
+  return {
+    ...spec,
+    columns: [...(first ? [coded(first)] : []), company, ...rest.map(coded)],
+    filters: [filter, ...(spec.filters ?? [])],
+    fetch: async (query) => {
+      const page = await spec.fetch(query);
+      noteRecords(page.items as Owned[] & { id: string }[]);
+      return page;
+    },
+    sub: (total) => spec.sub(total),
+  };
+}
+
+/**
  * A list screen's view from a page of API records: tabs with their counts, search, filters from the company's
  * own values, sortable headings, columns to show or hide, selection with bulk actions, export, and paging.
  * Tab, search text, filters, sort and selection are interface state, so they survive opening a record and
  * coming back.
  */
-export function useList<Item extends { id: string }>(spec: ListSpec<Item>): ListResult {
+export function useList<Item extends { id: string }>(source: ListSpec<Item>): ListResult {
   const { me, state, set, notify } = useConsole();
+  const inAll = me.organization.slug === "all";
+  const spec = useMemo(() => withCompanies(source, inAll, me.memberships.filter((m) => m.status === "active")), [source, inAll, me.memberships]);
   const tabs = spec.tabs ?? [];
   const tabIndex = Math.min(typeof state.ltab === "number" ? state.ltab : 0, Math.max(0, tabs.length - 1));
   const tab = tabs[tabIndex];
@@ -323,7 +364,7 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
   const L: ListView = {
     group: spec.group,
     title: spec.title,
-    sub: spec.sub(total),
+    sub: [spec.sub(total), inAll ? (query.data?.by_company ?? []).map((b) => `${b.organization.name} ${formatNumber(b.count)}`).join(" · ") : ""].filter(Boolean).join(" · "),
     ph: spec.placeholder,
     actions: spec.actions,
     tabs: tabs.length ? tabs.map((each, index) => ({ l: each.label, n: totalOf(index) === null || each.count === false ? "" : formatNumber(totalOf(index)), on: index === tabIndex ? "on" : "", go: () => set({ ltab: index, ...restart }) })) : null,
@@ -368,7 +409,11 @@ export function useList<Item extends { id: string }>(spec: ListSpec<Item>): List
       if (action === "export") {
         return { l: "Export", go: () => { const list = chosen(); save(list, `${spec.key}-selected-${stamp}`); notify(`Exported ${formatNumber(list.length)} selected`); } };
       }
-      return { l: action.label, go: () => void action.go(chosen()) };
+      return { l: action.label, go: () => {
+        const list = chosen();
+        if (inAll && new Set(list.map((item) => (item as Item & Owned).organization?.id)).size > 1) return notify("Select rows from one company at a time for this action", true);
+        void action.go(list);
+      } };
     }),
     clearSel: () => set({ lsel: [] }),
     columns: spec.columns.map((column, index) => {

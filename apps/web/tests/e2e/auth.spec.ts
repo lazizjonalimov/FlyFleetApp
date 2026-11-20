@@ -4,7 +4,7 @@ import { live, nav, open, PASSWORD, signIn, signUp, viaApp } from "./helpers";
 test("a new company starts empty: no sample records anywhere", async ({ page }) => {
   const account = await signUp(page, "Fresh Freight");
   await expect(page.getByRole("button", { name: "Account menu" })).toContainText("Olive Owner");
-  await expect(page.getByRole("button", { name: "Switch organization" })).toContainText("Fresh Freight");
+  await expect(page.getByRole("button", { name: "Switch company" })).toContainText("Fresh Freight");
   await expect(page.locator(".main")).toContainText("Nothing needs you right now");
 
   for (const [path, empty] of [
@@ -50,14 +50,14 @@ test("an account with two companies chooses one, and can switch", async ({ page 
   await page.locator(".orgc", { hasText: "Second Freight" }).getByRole("button").click();
   await page.waitForURL(/\/dashboard$/);
   await live(page);
-  await expect(page.getByRole("button", { name: "Switch organization" })).toContainText("Second Freight");
+  await expect(page.getByRole("button", { name: "Switch company" })).toContainText("Second Freight");
 
-  await page.getByRole("button", { name: "Switch organization" }).click();
-  await expect(page.getByRole("heading", { name: "Choose an organization" })).toBeVisible();
-  await page.locator(".orgc", { hasText: "First Freight" }).getByRole("button").click();
+  // Switching is a popup in place: no sign-in page, and the same page stays open.
+  await page.getByRole("button", { name: "Switch company" }).click();
+  await page.getByRole("menuitemradio", { name: /First Freight/ }).click();
   await page.waitForURL(/\/dashboard$/);
   await live(page);
-  await expect(page.getByRole("button", { name: "Switch organization" })).toContainText("First Freight");
+  await expect(page.getByRole("button", { name: "Switch company" })).toContainText("First Freight");
 });
 
 test("signed out, the workspace sends you to sign in; an unknown company is not found", async ({ page }) => {

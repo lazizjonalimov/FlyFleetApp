@@ -1,9 +1,10 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
 import { api, unwrap } from "@/lib/api/client";
 import { setPreviewTeam } from "@/lib/api/preview";
+import { setScope } from "@/lib/api/scope";
 import type { Me } from "@/lib/api/types";
 
 const SessionContext = createContext<Me | null>(null);
@@ -15,8 +16,18 @@ const PreviewContext = createContext<Preview>({ start: async () => {}, stop: () 
  * Makes the signed-in user and their active company available to client components in the workspace. While
  * a dispatch team is previewed, it is the team's view instead: a dispatcher's role and the team's trucks.
  */
-export function SessionProvider({ me, children }: { me: Me; children: React.ReactNode }) {
+export function SessionProvider({ me: signedIn, scope, children }: { me: Me; scope: string; children: React.ReactNode }) {
   const client = useQueryClient();
+  // In "all" the company is no single one: its id and address are "all", which also keeps cached data apart.
+  const me = useMemo<Me>(
+    () => (scope === "all" ? { ...signedIn, organization: { ...signedIn.organization, id: "all", slug: "all", name: "All companies", code: "ALL", color: "#334155", mc_number: null } } : signedIn),
+    [signedIn, scope],
+  );
+  // Before any query of this tree runs, every API request is told which company (or all) the address is for.
+  useLayoutEffect(() => {
+    setScope(scope);
+    return () => setScope(null);
+  }, [scope]);
   const [previewed, setPreviewed] = useState<Me | null>(null);
   const start = useCallback(async (teamId: string) => {
     setPreviewTeam(teamId);

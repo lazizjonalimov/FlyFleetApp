@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { useLocalPreference } from "@/hooks/use-local-preference";
 import { api, unwrap } from "@/lib/api/client";
+import { companyOfRecord } from "@/lib/api/scope";
 import type { Me } from "@/lib/api/types";
 import { useCan, useSession } from "@/lib/auth/session";
 import { plural } from "@/lib/format/text";
@@ -86,11 +87,15 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
     (update: ConsoleUpdate) => {
       const patch = typeof update === "function" ? update(state) : update;
       const apply = () => setStore((previous) => ({ ...previous, ...patch }));
+      // Creating anything across companies starts by asking which company it is for.
+      if (slug === "all" && patch.modal === "add") return setStore((previous) => ({ ...previous, whichCompany: patch }));
       if (!touchesLocation(patch)) return apply();
 
       const here = window.location.pathname + window.location.search;
       const next = { ...state, ...patch };
-      const target = hrefOf(next, slug);
+      // A record opens under its own company's address, never under "all".
+      const owner = slug === "all" ? companyOfRecord(next.loadId, next.driverId, next.unitId, next.statementId, next.ownerId, next.customerId, next.drawer, next.docId) : null;
+      const target = hrefOf(next, owner ?? slug);
       if (target.split("?")[0] === pathname) {
         // Staying on the screen: only the drawer can differ. The address changes without a round trip.
         const same = sameScreenHref(pathname, new URLSearchParams(search), next);

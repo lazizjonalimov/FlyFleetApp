@@ -2,6 +2,7 @@
 
 import { clsx } from "clsx";
 import { useRef, useState, type CSSProperties } from "react";
+import { CompanyMark } from "@/features/shell/company-mark";
 import { Icon } from "@/components/ui/icon";
 import { tx } from "@/features/console/dom";
 import { type Cell } from "@/features/console/view";
@@ -63,9 +64,15 @@ export function DataCell({ c }: { c: Cell }) {
           ) : null}
         </div>
       ) : null}
+      {c.isCo && c.co ? (
+        <div className="r g8" style={{ alignItems: "center", minWidth: 0 }}>
+          <CompanyMark code={c.co.code} color={c.co.color} size={22} />
+          <div className="ell">{tx(c.v)}</div>
+        </div>
+      ) : null}
       {c.isId ? (
         <div className="mw0">
-          <button className={clsx("idl", c.idc)} onClick={c.go}>{tx(c.v)}</button>
+          <button className={clsx("idl", c.idc)} onClick={c.go}>{c.pre ? <span className="ccode">{c.pre}</span> : null}{tx(c.v)}</button>
           {c.s ? (
             <div className="sub2 ell">{tx(c.s)}</div>
           ) : null}

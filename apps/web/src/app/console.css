@@ -1050,3 +1050,15 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .vm.lft .vml{margin-left:0;margin-right:-6px;padding:3px 10px 3px 6px;border-radius:6px 0 0 6px}
 .ff .ur5 .ddl{min-width:340px}
 .ff .opmap5{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+/* company marks and the company switcher */
+.ff .cmark{flex:none;display:inline-grid;place-items:center;border-radius:6px;font-weight:700;letter-spacing:.02em;line-height:1;overflow:hidden}
+.ff .sbf{position:relative}
+.ff .cosw{position:absolute;left:12px;right:12px;bottom:calc(100% - 6px);min-width:280px;max-height:70vh;overflow:auto;padding:6px;background:var(--sf);border:1px solid var(--bd);border-radius:12px;box-shadow:var(--sh4);z-index:60;display:flex;flex-direction:column;gap:2px;color:var(--tx)}
+.ff .cosw .cosq{margin:2px 2px 6px}
+.ff .cosw .coi{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;border:none;border-radius:8px;background:transparent;text-align:left;color:var(--tx2)}
+.ff .cosw .coi:hover,.ff .cosw .coi.on{background:var(--sel);color:var(--tx)}
+.ff .cosw .cog{padding:8px 8px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+.ff .shell.mini .cosw{left:64px;right:auto;width:300px;bottom:12px}
+.ff .cobreak{display:flex;gap:6px;flex-wrap:wrap}
+.ff .cobreak .cobi{display:inline-flex;align-items:center;gap:6px;padding:2px 8px 2px 2px;border:1px solid var(--bd);border-radius:999px;font-size:12px;color:var(--tx2);background:var(--sf)}
+.ff .ccode{display:inline-flex;align-items:center;gap:4px;margin-right:6px;font-size:11px;font-weight:600;color:var(--mu)}

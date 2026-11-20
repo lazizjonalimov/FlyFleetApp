@@ -23,7 +23,7 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean; last_organization_id?: string | null };
+type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean; last_organization_id?: string | null; last_scope?: "company" | "all" };
 
 /** Sign in, then choose an organization when the account belongs to more than one. */
 export function SignIn() {
@@ -41,6 +41,12 @@ export function SignIn() {
     setFormError(null);
     try {
       const reply = await postJson<SessionReply>("/api/auth/login", { ...values, ...(organization ? { organization_id: organization.id } : {}) });
+      // Last worked in all companies: open there again, through the company worked in last.
+      const home = reply.organizations.find((o) => o.id === reply.last_organization_id);
+      if (reply.requires_organization_selection && reply.last_scope === "all" && home && !organization) {
+        const again = await postJson<SessionReply>("/api/auth/login", { ...values, organization_id: home.id });
+        if (again.organization) return hardNavigate(safeNext(search.get("next"), "/all/dashboard"));
+      }
       if (reply.requires_organization_selection || !reply.organization) {
         setChoices(reply.organizations);
         setLast(reply.last_organization_id ?? null);
