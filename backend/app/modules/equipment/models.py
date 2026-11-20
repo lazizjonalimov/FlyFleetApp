@@ -1,7 +1,19 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, ForeignKeyConstraint, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -10,7 +22,7 @@ from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 EQUIPMENT_TYPES = ("dry_van", "reefer", "flatbed", "step_deck", "box_truck", "tanker", "other")
 EQUIPMENT_SQL = str(EQUIPMENT_TYPES)
 # Stored status. "Assigned" and "available" are worked out from current assignments, never stored.
-STATUSES = ("active", "in_maintenance", "out_of_service", "retired")
+STATUSES = ("active", "in_maintenance", "out_of_service", "retired", "transferred")
 OWNERSHIP = ("owned", "leased", "owner_operator")
 
 
@@ -87,4 +99,27 @@ class Trailer(Base, IdMixin, TenantScoped, TimestampMixin):
         CheckConstraint("type IN " + EQUIPMENT_SQL, name="type_valid"),
         CheckConstraint("status IN " + str(STATUSES), name="status_valid"),
         CheckConstraint("ownership IN " + str(OWNERSHIP), name="ownership_valid"),
+    )
+
+
+class UnitTransfer(Base, IdMixin, TenantScoped):
+    """One side of a move between two companies of an account: 'out' in the company the unit left (where it stays
+    as "transferred"), 'in' in the company that received a new record of it. Nothing financial moves."""
+    __tablename__ = "unit_transfers"
+    direction: Mapped[str] = mapped_column(String(3))
+    kind: Mapped[str] = mapped_column(String(7))
+    unit_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    unit_number: Mapped[str] = mapped_column(String(40))
+    vin: Mapped[str | None] = mapped_column(String(25))
+    other_organization_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    other_organization_name: Mapped[str] = mapped_column(String(160))
+    other_unit_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    effective_on: Mapped[date] = mapped_column(Date)
+    performed_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    details: Mapped[dict | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        Index("ix_unit_transfers_org_unit", "organization_id", "unit_id"),
+        CheckConstraint("direction IN ('out', 'in')", name="direction_valid"),
+        CheckConstraint("kind IN ('vehicle', 'trailer')", name="kind_valid"),
     )

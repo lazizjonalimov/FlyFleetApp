@@ -10,6 +10,7 @@ import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
 import { addDays, weekStart } from "@/features/dashboard/dashboard-data";
 import { useUpload, viewDocument } from "@/features/documents/use-upload";
+import { MoveUnitDialog } from "@/features/equipment/move-unit-dialog";
 import { SeatDialog } from "@/features/equipment/seat-dialog";
 import { carrierName, freshness, loadLabel, loadTone, monthYear, TRAILER_TYPES, weekRange } from "@/features/fleet/labels";
 import { AGREEMENT_KINDS, agreementKind, agreementLine, CATEGORY } from "@/features/owners/labels";
@@ -78,11 +79,13 @@ export function TruckScreen() {
   const id = typeof state.unitId === "string" ? state.unitId : "";
   const trailer = state.unitKind === "trailer";
   const kind = trailer ? "trailer" : "vehicle";
-  const [dialog, setDialog] = useState<"seat" | "upload" | null>(null);
+  const [dialog, setDialog] = useState<"seat" | "upload" | "move" | null>(null);
   const truckQuery = useQuery({ queryKey: [org.id, "vehicles", "detail", id], queryFn: () => unwrap(api.GET("/api/v1/vehicles/{item_id}", { params: { path: { item_id: id } } })), enabled: !!id && !trailer });
   const trailerQuery = useQuery({ queryKey: [org.id, "trailers", "detail", id], queryFn: () => unwrap(api.GET("/api/v1/trailers/{item_id}", { params: { path: { item_id: id } } })), enabled: !!id && trailer });
   const unit = trailer ? trailerQuery : truckQuery;
   const u = unit.data;
+  // A unit that moved to another company stays here to read only, with all its history.
+  const moved = u?.status === "transferred";
   const seats = useQuery({ queryKey: [org.id, "vehicles", "seats", id], queryFn: () => unwrap(api.GET("/api/v1/vehicles/{vehicle_id}/seats", { params: { path: { vehicle_id: id } } })), enabled: !!id && !trailer });
   const ownerships = useQuery({ queryKey: [org.id, "ownerships", kind, id], queryFn: () => unwrap(api.GET("/api/v1/equipment/ownerships", { params: { query: trailer ? { trailer_id: id } : { vehicle_id: id } } })), enabled: !!id });
   const primary = [...(u?.owners ?? [])].sort((a, b) => Number(b.share_pct) - Number(a.share_pct))[0];
@@ -257,19 +260,25 @@ export function TruckScreen() {
           <p className="sub"><span>{[where, fresh, odometer !== null ? `${formatNumber(odometer)} mi` : ""].filter(Boolean).join(" · ")}</span></p>
         </div>
         <div className="r g8">
-          {!trailer && can("dispatch.assign") ? (
+          {!trailer && !moved && can("dispatch.assign") ? (
             <button className="btn" onClick={() => setDialog("seat")}>
               <Icon className="s14" d={I.user} />
               Assign driver
             </button>
           ) : null}
-          {can("maintenance.manage") ? (
+          {can("maintenance.manage") && !moved ? (
             <button className="btn" onClick={service}>
               <Icon className="s14" d={I.wrench} />
               Schedule service
             </button>
           ) : null}
-          {can("equipment.manage") ? (
+          {can("equipment.manage") && !moved && me.organization.slug !== "all" && (me.account.is_owner || me.organization.role === "owner") && me.memberships.filter((m) => m.status === "active").length > 1 ? (
+            <button className="btn" onClick={() => setDialog("move")}>
+              <Icon className="s14" d={I.building} />
+              Move to another company
+            </button>
+          ) : null}
+          {can("equipment.manage") && !moved ? (
             <button className="btn" onClick={edit}>
               <Icon className="s14" d={I.pencil} />
               Edit
@@ -479,6 +488,7 @@ export function TruckScreen() {
           </div>
         </div>
       </div>
+      {dialog === "move" && u ? <MoveUnitDialog kind={kind} unitId={u.id} unitNumber={u.unit_number} onClose={() => setDialog(null)} /> : null}
       {dialog === "seat" && !trailer ? <SeatDialog vehicleId={u.id} unitNumber={u.unit_number} seat={seat ?? null} onClose={() => setDialog(null)} /> : null}
       {dialog === "upload" ? (
         <Dialog title="Add a document" sub={`To ${u.unit_number}’s file`} onClose={() => setDialog(null)} footer={<button className="btn" onClick={() => setDialog(null)}>Cancel</button>}>

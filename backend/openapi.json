@@ -29262,7 +29262,8 @@
               "active",
               "in_maintenance",
               "out_of_service",
-              "retired"
+              "retired",
+              "transferred"
             ],
             "title": "Status",
             "type": "string"
@@ -29566,7 +29567,8 @@
               "active",
               "in_maintenance",
               "out_of_service",
-              "retired"
+              "retired",
+              "transferred"
             ],
             "title": "Status",
             "type": "string"
@@ -29949,7 +29951,8 @@
                   "active",
                   "in_maintenance",
                   "out_of_service",
-                  "retired"
+                  "retired",
+                  "transferred"
                 ],
                 "type": "string"
               },
@@ -30057,6 +30060,134 @@
         "title": "TrailerUpdate",
         "type": "object"
       },
+      "TransferBlocker": {
+        "properties": {
+          "code": {
+            "enum": [
+              "ACTIVE_LOAD",
+              "OPEN_SETTLEMENT",
+              "VIN_ACTIVE_ELSEWHERE",
+              "UNIT_NUMBER_TAKEN"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "TransferBlocker",
+        "type": "object"
+      },
+      "TransferChoice": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "team_id": {
+            "format": "uuid",
+            "title": "Team Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "team_id",
+          "name"
+        ],
+        "title": "TransferChoice",
+        "type": "object"
+      },
+      "TransferCompany": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code"
+        ],
+        "title": "TransferCompany",
+        "type": "object"
+      },
+      "TransferDispatcher": {
+        "properties": {
+          "has_access_in_destination": {
+            "description": "False when they have no access to the destination, so the truck leaves their list and they can't follow it there",
+            "title": "Has Access In Destination",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "name",
+          "has_access_in_destination"
+        ],
+        "title": "TransferDispatcher",
+        "type": "object"
+      },
+      "TransferDocument": {
+        "properties": {
+          "expires_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires On"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "filename"
+        ],
+        "title": "TransferDocument",
+        "type": "object"
+      },
       "TransferIn": {
         "properties": {
           "effective_from": {
@@ -30112,6 +30243,212 @@
         "title": "TransferIn",
         "type": "object"
       },
+      "TransferOwnership": {
+        "properties": {
+          "agreement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agreement"
+          },
+          "owner": {
+            "title": "Owner",
+            "type": "string"
+          },
+          "share_pct": {
+            "title": "Share Pct",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner",
+          "share_pct"
+        ],
+        "title": "TransferOwnership",
+        "type": "object"
+      },
+      "TransferPreview": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/TransferBlocker"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "can_confirm": {
+            "title": "Can Confirm",
+            "type": "boolean"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/TransferCompany"
+          },
+          "destination_teams": {
+            "description": "Teams of the destination it can be placed in",
+            "items": {
+              "$ref": "#/components/schemas/TransferChoice"
+            },
+            "title": "Destination Teams",
+            "type": "array"
+          },
+          "destination_unit_number": {
+            "title": "Destination Unit Number",
+            "type": "string"
+          },
+          "documents": {
+            "description": "Current documents, copied to the new record",
+            "items": {
+              "$ref": "#/components/schemas/TransferDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "driver_assignment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransferSeat"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ends: the seat the unit's driver holds"
+          },
+          "effective_on": {
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "vehicle",
+              "trailer"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "open_work_orders": {
+            "description": "Stay with the company it leaves",
+            "items": {
+              "$ref": "#/components/schemas/TransferWorkOrder"
+            },
+            "title": "Open Work Orders",
+            "type": "array"
+          },
+          "ownership": {
+            "description": "Ends: whoever owns a share of it, under which agreement",
+            "items": {
+              "$ref": "#/components/schemas/TransferOwnership"
+            },
+            "title": "Ownership",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TransferCompany"
+          },
+          "team": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransferTeam"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The dispatch team the truck leaves, with its dispatchers"
+          },
+          "unit_id": {
+            "format": "uuid",
+            "title": "Unit Id",
+            "type": "string"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          },
+          "vin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vin"
+          }
+        },
+        "required": [
+          "kind",
+          "unit_id",
+          "unit_number",
+          "vin",
+          "source",
+          "destination",
+          "effective_on",
+          "can_confirm",
+          "blockers",
+          "team",
+          "driver_assignment",
+          "ownership",
+          "open_work_orders",
+          "documents",
+          "destination_teams",
+          "destination_unit_number"
+        ],
+        "title": "TransferPreview",
+        "type": "object"
+      },
+      "TransferResult": {
+        "properties": {
+          "destination_organization_id": {
+            "format": "uuid",
+            "title": "Destination Organization Id",
+            "type": "string"
+          },
+          "destination_unit_id": {
+            "format": "uuid",
+            "title": "Destination Unit Id",
+            "type": "string"
+          },
+          "destination_unit_number": {
+            "title": "Destination Unit Number",
+            "type": "string"
+          },
+          "documents_copied": {
+            "title": "Documents Copied",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "vehicle",
+              "trailer"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source_unit_id": {
+            "format": "uuid",
+            "title": "Source Unit Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source_unit_id",
+          "destination_organization_id",
+          "destination_unit_id",
+          "destination_unit_number",
+          "documents_copied"
+        ],
+        "title": "TransferResult",
+        "type": "object"
+      },
       "TransferRow": {
         "properties": {
           "agreement_id": {
@@ -30157,6 +30494,86 @@
           "share_pct"
         ],
         "title": "TransferRow",
+        "type": "object"
+      },
+      "TransferSeat": {
+        "properties": {
+          "co_driver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Co Driver"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver"
+        ],
+        "title": "TransferSeat",
+        "type": "object"
+      },
+      "TransferTeam": {
+        "properties": {
+          "dispatchers": {
+            "items": {
+              "$ref": "#/components/schemas/TransferDispatcher"
+            },
+            "title": "Dispatchers",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "dispatchers"
+        ],
+        "title": "TransferTeam",
+        "type": "object"
+      },
+      "TransferWorkOrder": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "status"
+        ],
+        "title": "TransferWorkOrder",
         "type": "object"
       },
       "TransitionIn": {
@@ -30826,6 +31243,54 @@
           "effective_from"
         ],
         "title": "UnitIn",
+        "type": "object"
+      },
+      "UnitMoveIn": {
+        "properties": {
+          "destination_organization_id": {
+            "format": "uuid",
+            "title": "Destination Organization Id",
+            "type": "string"
+          },
+          "destination_team_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A dispatch team of the destination, or none",
+            "title": "Destination Team Id"
+          },
+          "effective_on": {
+            "description": "The day the unit stops being this company's and starts in the other",
+            "format": "date",
+            "title": "Effective On",
+            "type": "string"
+          },
+          "unit_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Its number in the destination; defaults to the same one",
+            "title": "Unit Number"
+          }
+        },
+        "required": [
+          "destination_organization_id",
+          "effective_on"
+        ],
+        "title": "UnitMoveIn",
         "type": "object"
       },
       "UnitOut": {
@@ -31715,7 +32180,8 @@
               "active",
               "in_maintenance",
               "out_of_service",
-              "retired"
+              "retired",
+              "transferred"
             ],
             "title": "Status",
             "type": "string"
@@ -32067,7 +32533,8 @@
               "active",
               "in_maintenance",
               "out_of_service",
-              "retired"
+              "retired",
+              "transferred"
             ],
             "title": "Status",
             "type": "string"
@@ -32369,7 +32836,8 @@
                   "active",
                   "in_maintenance",
                   "out_of_service",
-                  "retired"
+                  "retired",
+                  "transferred"
                 ],
                 "type": "string"
               },
@@ -66813,7 +67281,8 @@
                     "active",
                     "in_maintenance",
                     "out_of_service",
-                    "retired"
+                    "retired",
+                    "transferred"
                   ],
                   "type": "string"
                 },
@@ -67568,6 +68037,202 @@
         ]
       }
     },
+    "/api/v1/trailers/{unit_id}/transfer": {
+      "post": {
+        "operationId": "move_trailer_api_v1_trailers__unit_id__transfer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitMoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Move a trailer to another company",
+        "tags": [
+          "equipment"
+        ]
+      }
+    },
+    "/api/v1/trailers/{unit_id}/transfer-preview": {
+      "post": {
+        "operationId": "preview_trailer_api_v1_trailers__unit_id__transfer_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitMoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview moving a trailer",
+        "tags": [
+          "equipment"
+        ]
+      }
+    },
     "/api/v1/vehicles": {
       "get": {
         "operationId": "list__api_v1_vehicles_get",
@@ -67662,7 +68327,8 @@
                     "active",
                     "in_maintenance",
                     "out_of_service",
-                    "retired"
+                    "retired",
+                    "transferred"
                   ],
                   "type": "string"
                 },
@@ -68279,6 +68945,203 @@
           }
         ],
         "summary": "Update a truck",
+        "tags": [
+          "equipment"
+        ]
+      }
+    },
+    "/api/v1/vehicles/{unit_id}/transfer": {
+      "post": {
+        "operationId": "move_truck_api_v1_vehicles__unit_id__transfer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitMoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Move a truck to another company",
+        "tags": [
+          "equipment"
+        ]
+      }
+    },
+    "/api/v1/vehicles/{unit_id}/transfer-preview": {
+      "post": {
+        "description": "What moving the truck to another company of the account would change, and what stands in the way.",
+        "operationId": "preview_truck_api_v1_vehicles__unit_id__transfer_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "unit_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Unit Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitMoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview moving a truck",
         "tags": [
           "equipment"
         ]

@@ -27,7 +27,7 @@ from app.modules.owners.service import blocked_units
 from app.modules.people.models import Person
 from app.modules.safety.rules import Compliance, summarize, unit_issues
 
-UnitStatus = Literal["active", "in_maintenance", "out_of_service", "retired"]
+UnitStatus = Literal["active", "in_maintenance", "out_of_service", "retired", "transferred"]
 LIVE = ("assigned", "dispatched", "at_pickup", "in_transit", "at_delivery")
 Ownership = Literal["owned", "leased", "owner_operator"]
 State = Field(default=None, min_length=2, max_length=2, pattern=r"^[A-Za-z]{2}$")
@@ -346,6 +346,11 @@ def _unit_filter(kind: Literal["vehicle", "trailer"]):
 
 def _guards(kind: Literal["vehicle", "trailer"], what: str):
     def before_save(db: Session, p: Principal, data: dict, unit) -> None:
+        if unit is not None and unit.status == "transferred":
+            raise Conflict(f"{what} {unit.unit_number} moved to another company and is kept here to read only.",
+                           code="UNIT_TRANSFERRED")
+        if data.get("status") == "transferred":
+            raise Invalid("A unit becomes transferred only by moving it to another company", field="status")
         for required in ("unit_number", "ownership", "status", "type"):
             if required in data and data[required] is None:
                 raise Invalid("This field can't be empty", field=required)
@@ -360,6 +365,9 @@ def _guards(kind: Literal["vehicle", "trailer"], what: str):
             maintenance.signed_off(db, p, kind, unit.id)
 
     def before_delete(db: Session, p: Principal, unit) -> None:
+        if unit.status == "transferred":
+            raise Conflict(f"{what} {unit.unit_number} moved to another company and is kept here to read only.",
+                           code="UNIT_TRANSFERRED")
         busy = current_loads(db, kind, [unit.id]).get(unit.id)
         if busy:
             raise Conflict(f"{what} {unit.unit_number} is on load {busy.load_number}. Reassign that load first.",

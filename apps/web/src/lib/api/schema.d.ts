@@ -4809,6 +4809,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/trailers/{unit_id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a trailer to another company */
+        post: operations["move_trailer_api_v1_trailers__unit_id__transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/trailers/{unit_id}/transfer-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview moving a trailer */
+        post: operations["preview_trailer_api_v1_trailers__unit_id__transfer_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/vehicles": {
         parameters: {
             query?: never;
@@ -4861,6 +4895,43 @@ export interface paths {
         head?: never;
         /** Update a truck */
         patch: operations["update__api_v1_vehicles__item_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/vehicles/{unit_id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a truck to another company */
+        post: operations["move_truck_api_v1_vehicles__unit_id__transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/vehicles/{unit_id}/transfer-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview moving a truck
+         * @description What moving the truck to another company of the account would change, and what stands in the way.
+         */
+        post: operations["preview_truck_api_v1_vehicles__unit_id__transfer_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/vehicles/{vehicle_id}/money": {
@@ -14210,7 +14281,7 @@ export interface components {
              * @default active
              * @enum {string}
              */
-            status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            status: "active" | "in_maintenance" | "out_of_service" | "retired" | "transferred";
             /** Terminal Id */
             terminal_id?: string | null;
             /** Tracker */
@@ -14284,7 +14355,7 @@ export interface components {
              * @default active
              * @enum {string}
              */
-            status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            status: "active" | "in_maintenance" | "out_of_service" | "retired" | "transferred";
             /** Team Split */
             team_split?: string | null;
             /** Terminal Id */
@@ -14369,7 +14440,7 @@ export interface components {
             /** Registration Expiry */
             registration_expiry?: string | null;
             /** Status */
-            status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
+            status?: ("active" | "in_maintenance" | "out_of_service" | "retired" | "transferred") | null;
             /** Terminal Id */
             terminal_id?: string | null;
             /** Tracker */
@@ -14384,6 +14455,67 @@ export interface components {
             vin?: string | null;
             /** Year */
             year?: number | null;
+        };
+        /** TransferBlocker */
+        TransferBlocker: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "ACTIVE_LOAD" | "OPEN_SETTLEMENT" | "VIN_ACTIVE_ELSEWHERE" | "UNIT_NUMBER_TAKEN";
+            /** Message */
+            message: string;
+        };
+        /** TransferChoice */
+        TransferChoice: {
+            /** Name */
+            name: string;
+            /**
+             * Team Id
+             * Format: uuid
+             */
+            team_id: string;
+        };
+        /** TransferCompany */
+        TransferCompany: {
+            /** Code */
+            code: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** TransferDispatcher */
+        TransferDispatcher: {
+            /**
+             * Has Access In Destination
+             * @description False when they have no access to the destination, so the truck leaves their list and they can't follow it there
+             */
+            has_access_in_destination: boolean;
+            /** Name */
+            name: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** TransferDocument */
+        TransferDocument: {
+            /** Expires On */
+            expires_on?: string | null;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Type */
+            type: string;
         };
         /** TransferIn */
         TransferIn: {
@@ -14401,6 +14533,96 @@ export interface components {
             /** Vehicle Id */
             vehicle_id?: string | null;
         };
+        /** TransferOwnership */
+        TransferOwnership: {
+            /** Agreement */
+            agreement?: string | null;
+            /** Owner */
+            owner: string;
+            /** Share Pct */
+            share_pct: string;
+        };
+        /** TransferPreview */
+        TransferPreview: {
+            /** Blockers */
+            blockers: components["schemas"]["TransferBlocker"][];
+            /** Can Confirm */
+            can_confirm: boolean;
+            destination: components["schemas"]["TransferCompany"];
+            /**
+             * Destination Teams
+             * @description Teams of the destination it can be placed in
+             */
+            destination_teams: components["schemas"]["TransferChoice"][];
+            /** Destination Unit Number */
+            destination_unit_number: string;
+            /**
+             * Documents
+             * @description Current documents, copied to the new record
+             */
+            documents: components["schemas"]["TransferDocument"][];
+            /** @description Ends: the seat the unit's driver holds */
+            driver_assignment: components["schemas"]["TransferSeat"] | null;
+            /**
+             * Effective On
+             * Format: date
+             */
+            effective_on: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vehicle" | "trailer";
+            /**
+             * Open Work Orders
+             * @description Stay with the company it leaves
+             */
+            open_work_orders: components["schemas"]["TransferWorkOrder"][];
+            /**
+             * Ownership
+             * @description Ends: whoever owns a share of it, under which agreement
+             */
+            ownership: components["schemas"]["TransferOwnership"][];
+            source: components["schemas"]["TransferCompany"];
+            /** @description The dispatch team the truck leaves, with its dispatchers */
+            team: components["schemas"]["TransferTeam"] | null;
+            /**
+             * Unit Id
+             * Format: uuid
+             */
+            unit_id: string;
+            /** Unit Number */
+            unit_number: string;
+            /** Vin */
+            vin: string | null;
+        };
+        /** TransferResult */
+        TransferResult: {
+            /**
+             * Destination Organization Id
+             * Format: uuid
+             */
+            destination_organization_id: string;
+            /**
+             * Destination Unit Id
+             * Format: uuid
+             */
+            destination_unit_id: string;
+            /** Destination Unit Number */
+            destination_unit_number: string;
+            /** Documents Copied */
+            documents_copied: number;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "vehicle" | "trailer";
+            /**
+             * Source Unit Id
+             * Format: uuid
+             */
+            source_unit_id: string;
+        };
         /** TransferRow */
         TransferRow: {
             /** Agreement Id */
@@ -14412,6 +14634,39 @@ export interface components {
             owner_id?: string | null;
             /** Share Pct */
             share_pct: number | string;
+        };
+        /** TransferSeat */
+        TransferSeat: {
+            /** Co Driver */
+            co_driver?: string | null;
+            /** Driver */
+            driver: string;
+        };
+        /** TransferTeam */
+        TransferTeam: {
+            /** Dispatchers */
+            dispatchers: components["schemas"]["TransferDispatcher"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** TransferWorkOrder */
+        TransferWorkOrder: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Number */
+            number: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
         };
         /** TransitionIn */
         TransitionIn: {
@@ -14647,6 +14902,30 @@ export interface components {
              * @description Trucks: the owner, a carrier driver, or the owner's hire
              */
             who_drives?: ("owner" | "carrier" | "owner_hire") | null;
+        };
+        /** UnitMoveIn */
+        UnitMoveIn: {
+            /**
+             * Destination Organization Id
+             * Format: uuid
+             */
+            destination_organization_id: string;
+            /**
+             * Destination Team Id
+             * @description A dispatch team of the destination, or none
+             */
+            destination_team_id?: string | null;
+            /**
+             * Effective On
+             * Format: date
+             * @description The day the unit stops being this company's and starts in the other
+             */
+            effective_on: string;
+            /**
+             * Unit Number
+             * @description Its number in the destination; defaults to the same one
+             */
+            unit_number?: string | null;
         };
         /** UnitOut */
         UnitOut: {
@@ -14904,7 +15183,7 @@ export interface components {
              * @default active
              * @enum {string}
              */
-            status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            status: "active" | "in_maintenance" | "out_of_service" | "retired" | "transferred";
             /** Telematics Device */
             telematics_device?: string | null;
             /** Terminal Id */
@@ -14982,7 +15261,7 @@ export interface components {
              * @default active
              * @enum {string}
              */
-            status: "active" | "in_maintenance" | "out_of_service" | "retired";
+            status: "active" | "in_maintenance" | "out_of_service" | "retired" | "transferred";
             /** Team Split */
             team_split?: string | null;
             /** Telematics Device */
@@ -15032,7 +15311,7 @@ export interface components {
             /** Registration Expiry */
             registration_expiry?: string | null;
             /** Status */
-            status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
+            status?: ("active" | "in_maintenance" | "out_of_service" | "retired" | "transferred") | null;
             /** Telematics Device */
             telematics_device?: string | null;
             /** Terminal Id */
@@ -37253,7 +37532,7 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
+                status?: ("active" | "in_maintenance" | "out_of_service" | "retired" | "transferred") | null;
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
                 owner_id?: string | null;
@@ -37731,6 +38010,148 @@ export interface operations {
             };
         };
     };
+    move_trailer_api_v1_trailers__unit_id__transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitMoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferResult"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_trailer_api_v1_trailers__unit_id__transfer_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitMoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferPreview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list__api_v1_vehicles_get: {
         parameters: {
             query?: {
@@ -37743,7 +38164,7 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                status?: ("active" | "in_maintenance" | "out_of_service" | "retired") | null;
+                status?: ("active" | "in_maintenance" | "out_of_service" | "retired" | "transferred") | null;
                 ownership?: ("owned" | "leased" | "owner_operator") | null;
                 terminal_id?: string | null;
                 owner_id?: string | null;
@@ -38101,6 +38522,148 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleRead"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    move_truck_api_v1_vehicles__unit_id__transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitMoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferResult"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_truck_api_v1_vehicles__unit_id__transfer_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                unit_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnitMoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferPreview"];
                 };
             };
             /** @description Unauthorized */

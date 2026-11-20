@@ -152,7 +152,7 @@ export function UnitsScreen({ kind }: { kind: "truck" | "trailer" }) {
         ],
     filters: truck
       ? [
-          { key: "status", label: "Status", options: [["active", "In service"], ["in_maintenance", "In the shop"], ["out_of_service", "Out of service"], ["retired", "Retired"]].map(([value, label]) => ({ value: value!, label: label! })) },
+          { key: "status", label: "Status", options: [["active", "In service"], ["in_maintenance", "In the shop"], ["out_of_service", "Out of service"], ["retired", "Retired"], ["transferred", "Transferred"]].map(([value, label]) => ({ value: value!, label: label! })) },
           { key: "make", label: "Make", options: (t?.makes ?? []).map((x) => ({ value: x.value, label: x.label, count: x.count })) },
           { key: "year", label: "Year", options: (t?.years ?? []).map((x) => ({ value: x.value, label: x.label, count: x.count })) },
           { key: "owner", label: "Owner", options: ownerOptions(t?.owner_list), params: (v) => (v === "company" ? { kind: "company" } : { owner_id: v }) },
