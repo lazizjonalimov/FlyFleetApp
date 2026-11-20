@@ -9,6 +9,8 @@ PyJWT==2.15.1
 argon2-cffi==25.1.0
 cryptography==50.0.2
 python-multipart==0.0.33
+# The All companies view asks each company in-process, through the app itself.
+httpx==0.28.1
 # IANA time zone data, so company time zones work on any base image or OS.
 tzdata==2026.6
 # Reading documents: text PDFs on the server; photos through the Anthropic API when it is turned on.

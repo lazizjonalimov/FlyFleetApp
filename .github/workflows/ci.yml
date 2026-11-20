@@ -112,11 +112,17 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
+      # Only the runtime requirements, exactly as the production image installs them, so a package that only
+      # the development requirements bring in can't hide here and then stop the API from starting.
+      - name: Runtime requirements are complete
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          python scripts/check_runtime_imports.py
       - name: Database and API
         working-directory: backend
         run: |
           sh ../infrastructure/docker/postgres/init.sh
-          pip install -r requirements-dev.txt
           alembic upgrade head
           nohup uvicorn app.main:app --port 8000 > ../api.log 2>&1 &
       - name: Web app
