@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,6 +36,8 @@ class User(Base, IdMixin, TimestampMixin):
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     # The company this person last worked in, so signing in returns them there.
     last_organization_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # "all" when the person last worked in all their companies at once.
+    last_scope: Mapped[str | None] = mapped_column(String(10))
     __table_args__ = (CheckConstraint("email = lower(email)", name="email_lowercase"),)
 
 
@@ -54,6 +57,9 @@ class Organization(Base, IdMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(160))
     legal_name: Mapped[str | None] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(80), unique=True)
+    # A short code and a colour, shown beside the company's numbers and on its mark where several companies mix.
+    code: Mapped[str] = mapped_column(String(6))
+    color: Mapped[str] = mapped_column(String(7), default="#1F4FE0", server_default="#1F4FE0")
     status: Mapped[str] = mapped_column(String(20), default="active", server_default="active")
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     dot_number: Mapped[str | None] = mapped_column(String(20))
@@ -82,6 +88,9 @@ class Organization(Base, IdMixin, TimestampMixin):
     __table_args__ = (
         CheckConstraint("status IN ('active','archived')", name="status_valid"),
         CheckConstraint("base_currency ~ '^[A-Z]{3}$'", name="currency_code"),
+        CheckConstraint("code ~ '^[A-Z0-9]{2,6}$'", name="code_valid"),
+        CheckConstraint("color ~ '^#[0-9A-Fa-f]{6}$'", name="color_valid"),
+        Index("uq_organizations_account_code", "account_id", text("lower(code)"), unique=True),
     )
 
 

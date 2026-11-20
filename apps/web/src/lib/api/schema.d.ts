@@ -5924,6 +5924,10 @@ export interface components {
         };
         /** CompanyCreated */
         CompanyCreated: {
+            /** Code */
+            code: string;
+            /** Color */
+            color: string;
             /**
              * Copied
              * @default {}
@@ -5954,6 +5958,10 @@ export interface components {
         };
         /** CompanyOut */
         CompanyOut: {
+            /** Code */
+            code: string;
+            /** Color */
+            color: string;
             /**
              * Created At
              * Format: date-time
@@ -9550,10 +9558,22 @@ export interface components {
             /** Base Currency */
             base_currency: string;
             /**
+             * Code
+             * @description The company's short code, shown beside its numbers where companies mix
+             */
+            code: string;
+            /**
+             * Color
+             * @description The colour of the company's mark
+             */
+            color: string;
+            /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Mc Number */
+            mc_number?: string | null;
             /** Name */
             name: string;
             /** Role */
@@ -9573,6 +9593,18 @@ export interface components {
         /** MeOut */
         MeOut: {
             account: components["schemas"]["MeAccount"];
+            /**
+             * All Companies
+             * @description Whether the person may work in all companies at once: two or more they can open
+             * @default false
+             */
+            all_companies: boolean;
+            /**
+             * Last Scope
+             * @default company
+             * @enum {string}
+             */
+            last_scope: "company" | "all";
             /** Memberships */
             memberships: components["schemas"]["OrgRef"][];
             organization: components["schemas"]["MeOrganization"];
@@ -9977,10 +10009,22 @@ export interface components {
          */
         OrgRef: {
             /**
+             * Code
+             * @description The company's short code, shown beside its numbers where companies mix
+             */
+            code: string;
+            /**
+             * Color
+             * @description The colour of the company's mark
+             */
+            color: string;
+            /**
              * Id
              * Format: uuid
              */
             id: string;
+            /** Mc Number */
+            mc_number?: string | null;
             /** Name */
             name: string;
             /** Role */
@@ -10000,6 +10044,10 @@ export interface components {
             base_currency: string;
             /** City */
             city: string | null;
+            /** Code */
+            code: string;
+            /** Color */
+            color: string;
             /** Default Payment Terms Days */
             default_payment_terms_days: number;
             /** Dot Number */
@@ -10040,6 +10088,16 @@ export interface components {
             address?: string | null;
             /** City */
             city?: string | null;
+            /**
+             * Code
+             * @description Short code shown beside the company's numbers; unique in the account
+             */
+            code?: string | null;
+            /**
+             * Color
+             * @description Colour of the company's mark
+             */
+            color?: string | null;
             /** Default Payment Terms Days */
             default_payment_terms_days?: number | null;
             /** Dot Number */
@@ -12908,6 +12966,12 @@ export interface components {
              * @description The company worked in last, offered first
              */
             last_organization_id?: string | null;
+            /**
+             * Last Scope
+             * @default company
+             * @enum {string}
+             */
+            last_scope: "company" | "all";
             organization?: components["schemas"]["OrgRef"] | null;
             /**
              * Organizations
@@ -13478,9 +13542,16 @@ export interface components {
         SwitchIn: {
             /**
              * Organization Id
-             * Format: uuid
+             * @description The company to remember as the last one worked in
              */
-            organization_id: string;
+            organization_id?: string | null;
+            /**
+             * Scope
+             * @description `all` remembers working in all companies
+             * @default company
+             * @enum {string}
+             */
+            scope: "company" | "all";
         };
         /** TaskAction */
         TaskAction: {

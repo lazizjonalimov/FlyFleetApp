@@ -5,6 +5,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.audit import audit
@@ -45,8 +46,27 @@ def update_organization(body: s.OrganizationPatch, p: Principal = Depends(requir
     for required in ("name", "timezone", "default_payment_terms_days", "load_number_prefix", "invoice_number_prefix"):
         if required in changes and changes[required] is None:
             raise Invalid("This field can't be empty", field=required)
+    if changes.get("code") is None:
+        changes.pop("code", None)
+    if changes.get("color") is None:
+        changes.pop("color", None)
+    if "code" in changes:
+        changes["code"] = changes["code"].upper()
+        rows = db.execute(text("SELECT code FROM auth_account_companies(:a)"), {"a": p.account_id}).all()
+        # Only the account owner can list the account's companies; the unique index decides for everyone else.
+        if any(r.code.lower() == changes["code"].lower() and r.code != org.code for r in rows):
+            raise Conflict("Another company in your account already uses this code", code="CODE_TAKEN",
+                           field_errors={"code": "Already used by another company in your account"})
     for k, v in changes.items():
         setattr(org, k, v)
+    try:
+        db.flush()
+    except IntegrityError as e:
+        db.rollback()
+        if "uq_organizations_account_code" in str(e.orig):
+            raise Conflict("Another company in your account already uses this code", code="CODE_TAKEN",
+                           field_errors={"code": "Already used by another company in your account"}) from e
+        raise
     audit(db, p, "organization.updated", "organization", org.id, body.model_dump(mode="json", exclude_unset=True))
     db.commit()
     return org

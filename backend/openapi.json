@@ -3131,6 +3131,14 @@
       },
       "CompanyCreated": {
         "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
           "copied": {
             "additionalProperties": {
               "type": "integer"
@@ -3191,13 +3199,23 @@
           "status",
           "dot_number",
           "mc_number",
-          "created_at"
+          "created_at",
+          "code",
+          "color"
         ],
         "title": "CompanyCreated",
         "type": "object"
       },
       "CompanyOut": {
         "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -3250,7 +3268,9 @@
           "status",
           "dot_number",
           "mc_number",
-          "created_at"
+          "created_at",
+          "code",
+          "color"
         ],
         "title": "CompanyOut",
         "type": "object"
@@ -14922,10 +14942,31 @@
             "title": "Base Currency",
             "type": "string"
           },
+          "code": {
+            "description": "The company's short code, shown beside its numbers where companies mix",
+            "title": "Code",
+            "type": "string"
+          },
+          "color": {
+            "description": "The colour of the company's mark",
+            "title": "Color",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "mc_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mc Number"
           },
           "name": {
             "title": "Name",
@@ -14960,6 +15001,8 @@
           "role",
           "role_label",
           "status",
+          "code",
+          "color",
           "timezone",
           "base_currency"
         ],
@@ -14970,6 +15013,21 @@
         "properties": {
           "account": {
             "$ref": "#/components/schemas/MeAccount"
+          },
+          "all_companies": {
+            "default": false,
+            "description": "Whether the person may work in all companies at once: two or more they can open",
+            "title": "All Companies",
+            "type": "boolean"
+          },
+          "last_scope": {
+            "default": "company",
+            "enum": [
+              "company",
+              "all"
+            ],
+            "title": "Last Scope",
+            "type": "string"
           },
           "memberships": {
             "items": {
@@ -16092,10 +16150,31 @@
       "OrgRef": {
         "description": "A company the user can work in.",
         "properties": {
+          "code": {
+            "description": "The company's short code, shown beside its numbers where companies mix",
+            "title": "Code",
+            "type": "string"
+          },
+          "color": {
+            "description": "The colour of the company's mark",
+            "title": "Color",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "mc_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mc Number"
           },
           "name": {
             "title": "Name",
@@ -16124,7 +16203,9 @@
           "slug",
           "role",
           "role_label",
-          "status"
+          "status",
+          "code",
+          "color"
         ],
         "title": "OrgRef",
         "type": "object"
@@ -16156,6 +16237,14 @@
               }
             ],
             "title": "City"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "color": {
+            "title": "Color",
+            "type": "string"
           },
           "default_payment_terms_days": {
             "title": "Default Payment Terms Days",
@@ -16273,6 +16362,8 @@
           "name",
           "legal_name",
           "slug",
+          "code",
+          "color",
           "status",
           "dot_number",
           "mc_number",
@@ -16316,6 +16407,34 @@
               }
             ],
             "title": "City"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 6,
+                "minLength": 2,
+                "pattern": "^[A-Za-z0-9]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Short code shown beside the company's numbers; unique in the account",
+            "title": "Code"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Colour of the company's mark",
+            "title": "Color"
           },
           "default_payment_terms_days": {
             "anyOf": [
@@ -25250,6 +25369,15 @@
             "description": "The company worked in last, offered first",
             "title": "Last Organization Id"
           },
+          "last_scope": {
+            "default": "company",
+            "enum": [
+              "company",
+              "all"
+            ],
+            "title": "Last Scope",
+            "type": "string"
+          },
           "organization": {
             "anyOf": [
               {
@@ -26926,14 +27054,29 @@
       "SwitchIn": {
         "properties": {
           "organization_id": {
-            "format": "uuid",
-            "title": "Organization Id",
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The company to remember as the last one worked in",
+            "title": "Organization Id"
+          },
+          "scope": {
+            "default": "company",
+            "description": "`all` remembers working in all companies",
+            "enum": [
+              "company",
+              "all"
+            ],
+            "title": "Scope",
             "type": "string"
           }
         },
-        "required": [
-          "organization_id"
-        ],
         "title": "SwitchIn",
         "type": "object"
       },

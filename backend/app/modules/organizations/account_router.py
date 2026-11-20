@@ -32,7 +32,7 @@ _SKIP = {"id", "organization_id", "created_at", "updated_at"}
 def _companies(db: Session, account_id: uuid.UUID) -> list[s.CompanyOut]:
     rows = db.execute(text("SELECT * FROM auth_account_companies(:a)"), {"a": account_id})
     return [s.CompanyOut(id=r.id, name=r.name, slug=r.slug, status=r.status, dot_number=r.dot_number,
-                         mc_number=r.mc_number, created_at=r.created_at) for r in rows]
+                         mc_number=r.mc_number, created_at=r.created_at, code=r.code, color=r.color) for r in rows]
 
 
 def _clone(obj, org_id: uuid.UUID, **overrides):
@@ -112,7 +112,8 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
         account = _lock_account(dst, p.account_id)
         _check_limit(dst, account)
         slug = add_organization(
-            dst, id=new_id, account_id=account.id, name=body.name, legal_name=body.legal_name,
+            dst, taken=[(c.code, c.color) for c in _companies(dst, p.account_id)],
+            id=new_id, account_id=account.id, name=body.name, legal_name=body.legal_name,
             dot_number=body.dot_number, mc_number=body.mc_number, timezone=body.timezone or current.timezone,
             base_currency=current.base_currency, default_payment_terms_days=current.default_payment_terms_days,
             load_number_prefix=current.load_number_prefix, invoice_number_prefix=current.invoice_number_prefix).slug
@@ -183,8 +184,10 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
     finally:
         dst.close()
 
+    made = next(c for c in _companies(db, p.account_id) if c.id == new_id)
     return s.CompanyCreated(id=new_id, name=body.name, slug=slug, status="active", dot_number=body.dot_number,
-                            mc_number=body.mc_number, created_at=datetime.now(UTC), copied=copied)
+                            mc_number=body.mc_number, created_at=datetime.now(UTC), code=made.code, color=made.color,
+                            copied=copied)
 
 
 def _set_status(company_id: uuid.UUID, status: str, p: Principal, db: Session) -> s.CompanyOut:

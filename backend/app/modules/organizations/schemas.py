@@ -37,7 +37,8 @@ class LoginIn(BaseModel):
 
 
 class SwitchIn(BaseModel):
-    organization_id: uuid.UUID
+    organization_id: uuid.UUID | None = Field(default=None, description="The company to remember as the last one worked in")
+    scope: Literal["company", "all"] = Field(default="company", description="`all` remembers working in all companies")
 
 
 class PasswordChangeIn(BaseModel):
@@ -62,6 +63,9 @@ class OrgRef(BaseModel):
     role: str
     role_label: str
     status: str
+    code: str = Field(description="The company's short code, shown beside its numbers where companies mix")
+    color: str = Field(description="The colour of the company's mark")
+    mc_number: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -79,6 +83,7 @@ class SessionOut(BaseModel):
     requires_organization_selection: bool = False
     organizations: list[OrgRef] = []
     last_organization_id: uuid.UUID | None = Field(default=None, description="The company worked in last, offered first")
+    last_scope: Literal["company", "all"] = "company"
 
 
 class MeUser(BaseModel):
@@ -114,6 +119,9 @@ class MeOut(BaseModel):
     organization: MeOrganization
     account: MeAccount
     memberships: list[OrgRef]
+    all_companies: bool = Field(default=False, description="Whether the person may work in all companies at once: "
+                                                          "two or more they can open")
+    last_scope: Literal["company", "all"] = "company"
     permissions: list[str]
     scope: MeScope | None = None
 
@@ -130,6 +138,8 @@ class CompanyOut(BaseModel):
     dot_number: str | None
     mc_number: str | None
     created_at: datetime
+    code: str
+    color: str
 
 
 class CompaniesOut(BaseModel):
@@ -161,6 +171,8 @@ class OrganizationOut(BaseModel):
     name: str
     legal_name: str | None
     slug: str
+    code: str
+    color: str
     status: str
     dot_number: str | None
     mc_number: str | None
@@ -182,6 +194,9 @@ class OrganizationPatch(BaseModel):
     legal_name: str | None = Field(default=None, max_length=200)
     dot_number: str | None = Field(default=None, max_length=20)
     mc_number: str | None = Field(default=None, max_length=20)
+    code: str | None = Field(default=None, min_length=2, max_length=6, pattern=r"^[A-Za-z0-9]+$",
+                             description="Short code shown beside the company's numbers; unique in the account")
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$", description="Colour of the company's mark")
     phone: Short = None
     email: EmailStr | None = None
     address: str | None = Field(default=None, max_length=300)

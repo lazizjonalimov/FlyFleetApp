@@ -20,6 +20,7 @@ from app.core.permissions import ROLE_LABELS, Role
 from app.core.ratelimit import FailureLimiter
 from app.core.security import create_token, hash_password, verify_password
 from app.modules.access import service as access
+from app.modules.organizations import identity
 from app.modules.organizations import schemas as s
 from app.modules.organizations.models import Account, AuditLog, Membership, Organization, User
 
@@ -34,13 +35,16 @@ def make_slug(name: str) -> str:
     return f"{base}-{secrets.token_hex(3)}"
 
 
-def add_organization(db: Session, **fields) -> Organization:
+def add_organization(db: Session, taken: list[tuple[str, str]] | None = None, **fields) -> Organization:
     """Insert a company under a web address nobody else has.
 
     Whether an address is taken can't be looked up first: other companies' rows are invisible from here, by
     design. So the insert is attempted inside a savepoint and, on the rare clash, tried again with a new
     random tail. Many carriers share a name; none of them should ever be told theirs "already exists".
     """
+    codes = {c for c, _ in (taken or [])}
+    fields.setdefault("code", identity.default_code(fields["name"], codes))
+    fields.setdefault("color", identity.default_color([k for _, k in (taken or [])]))
     for _ in range(8):
         org = Organization(slug=make_slug(fields["name"]), **fields)
         try:
@@ -56,14 +60,15 @@ def add_organization(db: Session, **fields) -> Organization:
 
 def user_organizations(db: Session, user_id: uuid.UUID) -> list[s.OrgRef]:
     rows = db.execute(text("SELECT * FROM auth_user_organizations(:u)"), {"u": user_id})
-    return [s.OrgRef(id=r.organization_id, name=r.name, slug=r.slug, role=r.role, status=r.status) for r in rows]
+    return [s.OrgRef(id=r.organization_id, name=r.name, slug=r.slug, role=r.role, status=r.status, code=r.code,
+                     color=r.color, mc_number=r.mc_number) for r in rows]
 
 
-def _remember(user_id: uuid.UUID, org_id: uuid.UUID) -> None:
-    """Record the company the user is now working in, so the next sign-in returns there."""
+def _remember(user_id: uuid.UUID, org_id: uuid.UUID, scope: str | None = None) -> None:
+    """Record where the user last worked (a company, or all of them), so the next sign-in returns there."""
     db = new_session(org_id=org_id, user_id=user_id)
     try:
-        db.execute(update(User).where(User.id == user_id).values(last_organization_id=org_id))
+        db.execute(update(User).where(User.id == user_id).values(last_organization_id=org_id, last_scope=scope))
         db.commit()
     finally:
         db.close()
@@ -87,8 +92,9 @@ def signup(body: s.SignupIn):
         db.add(Account(id=account_id, name=body.organization_name, owner_user_id=user_id,
                        max_companies=settings.max_companies_per_account))
         db.flush()
-        slug = add_organization(db, id=org_id, account_id=account_id, name=body.organization_name,
-                                dot_number=body.dot_number, mc_number=body.mc_number, timezone=body.timezone).slug
+        created = add_organization(db, id=org_id, account_id=account_id, name=body.organization_name,
+                                   dot_number=body.dot_number, mc_number=body.mc_number, timezone=body.timezone)
+        slug = created.slug
         db.add(Membership(organization_id=org_id, user_id=user_id, role=Role.OWNER.value))
         db.add(AuditLog(organization_id=org_id, actor_user_id=user_id, action="organization.created",
                         entity_type="organization", entity_id=org_id, data={"name": body.organization_name}))
@@ -96,7 +102,8 @@ def signup(body: s.SignupIn):
         db.commit()
     finally:
         db.close()
-    org = s.OrgRef(id=org_id, name=body.organization_name, slug=slug, role=Role.OWNER.value, status="active")
+    org = s.OrgRef(id=org_id, name=body.organization_name, slug=slug, role=Role.OWNER.value, status="active",
+                   code=created.code, color=created.color, mc_number=body.mc_number)
     return s.SessionOut(access_token=create_token(user_id, org_id, 0), organization=org, organizations=[org])
 
 
@@ -140,26 +147,36 @@ def switch_organization(body: s.SwitchIn, p: Principal = Depends(get_principal),
     """Move this session to another company the user belongs to. Membership is re-verified here; the web
     app discards everything it cached for the previous company."""
     orgs = user_organizations(db, p.user_id)
-    chosen = next((o for o in orgs if o.id == body.organization_id), None)
-    if chosen is None:
-        raise Forbidden("You are not a member of that company")
+    if body.scope == "all":
+        if len([o for o in orgs if o.status == "active"]) < 2:
+            raise Invalid("Working in all companies needs two or more you can open", field="scope")
+        chosen = next((o for o in orgs if o.id == p.org_id), orgs[0])
+    else:
+        chosen = next((o for o in orgs if o.id == body.organization_id), None)
+        if chosen is None:
+            raise Forbidden("You are not a member of that company")
     version = db.get(User, p.user_id).token_version
-    _remember(p.user_id, chosen.id)
+    _remember(p.user_id, chosen.id, "all" if body.scope == "all" else None)
     return s.SessionOut(access_token=create_token(p.user_id, chosen.id, version), organization=chosen,
-                        organizations=orgs)
+                        organizations=orgs, last_organization_id=chosen.id, last_scope=body.scope)
 
 
 @router.get("/me", response_model=s.MeOut)
 def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     account = db.get(Account, p.account_id)
+    memberships = user_organizations(db, p.user_id)
+    here = next(o for o in memberships if o.id == p.org_id)
     return s.MeOut(
         user=s.MeUser(id=p.user_id, email=p.email, full_name=p.full_name),
         organization=s.MeOrganization(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role,
                                       status=p.org_status, timezone=p.timezone, base_currency=p.currency,
-                                      role_label=access.label_of(db, p.role)),
+                                      role_label=access.label_of(db, p.role), code=here.code, color=here.color,
+                                      mc_number=here.mc_number),
         account=s.MeAccount(id=account.id, name=account.name, is_owner=p.is_account_owner,
                             max_companies=account.max_companies),
-        memberships=user_organizations(db, p.user_id),
+        memberships=memberships,
+        all_companies=len([o for o in memberships if o.status == "active"]) >= 2,
+        last_scope="all" if db.get(User, p.user_id).last_scope == "all" else "company",
         permissions=sorted(p.permissions),
         scope=s.MeScope(team_id=p.scope.team_id, team_name=p.scope.team_name, trucks=len(p.scope.vehicle_ids),
                         preview=p.preview, lead_name=p.scope.lead_name) if p.scope else None,
@@ -202,7 +219,8 @@ def change_password(body: s.PasswordChangeIn, p: Principal = Depends(get_princip
     user.token_version += 1
     audit(db, p, "user.password_changed", "user", p.user_id)
     db.commit()
-    org = s.OrgRef(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role, status=p.org_status)
+    org = next((o for o in user_organizations(db, p.user_id) if o.id == p.org_id),
+               s.OrgRef(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role, status=p.org_status, code="", color=""))
     return s.SessionOut(access_token=create_token(p.user_id, p.org_id, user.token_version), organization=org)
 
 

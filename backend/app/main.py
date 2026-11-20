@@ -33,6 +33,7 @@ from app.modules.maintenance.router import router as maintenance_router
 from app.modules.messaging.router import router as messaging_router
 from app.modules.organizations.account_router import router as account_router
 from app.modules.organizations.auth_router import router as auth_router
+from app.modules.organizations.combined import router as combined_router
 from app.modules.organizations.router import router as organization_router
 from app.modules.owners.portal_router import router as owner_portal_router
 from app.modules.owners.router import equipment_router as ownership_router
@@ -89,7 +90,7 @@ def create_app() -> FastAPI:
                    safety_router, maintenance_router, finance_router, expenses_router, owner_settlements_router, intake_router,
                    ifta_router, tracking_router, messaging_router, tasks_router, teams_router, integrations_router,
                    settlements_router, reports_router, report_catalog_router, assistant_router,
-                   customer_portal_router, customer_portal_users_router):
+                   customer_portal_router, customer_portal_users_router, combined_router):
         v1.include_router(router)
     app.include_router(v1)
 

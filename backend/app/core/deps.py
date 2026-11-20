@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import jwt
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core.db import new_session
@@ -59,6 +59,20 @@ class Principal:
         return set(self.granted) if self.granted is not None else permissions_for(self.role)
 
 
+def _company_of(user_id: uuid.UUID, home: uuid.UUID, wanted: str) -> uuid.UUID:
+    """The company named by slug or id, if the person can open it. Anything else is not found, so a company
+    that exists but isn't theirs can't be told apart from one that doesn't."""
+    db = new_session(org_id=home, user_id=user_id)
+    try:
+        rows = db.execute(text("SELECT organization_id, slug FROM auth_user_organizations(:u)"), {"u": user_id}).all()
+    finally:
+        db.close()
+    for r in rows:
+        if str(r.organization_id) == wanted or r.slug == wanted:
+            return r.organization_id
+    raise NotFound("Company not found")
+
+
 def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> Principal:
     if creds is None:
         raise Unauthorized("Sign in to continue")
@@ -67,6 +81,13 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         user_id, org_id, version = uuid.UUID(claims["sub"]), uuid.UUID(claims["org"]), int(claims["ver"])
     except (jwt.PyJWTError, ValueError, KeyError, TypeError) as e:
         raise Unauthorized("Your session has expired. Sign in again.") from e
+
+    # The company comes from the URL the web server was asked for (X-Company: a slug or id), not from the
+    # token: the token only says who the person is and where they last were. "all" is the combined view, whose
+    # requests are fanned out per company by the /all router, so here it falls back to the token's company.
+    wanted = (request.headers.get("x-company") or "").strip()
+    if wanted and wanted.lower() != "all" and wanted != str(org_id):
+        org_id = _company_of(user_id, org_id, wanted)
 
     # Checked against the database on every request, so a role change, removal from the company or a
     # password change takes effect immediately rather than when the token expires.
