@@ -29,6 +29,9 @@ const PATHS: Record<string, string> = {
   settings: "settings/integrations",
   policy: "settings/alert-policy",
   audit: "settings/audit-log",
+  profile: "settings/profile",
+  notify: "settings/notifications",
+  help: "help",
   platform: "platform",
 };
 const SCREENS: Record<string, string> = Object.fromEntries(Object.entries(PATHS).map(([screen, path]) => [path, screen]));

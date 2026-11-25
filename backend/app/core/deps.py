@@ -1,13 +1,13 @@
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import jwt
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.db import new_session
@@ -16,7 +16,7 @@ from app.core.permissions import has_permission, permissions_for
 from app.core.scope import Scope, load_scope
 from app.core.security import decode_token
 from app.modules.access.resolve import resolve, role_permissions
-from app.modules.organizations.models import Account, Membership, Organization, User
+from app.modules.organizations.models import Account, Membership, Organization, User, UserSession
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -46,6 +46,8 @@ class Principal:
     # What this person may do in this company: their role as the company has it, with their own exceptions.
     # None falls back to the role's template (for principals made outside a request).
     granted: frozenset[str] | None = None
+    # The sign-in (device) this request's token belongs to; None for tokens issued before sessions were kept.
+    session_id: uuid.UUID | None = None
 
     def today(self) -> date:
         """The current date where this company operates (not the server's date)."""
@@ -73,12 +75,30 @@ def _company_of(user_id: uuid.UUID, home: uuid.UUID, wanted: str) -> uuid.UUID:
     raise NotFound("Company not found")
 
 
+# How often a session's "last active" time is written: often enough to read as now, rarely enough to cost nothing.
+_SEEN_EVERY = timedelta(minutes=5)
+
+
+def _session_alive(db: Session, session_id: uuid.UUID) -> bool:
+    """Whether the sign-in exists and is not signed out; notes that it was just used."""
+    row = db.execute(select(UserSession.revoked_at, UserSession.last_seen_at)
+                     .where(UserSession.id == session_id)).first()
+    if row is None or row.revoked_at is not None:
+        return False
+    now = datetime.now(UTC)
+    if now - row.last_seen_at > _SEEN_EVERY:
+        db.execute(update(UserSession).where(UserSession.id == session_id).values(last_seen_at=now))
+        db.commit()
+    return True
+
+
 def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None = Depends(bearer)) -> Principal:
     if creds is None:
         raise Unauthorized("Sign in to continue")
     try:
         claims = decode_token(creds.credentials)
         user_id, org_id, version = uuid.UUID(claims["sub"]), uuid.UUID(claims["org"]), int(claims["ver"])
+        session_id = uuid.UUID(claims["sid"]) if claims.get("sid") else None
     except (jwt.PyJWTError, ValueError, KeyError, TypeError) as e:
         raise Unauthorized("Your session has expired. Sign in again.") from e
 
@@ -104,6 +124,7 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
                    Membership.active.is_(True), User.active.is_(True))
         ).first()
         role, scope, preview, granted = (row.role, None, False, None) if row else (None, None, False, None)
+        signed_out = session_id is not None and not _session_alive(db, session_id)
         if row is not None and row.token_version == version:
             granted = resolve(db, user_id, row.role)
             preview_team = request.headers.get("x-preview-team")
@@ -129,6 +150,8 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         raise Unauthorized("Your access to this company has ended. Sign in again.")
     if row.token_version != version:
         raise Unauthorized("Your session has expired. Sign in again.")
+    if signed_out:
+        raise Unauthorized("This device was signed out. Sign in again.")
 
     if (row.status != "active" and request.method not in ("GET", "HEAD")
             and not request.url.path.startswith(ARCHIVED_WRITE_ALLOWLIST)):
@@ -140,7 +163,7 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         user_id=user_id, org_id=org_id, role=role, full_name=row.full_name, email=row.email,
         timezone=row.timezone, currency=row.base_currency, org_name=row.name, org_slug=row.slug,
         org_status=row.status, account_id=row.account_id, is_account_owner=row.owner_user_id == user_id,
-        scope=scope, preview=preview, granted=granted)
+        scope=scope, preview=preview, granted=granted, session_id=session_id)
 
 
 def get_db(p: Principal = Depends(get_principal)) -> Iterator[Session]:

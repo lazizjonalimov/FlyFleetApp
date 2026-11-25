@@ -2,7 +2,7 @@
 import re
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Request
@@ -22,7 +22,7 @@ from app.core.security import create_token, hash_password, verify_password
 from app.modules.access import service as access
 from app.modules.organizations import identity
 from app.modules.organizations import schemas as s
-from app.modules.organizations.models import Account, AuditLog, Membership, Organization, User
+from app.modules.organizations.models import Account, AuditLog, Membership, Organization, User, UserSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -74,8 +74,30 @@ def _remember(user_id: uuid.UUID, org_id: uuid.UUID, scope: str | None = None) -
         db.close()
 
 
+def _client(request: Request) -> tuple[str | None, str | None]:
+    """The browser and address a sign-in came from, for telling your sessions apart. The web server passes on
+    the browser's own User-Agent and address; they are shown to the person, never used to decide access."""
+    agent = (request.headers.get("user-agent") or "")[:300] or None
+    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+    ip = (forwarded or (request.client.host if request.client else ""))[:64] or None
+    return agent, ip
+
+
+def start_session(user_id: uuid.UUID, request: Request) -> uuid.UUID:
+    """Record a new sign-in on a device; the token issued for it carries the returned id."""
+    agent, ip = _client(request)
+    db = new_session(user_id=user_id)
+    try:
+        session = UserSession(user_id=user_id, user_agent=agent, ip_address=ip)
+        db.add(session)
+        db.commit()
+        return session.id
+    finally:
+        db.close()
+
+
 @router.post("/signup", response_model=s.SessionOut, status_code=201)
-def signup(body: s.SignupIn):
+def signup(body: s.SignupIn, request: Request):
     """Create an account (the owner's profile) with its first company."""
     settings = get_settings()
     if not settings.signup_enabled:
@@ -104,7 +126,8 @@ def signup(body: s.SignupIn):
         db.close()
     org = s.OrgRef(id=org_id, name=body.organization_name, slug=slug, role=Role.OWNER.value, status="active",
                    code=created.code, color=created.color, mc_number=body.mc_number)
-    return s.SessionOut(access_token=create_token(user_id, org_id, 0), organization=org, organizations=[org])
+    return s.SessionOut(access_token=create_token(user_id, org_id, 0, start_session(user_id, request)),
+                        organization=org, organizations=[org])
 
 
 @router.post("/login", response_model=s.SessionOut)
@@ -139,7 +162,8 @@ def login(body: s.LoginIn, request: Request):
                             last_scope="all" if row.last_scope == "all" and last else "company",
                             organizations=sorted(orgs, key=lambda o: o.id != last))
     _remember(row.id, chosen.id)
-    return s.SessionOut(access_token=create_token(row.id, chosen.id, row.token_version), organization=chosen,
+    return s.SessionOut(access_token=create_token(row.id, chosen.id, row.token_version, start_session(row.id, request)),
+                        organization=chosen,
                         organizations=orgs)
 
 
@@ -158,7 +182,7 @@ def switch_organization(body: s.SwitchIn, p: Principal = Depends(get_principal),
             raise Forbidden("You are not a member of that company")
     version = db.get(User, p.user_id).token_version
     _remember(p.user_id, chosen.id, "all" if body.scope == "all" else None)
-    return s.SessionOut(access_token=create_token(p.user_id, chosen.id, version), organization=chosen,
+    return s.SessionOut(access_token=create_token(p.user_id, chosen.id, version, p.session_id), organization=chosen,
                         organizations=orgs, last_organization_id=chosen.id, last_scope=body.scope)
 
 
@@ -168,7 +192,7 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     memberships = user_organizations(db, p.user_id)
     here = next(o for o in memberships if o.id == p.org_id)
     return s.MeOut(
-        user=s.MeUser(id=p.user_id, email=p.email, full_name=p.full_name),
+        user=_me_user(db.get(User, p.user_id)),
         organization=s.MeOrganization(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role,
                                       status=p.org_status, timezone=p.timezone, base_currency=p.currency,
                                       role_label=access.label_of(db, p.role), code=here.code, color=here.color,
@@ -184,22 +208,102 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     )
 
 
-class ProfileIn(BaseModel):
-    full_name: str = Field(min_length=1, max_length=120)
+def _me_user(user: User) -> s.MeUser:
+    return s.MeUser(id=user.id, email=user.email, full_name=user.full_name, phone=user.phone, timezone=user.timezone)
 
 
 @router.patch("/me", response_model=s.MeUser)
-def update_me(body: ProfileIn, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
-    """Change the name your teammates see. Your email is how you sign in and stays as it is."""
-    name = " ".join(body.full_name.split())
-    if not name:
-        raise Invalid("Enter your name", field="full_name")
+def update_me(body: s.ProfileIn, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Your own profile: the name teammates see, a mobile phone and your time zone. Open to everyone signed in,
+    whatever their role. Your email is how you sign in and stays as it is."""
     user = db.get(User, p.user_id)
-    if name != user.full_name:
-        audit(db, p, "user.renamed", "user", p.user_id, {"from": user.full_name, "to": name})
-        user.full_name = name
+    sent = body.model_fields_set
+    changes: dict[str, dict[str, str | None]] = {}
+    if "full_name" in sent:
+        name = " ".join((body.full_name or "").split())
+        if not name:
+            raise Invalid("Enter your name", field="full_name")
+        if name != user.full_name:
+            audit(db, p, "user.renamed", "user", p.user_id, {"from": user.full_name, "to": name})
+            user.full_name = name
+            db.commit()
+    if "phone" in sent:
+        phone = " ".join((body.phone or "").split()) or None
+        if phone and not re.fullmatch(r"[0-9+()\-. ]{7,40}", phone):
+            raise Invalid("Enter a phone number such as +1 312 555 0142", field="phone")
+        if phone != user.phone:
+            changes["phone"] = {"from": user.phone, "to": phone}
+            user.phone = phone
+    if "timezone" in sent:
+        zone = body.timezone or None
+        if zone != user.timezone:
+            changes["timezone"] = {"from": user.timezone, "to": zone}
+            user.timezone = zone
+    if changes:
+        audit(db, p, "user.profile_changed", "user", p.user_id, changes)
         db.commit()
-    return s.MeUser(id=user.id, email=p.email, full_name=user.full_name)
+    return _me_user(user)
+
+
+# ---------------------------------------------------------------- your sessions (devices signed in)
+def _sessions(db: Session, p: Principal) -> list[UserSession]:
+    """Your sign-ins that can still be used: not signed out, and used within a token's lifetime."""
+    since = datetime.now(UTC) - timedelta(minutes=get_settings().jwt_ttl_minutes)
+    return list(db.scalars(select(UserSession).where(
+        UserSession.user_id == p.user_id, UserSession.revoked_at.is_(None), UserSession.last_seen_at >= since)
+        .order_by(UserSession.last_seen_at.desc())))
+
+
+def _sign_out_others(db: Session, p: Principal) -> int:
+    """Sign out every session of yours but this one."""
+    query = update(UserSession).where(UserSession.user_id == p.user_id, UserSession.revoked_at.is_(None))
+    if p.session_id is not None:
+        query = query.where(UserSession.id != p.session_id)
+    return db.execute(query.values(revoked_at=datetime.now(UTC))).rowcount
+
+
+@router.get("/sessions", response_model=list[s.SessionInfo])
+def list_sessions(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """The devices you are signed in on, this one first. Every signed-in person can see their own."""
+    rows = _sessions(db, p)
+    out = [s.SessionInfo(id=r.id, created_at=r.created_at, last_seen_at=r.last_seen_at, user_agent=r.user_agent,
+                         ip_address=r.ip_address, current=r.id == p.session_id) for r in rows]
+    return sorted(out, key=lambda r: not r.current)
+
+
+@router.delete("/sessions/{session_id}", status_code=204)
+def sign_out_session(session_id: uuid.UUID, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Sign out one of your other devices. This device signs out with Sign out instead."""
+    if session_id == p.session_id:
+        raise Invalid("This is the device you’re using. Use Sign out instead.", code="CURRENT_SESSION")
+    session = db.get(UserSession, session_id)
+    if session is None or session.user_id != p.user_id or session.revoked_at is not None:
+        raise NotFound("Session not found")
+    session.revoked_at = datetime.now(UTC)
+    audit(db, p, "user.session_signed_out", "user", p.user_id, {"session_id": str(session_id)})
+    db.commit()
+
+
+@router.post("/sessions/sign-out-others", response_model=s.SessionOut)
+def sign_out_other_sessions(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Sign out everywhere but here. Tokens issued before sessions were kept are ended too: every token is
+    retired and this device continues on the fresh one returned."""
+    user = db.get(User, p.user_id)
+    ended = _sign_out_others(db, p)
+    user.token_version += 1
+    audit(db, p, "user.sessions_signed_out", "user", p.user_id, {"count": ended})
+    db.commit()
+    org = next((o for o in user_organizations(db, p.user_id) if o.id == p.org_id),
+               s.OrgRef(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role, status=p.org_status, code="", color=""))
+    return s.SessionOut(access_token=create_token(p.user_id, p.org_id, user.token_version, p.session_id), organization=org)
+
+
+@router.post("/logout", status_code=204)
+def logout(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Sign this device out: its token stops working at once, not when it expires."""
+    if p.session_id is not None:
+        db.execute(update(UserSession).where(UserSession.id == p.session_id).values(revoked_at=datetime.now(UTC)))
+        db.commit()
 
 
 @router.post("/password", response_model=s.SessionOut)
@@ -218,11 +322,12 @@ def change_password(body: s.PasswordChangeIn, p: Principal = Depends(get_princip
         raise Invalid("Choose a password different from the current one", field="new_password")
     user.password_hash = hash_password(body.new_password)
     user.token_version += 1
+    _sign_out_others(db, p)
     audit(db, p, "user.password_changed", "user", p.user_id)
     db.commit()
     org = next((o for o in user_organizations(db, p.user_id) if o.id == p.org_id),
                s.OrgRef(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role, status=p.org_status, code="", color=""))
-    return s.SessionOut(access_token=create_token(p.user_id, p.org_id, user.token_version), organization=org)
+    return s.SessionOut(access_token=create_token(p.user_id, p.org_id, user.token_version, p.session_id), organization=org)
 
 
 # ---------------------------------------------------------------- joining by invitation
@@ -337,4 +442,5 @@ def accept_invitation(body: AcceptInvitationIn, request: Request):
     finally:
         db.close()
     chosen = next(o for o in orgs if o.id == org_id)
-    return s.SessionOut(access_token=create_token(user_id, org_id, version), organization=chosen, organizations=orgs)
+    return s.SessionOut(access_token=create_token(user_id, org_id, version, start_session(user_id, request)),
+                        organization=chosen, organizations=orgs)

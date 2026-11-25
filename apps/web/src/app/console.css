@@ -1062,3 +1062,26 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .cobreak{display:flex;gap:6px;flex-wrap:wrap}
 .ff .cobreak .cobi{display:inline-flex;align-items:center;gap:6px;padding:2px 8px 2px 2px;border:1px solid var(--bd);border-radius:999px;font-size:12px;color:var(--tx2);background:var(--sf)}
 .ff .ccode{display:inline-flex;align-items:center;gap:4px;margin-right:6px;font-size:11px;font-weight:600;color:var(--mu)}
+
+/* Settings left list: small uppercase group headings; personal pages, notifications grid, sessions, help center */
+.ff .stgrp{display:flex;flex-direction:column;gap:2px}
+.ff .stgrp+.stgrp{margin-top:14px}
+.ff .stnav .stgh{color:var(--mu);padding:0 8px 4px;margin:0}
+.ff .ntgrid{width:100%;border-collapse:collapse;font-size:13px}
+.ff .ntgrid th,.ff .ntgrid td{padding:10px 12px;border-bottom:1px solid var(--bd2);text-align:center}
+.ff .ntgrid th:first-child,.ff .ntgrid td:first-child{text-align:left}
+.ff .ntgrid thead th{font-size:12px;font-weight:500;color:var(--tx2)}
+.ff .ntgrid tbody tr:last-child td{border-bottom:none}
+.ff .sesrow{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd2)}
+.ff .sesrow:last-child{border-bottom:none}
+.ff .hcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.ff .hccard{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;text-align:left;border:1px solid var(--bd);border-radius:10px;background:var(--sf);box-shadow:var(--sh2);color:inherit}
+.ff .hccard:hover{border-color:var(--pri)}
+.ff .hccard.on{border-color:var(--pri);box-shadow:0 0 0 3px var(--prit)}
+.ff .faq{border-bottom:1px solid var(--bd2)}
+.ff .faq:last-child{border-bottom:none}
+.ff .faq summary{display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;font-size:13px;font-weight:500;list-style:none}
+.ff .faq summary::-webkit-details-marker{display:none}
+.ff .faq summary .ic{transition:transform .15s}
+.ff .faq[open] summary .ic{transform:rotate(90deg)}
+.ff .faq p{padding:0 16px 14px 38px;font-size:13px;line-height:19px;color:var(--tx2)}

@@ -23,11 +23,12 @@ def verify_password(pw: str, hashed: str | None) -> bool:
         return False
 
 
-def create_token(user_id: uuid.UUID, org_id: uuid.UUID, token_version: int) -> str:
+def create_token(user_id: uuid.UUID, org_id: uuid.UUID, token_version: int, session_id: uuid.UUID | None = None) -> str:
     """Access token for one user in one organization.
 
     `ver` is the user's token_version at issue time; the API rejects the token once that number moves on
-    (password change), which is how already-issued tokens are revoked.
+    (password change), which is how already-issued tokens are revoked. `sid` names the sign-in (a row of
+    user_sessions) the token belongs to, so one device can be signed out on its own.
     """
     s = get_settings()
     now = datetime.now(UTC)
@@ -39,6 +40,8 @@ def create_token(user_id: uuid.UUID, org_id: uuid.UUID, token_version: int) -> s
         "iat": now,
         "exp": now + timedelta(minutes=s.jwt_ttl_minutes),
     }
+    if session_id is not None:
+        claims["sid"] = str(session_id)
     return jwt.encode(claims, s.jwt_secret, algorithm="HS256")
 
 

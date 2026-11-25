@@ -56,6 +56,12 @@ export function useTheme(): "light" | "dark" {
   return choice === "light" || choice === "dark" ? choice : device;
 }
 
+/** Compact or comfortable rows: as chosen under Profile & preferences, kept on this computer. */
+export function useDensity(): "compact" | "comfortable" {
+  const [choice] = useLocalPreference("ff.density", "compact");
+  return choice === "comfortable" ? "comfortable" : "compact";
+}
+
 /**
  * Holds the console's interface state and gives screens the shell's view of it.
  *
@@ -73,6 +79,7 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<ConsoleState>({});
   const [, startTransition] = useTransition();
   const theme = useTheme();
+  const density = useDensity();
   const [sidebar, setSidebar] = useLocalPreference("flyfleet-sidebar", "open");
 
   const location = useMemo(() => parseLocation(pathname, new URLSearchParams(search)), [pathname, search]);
@@ -144,8 +151,8 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
     };
     const drivers = summary.data?.fleet?.drivers_active;
     const orgSub = [organization.data?.mc_number || (organization.data?.dot_number ? `DOT ${organization.data.dot_number}` : ""), drivers === undefined ? "" : plural(drivers, "driver")].filter(Boolean).join(" · ");
-    return buildShell({ me, can, state, set, theme, mini: sidebar === "mini", setMini: (mini) => setSidebar(mini ? "mini" : "open"), orgSub, counts });
-  }, [me, can, state, set, theme, sidebar, setSidebar, summary.data, exceptions.data, organization.data, incidents.data, tasks.data, unread.data]);
+    return buildShell({ me, can, state, set, theme, density, mini: sidebar === "mini", setMini: (mini) => setSidebar(mini ? "mini" : "open"), orgSub, counts });
+  }, [me, can, state, set, theme, density, sidebar, setSidebar, summary.data, exceptions.data, organization.data, incidents.data, tasks.data, unread.data]);
 
   const path = useCallback((...parts: string[]) => `/${slug}/${parts.join("/")}`, [slug]);
 

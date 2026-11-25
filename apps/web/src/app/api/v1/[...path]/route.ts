@@ -9,7 +9,7 @@ const FORWARD_RESPONSE = ["content-type", "content-disposition", "content-securi
 
 // These API endpoints answer with an access token. They are reachable only through /api/auth/*, which keeps
 // the token in the cookie, never through this pass-through, which would hand it to page scripts.
-const TOKEN_ENDPOINTS = new Set(["auth/login", "auth/signup", "auth/switch", "auth/password", "auth/accept-invitation"]);
+const TOKEN_ENDPOINTS = new Set(["auth/login", "auth/signup", "auth/switch", "auth/password", "auth/accept-invitation", "auth/sessions/sign-out-others"]);
 
 async function handle(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const write = !["GET", "HEAD"].includes(request.method);

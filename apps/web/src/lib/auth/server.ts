@@ -72,6 +72,19 @@ export function errorResponse(status: number, code: string, message: string) {
   return Response.json({ error: { code, message, field_errors: {}, details: {}, request_id: null } }, { status, headers: { "Cache-Control": "no-store" } });
 }
 
+/**
+ * The browser and address behind a sign-in, passed on so the API can tell a person's sessions apart under
+ * Profile & preferences. Shown to that person only; never used to decide access.
+ */
+export function clientHeaders(request: Request): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const agent = request.headers.get("user-agent");
+  const forwarded = request.headers.get("x-forwarded-for") ?? request.headers.get("x-real-ip");
+  if (agent) headers["User-Agent"] = agent.slice(0, 300);
+  if (forwarded) headers["X-Forwarded-For"] = forwarded.split(",")[0]!.trim();
+  return headers;
+}
+
 /** Call the API. Never cached: every response belongs to one user in one company. */
 export function apiFetch(path: string, init: RequestInit & { token?: string } = {}): Promise<Response> {
   const { token, headers, ...rest } = init;

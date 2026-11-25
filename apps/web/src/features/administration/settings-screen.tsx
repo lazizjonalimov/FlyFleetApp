@@ -5,36 +5,22 @@ import { clsx } from "clsx";
 import { useState } from "react";
 import { Problem } from "@/components/feedback/dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
-import { Icon } from "@/components/ui/icon";
 import { useAlertPolicyPage } from "./alert-policy";
+import { SettingsFrame, type SettingsPage } from "./settings-frame";
 import { IntegrationsPage } from "./integrations-page";
 import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
-import { goTo } from "@/features/console/shell";
 import { useAction } from "@/features/console/use-action";
 import { api, unwrap } from "@/lib/api/client";
 import { ApiError, errorMessage } from "@/lib/api/errors";
 import type { Schema } from "@/lib/api/types";
 
 type Organization = Schema<"OrganizationOut">;
-type Page = "organization" | "numbering" | "notifications" | "policy" | "integrations" | "retention" | "billing";
+type Page = SettingsPage;
 
-const NAV: { l: string; ic: string; page?: Page; screen?: string }[] = [
-  { l: "Organization", ic: I.building, page: "organization" },
-  { l: "Team & access", ic: I.team, screen: "team" },
-  { l: "Dispatch teams", ic: I.truck, screen: "teams" },
-  { l: "Notifications", ic: I.bell, page: "notifications" },
-  { l: "Fleet alert policies", ic: I.alert, page: "policy" },
-  { l: "Integrations", ic: I.link, page: "integrations" },
-  { l: "Numbering & formats", ic: I.sliders, page: "numbering" },
-  { l: "Data & retention", ic: I.history, page: "retention" },
-  { l: "Billing & plan", ic: I.dollar, page: "billing" },
-  { l: "Audit log", ic: I.history, screen: "audit" },
-];
 const SUB: Record<Page, string> = {
   organization: "The company’s legal details, contact and time zone",
   numbering: "How loads and invoices are numbered",
-  notifications: "Who is told what, and how",
   policy: "Rules that turn truck positions and records into incidents people act on",
   integrations: "Providers connected to the company · each behind an adapter",
   retention: "How long records and documents are kept",
@@ -119,60 +105,27 @@ function OrganizationForm({ organization, fields }: { organization: Organization
 
 /** Settings: the company, and how FlyFleet works for it. */
 export function SettingsScreen() {
-  const { me, state, set, screen } = useConsole();
+  const { me, state, screen } = useConsole();
   const org = me.organization.id;
   const page: Page = screen === "policy" ? "policy" : typeof state.setpage === "string" && state.setpage in SUB && state.setpage !== "policy" ? (state.setpage as Page) : "integrations";
   const organization = useQuery({ queryKey: [org, "organization"], queryFn: () => unwrap(api.GET("/api/v1/organization")), staleTime: 300_000 });
-  const label = NAV.find((item) => item.page === page)?.l ?? "Settings";
   const policy = useAlertPolicyPage(page === "policy");
-  const go = (item: (typeof NAV)[number]) => {
-    if (item.screen) return set(goTo(item.screen));
-    if (item.page === "policy") return set({ ...goTo("policy"), setpage: "policy" });
-    set({ ...(screen === "settings" ? {} : goTo("settings")), setpage: item.page });
-  };
 
   return (
-    <div className="col">
-      <div className="ph" style={{ paddingBottom: "14px", borderBottom: "1px solid var(--bd)" }}>
-        <div className="f1">
-          <div className="crumb">
-            <span>Administration</span>
-            <Icon className="s12" d="M9 6l6 6-6 6" />
-            <span>Settings</span>
-            <Icon className="s12" d="M9 6l6 6-6 6" />
-            <b><span>{label}</span></b>
-          </div>
-          <h1 className="h1"><span>{label}</span></h1>
-          <p className="sub"><span>{SUB[page]}</span></p>
-        </div>
-        {policy.actions}
-      </div>
-      <div className="stg">
-        <nav className="stnav" aria-label="Settings sections">
-          {NAV.map((item) => (
-            <button key={item.l} className={clsx("rci", item.page === page && "on")} onClick={() => go(item)} aria-current={item.page === page ? "page" : undefined}>
-              <Icon className="s14" d={item.ic} />
-              <span className="f1 ell"><span>{item.l}</span></span>
-            </button>
-          ))}
-        </nav>
-        <div style={{ overflow: "auto", minHeight: "0", padding: "20px 24px 24px" }}>
-          {page === "organization" || page === "numbering" ? (
-            organization.data ? (
-              <OrganizationForm key={`${page}-${organization.dataUpdatedAt}`} organization={organization.data} fields={page === "organization" ? FIELDS : NUMBERING} />
-            ) : organization.isError ? (
-              <ErrorState error={organization.error} retry={() => void organization.refetch()} />
-            ) : (
-              <Skeleton />
-            )
-          ) : null}
-          {page === "integrations" ? <IntegrationsPage /> : null}
-          {page === "policy" ? policy.body : null}
-          {page === "notifications" ? <EmptyState icon={I.bell} title="Notifications aren’t sent yet" text="What needs attention shows under the bell and on the dashboard for each role. Email and text notifications aren’t available yet." /> : null}
-          {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}
-          {page === "billing" ? <EmptyState icon={I.dollar} title="Billing isn’t set up here yet" text="Your FlyFleet subscription isn’t managed in the app yet." /> : null}
-        </div>
-      </div>
-    </div>
+    <SettingsFrame current={page} sub={SUB[page]} actions={policy.actions}>
+      {page === "organization" || page === "numbering" ? (
+        organization.data ? (
+          <OrganizationForm key={`${page}-${organization.dataUpdatedAt}`} organization={organization.data} fields={page === "organization" ? FIELDS : NUMBERING} />
+        ) : organization.isError ? (
+          <ErrorState error={organization.error} retry={() => void organization.refetch()} />
+        ) : (
+          <Skeleton />
+        )
+      ) : null}
+      {page === "integrations" ? <IntegrationsPage /> : null}
+      {page === "policy" ? policy.body : null}
+      {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}
+      {page === "billing" ? <EmptyState icon={I.dollar} title="Billing isn’t set up here yet" text="Your FlyFleet subscription isn’t managed in the app yet." /> : null}
+    </SettingsFrame>
   );
 }

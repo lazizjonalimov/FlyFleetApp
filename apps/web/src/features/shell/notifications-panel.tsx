@@ -78,7 +78,7 @@ export function NotificationsPanel() {
         })}
       </div>
       <div className="r" style={{ padding: "10px 14px", borderTop: "1px solid var(--bd2)" }}>
-        <button className="lnk" onClick={() => set({ ...goTo("settings"), setpage: "notifications" })}>Notification settings</button>
+        <button className="lnk" onClick={() => set(goTo("notify"))}>Notification settings</button>
         <span className="sp"></span>
         <button className="lnk" onClick={() => set(goTo("alerts"))}>All alerts</button>
       </div>

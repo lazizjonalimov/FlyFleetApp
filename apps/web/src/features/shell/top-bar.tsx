@@ -53,7 +53,7 @@ export function TopBar() {
           </div>
         ) : null}
       </div>
-      <button className="btn ghost icon" aria-label="Help" onClick={openHelp}>
+      <button className="btn ghost icon" aria-label="Help center" title="Help center" onClick={openHelp}>
         <Icon className="s18" d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
       </button>
       <button className={clsx("btn ghost icon", notifOn)} style={{ position: "relative" }} onClick={toggleNotif} aria-label={alertCount ? `Notifications, ${alertCount} to look at` : "Notifications"}>

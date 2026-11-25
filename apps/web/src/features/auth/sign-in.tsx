@@ -12,7 +12,7 @@ import { errorMessage } from "@/lib/api/errors";
 import { postJson } from "@/lib/api/post";
 import type { OrgRef } from "@/lib/api/types";
 import { hardNavigate } from "@/lib/hard-navigation";
-import { safeNext } from "@/lib/safe-redirect";
+import { homeOf, safeNext } from "@/lib/safe-redirect";
 import { AuthFrame } from "./auth-frame";
 import { Field } from "./field";
 import { Organizations } from "./organizations";
@@ -53,7 +53,7 @@ export function SignIn() {
         setPending(null);
         return;
       }
-      hardNavigate(safeNext(search.get("next"), `/${reply.organization.slug}/${reply.organization.role === "owner_portal" || reply.organization.role === "customer" ? "portal" : "dashboard"}`));
+      hardNavigate(safeNext(search.get("next"), homeOf(reply.organization)));
     } catch (error) {
       if (organization) setFormError(errorMessage(error));
       else {

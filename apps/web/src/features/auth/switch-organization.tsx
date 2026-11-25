@@ -7,6 +7,7 @@ import type { Me, OrgRef } from "@/lib/api/types";
 import { hardNavigate } from "@/lib/hard-navigation";
 import { AuthFrame } from "./auth-frame";
 import { Organizations } from "./organizations";
+import { homeOf } from "@/lib/safe-redirect";
 
 /** Ends the session in this browser and returns to sign-in. */
 export async function signOut(): Promise<void> {
@@ -20,7 +21,7 @@ export async function signOut(): Promise<void> {
  */
 export async function switchOrganization(organizationId: string, path?: string): Promise<void> {
   const reply = await postJson<{ organization: OrgRef }>("/api/auth/switch", { organization_id: organizationId });
-  hardNavigate(path ?? `/${reply.organization.slug}/dashboard`);
+  hardNavigate(path ?? homeOf(reply.organization));
 }
 
 /**
@@ -34,7 +35,7 @@ export function SwitchOrganization({ me, target }: { me: Me; target?: OrgRef }) 
 
   async function choose(organization: OrgRef) {
     const here = target && organization.id === target.id ? window.location.pathname + window.location.search : undefined;
-    if (organization.id === me.organization.id) return hardNavigate(`/${organization.slug}/dashboard`);
+    if (organization.id === me.organization.id) return hardNavigate(homeOf(organization));
     setPending(organization.id);
     setError(null);
     try {

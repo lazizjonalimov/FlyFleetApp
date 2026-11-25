@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNext } from "@/lib/safe-redirect";
+import { homeOf, safeNext } from "@/lib/safe-redirect";
 
 describe("safeNext", () => {
   const fallback = "/acme/dashboard";
@@ -16,5 +16,13 @@ describe("safeNext", () => {
 
   it("never sends someone back to sign-in or into the API", () => {
     for (const loop of ["/login", "/login?next=/x", "/signup", "/api/v1/customers"]) expect(safeNext(loop, fallback)).toBe(fallback);
+  });
+});
+
+describe("where a company opens", () => {
+  it("is the portal for a portal sign-in, else the workspace home", () => {
+    expect(homeOf({ slug: "acme", role: "customer" })).toBe("/acme/portal");
+    expect(homeOf({ slug: "acme", role: "owner_portal" })).toBe("/acme/portal");
+    expect(homeOf({ slug: "acme", role: "dispatcher" })).toBe("/acme");
   });
 });

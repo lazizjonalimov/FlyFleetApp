@@ -12,7 +12,7 @@ const me = (role: string): Me => ({
 
 function shell(role: string, permissions: string[], state: Record<string, unknown> = { screen: "dashboard" }) {
   const changes: Record<string, unknown>[] = [];
-  const view = buildShell({ me: me(role), can: (...anyOf) => anyOf.some((p) => permissions.includes(p)), state, set: (patch) => changes.push(patch), theme: "light", mini: false, setMini: () => {}, orgSub: "", counts: {} });
+  const view = buildShell({ me: me(role), can: (...anyOf) => anyOf.some((p) => permissions.includes(p)), state, set: (patch) => changes.push(patch), theme: "light", density: "compact", mini: false, setMini: () => {}, orgSub: "", counts: {} });
   return { view, changes };
 }
 const item = (view: ReturnType<typeof shell>["view"], label: string) => view.nav.flatMap((group) => group.items).find((each) => each.label === label)!;
@@ -48,5 +48,31 @@ describe("navigation for a role", () => {
 
   it("names who is signed in from the session", () => {
     expect(shell("owner", []).view.user).toEqual({ ini: "OO", name: "Olive Owner", role: "Main Admin", email: "olive@example.com" });
+  });
+});
+
+describe("the account menu", () => {
+  const entry = (view: ReturnType<typeof shell>["view"], title: string) => view.ACCT.find((each) => each.t === title)!;
+
+  it("opens personal pages for every role, even one with no Settings access", () => {
+    for (const [title, screen] of [["Profile & preferences", "profile"], ["Notification settings", "notify"], ["Help & support", "help"]]) {
+      const { view, changes } = shell("dispatcher", ["dispatch.read"], { screen: "dispatch", overlay: "account" });
+      entry(view, title).go();
+      expect(changes).toEqual([goTo(screen)]);
+      expect(changes[0]!.overlay).toBe("none");
+      expect(shell("dispatcher", ["dispatch.read"], { screen }).view.isForbidden).toBe(false);
+    }
+  });
+
+  it("opens keyboard shortcuts as a dialog over the current page, closing the menu", () => {
+    const { view, changes } = shell("accountant", ["invoices.read"], { screen: "invoices", overlay: "account" });
+    entry(view, "Keyboard shortcuts").go();
+    expect(changes).toEqual([{ overlay: "none", acct: "keys" }]);
+  });
+
+  it("sends the top bar's help button to the help center", () => {
+    const { view, changes } = shell("viewer", []);
+    view.openHelp();
+    expect(changes).toEqual([goTo("help")]);
   });
 });

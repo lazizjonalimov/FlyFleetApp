@@ -90,6 +90,25 @@ class MeUser(BaseModel):
     id: uuid.UUID
     email: str
     full_name: str
+    phone: str | None = None
+    timezone: str | None = Field(default=None, description="Your own time zone; empty means the company's")
+
+
+class ProfileIn(BaseModel):
+    """Your own profile. Only the fields sent change; an empty phone or time zone clears it."""
+    full_name: str | None = Field(default=None, min_length=1, max_length=120)
+    phone: str | None = Field(default=None, max_length=40)
+    timezone: TimeZone | Literal[""] | None = None
+
+
+class SessionInfo(BaseModel):
+    """One device you are signed in on."""
+    id: uuid.UUID
+    created_at: datetime
+    last_seen_at: datetime
+    user_agent: str | None
+    ip_address: str | None
+    current: bool = Field(description="The session this request was made from")
 
 
 class MeOrganization(OrgRef):

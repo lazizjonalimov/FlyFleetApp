@@ -2,7 +2,7 @@
 // the browser only what it may know.
 import "server-only";
 import { cookies } from "next/headers";
-import { apiFetch, errorResponse, sameOrigin, sessionToken, setSession } from "@/lib/auth/server";
+import { apiFetch, clientHeaders, errorResponse, sameOrigin, sessionToken, setSession } from "@/lib/auth/server";
 
 type Options = { path: string; authenticated?: boolean };
 
@@ -16,7 +16,7 @@ export async function exchange(request: Request, { path, authenticated = false }
 
   let upstream: Response;
   try {
-    upstream = await apiFetch(path, { method: "POST", token, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    upstream = await apiFetch(path, { method: "POST", token, headers: { "Content-Type": "application/json", ...clientHeaders(request) }, body: JSON.stringify(body) });
   } catch {
     return errorResponse(502, "UPSTREAM_UNAVAILABLE", "FlyFleet is not reachable right now. Try again in a moment.");
   }

@@ -38,6 +38,10 @@ const NAV: { label: string; items: [key: string, label: string, icon: keyof type
   { label: "Administration", items: [["team", "Team & access", "team", ["users.manage"]], ["settings", "Settings", "sliders", ["organization.manage"]], ["audit", "Audit log", "history", ["audit.read"]]] },
 ];
 
+/** The sections a person can choose to open on when they come to the company: the ones their role opens. */
+export const startPages = (can: Can): { key: string; label: string }[] =>
+  NAV.flatMap((group) => group.items).filter(([, , , anyOf]) => can(...anyOf)).map(([key, label]) => ({ key, label }));
+
 /** The section a record's or sub-screen's address belongs to. */
 const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", customerportal: "customers", stmt: "settlements", ostmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
 
@@ -58,11 +62,15 @@ const CREATE: [kind: string, title: string, sub: string, icon: keyof typeof I, a
 /** The permission needed to add each kind of record. */
 export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(CREATE.map(([kind, , , , anyOf]) => [kind, anyOf])), fuel: ["expenses.manage"], mileage: ["expenses.manage"], customer: ["customers.manage"], payment: ["payments.record"], statement: ["settlements.manage"], payout: ["settlements.manage"], workorder: ["maintenance.manage"], member: ["users.manage"] };
 
-const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string, dialog: string][] = [
-  ["Profile & preferences", "user", "", "profile"],
-  ["Notification settings", "bell", "", "notify"],
-  ["Keyboard shortcuts", "kbd", "?", "keys"],
-  ["Help & support", "help", "", "help"],
+/**
+ * The account menu. Each is personal, so every role can open it: two Settings pages, the shortcuts dialog
+ * (which opens over the current page rather than going anywhere), and the help center.
+ */
+const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string, to: { screen: string } | { dialog: string }][] = [
+  ["Profile & preferences", "user", "", { screen: "profile" }],
+  ["Notification settings", "bell", "", { screen: "notify" }],
+  ["Keyboard shortcuts", "kbd", "?", { dialog: "keys" }],
+  ["Help & support", "help", "", { screen: "help" }],
 ];
 
 /** A stable colour for a company's mark, from the design's palette. */
@@ -84,6 +92,7 @@ export type ShellInput = {
   state: ConsoleState;
   set: (patch: ConsoleState) => void;
   theme: "light" | "dark";
+  density: "compact" | "comfortable";
   mini: boolean;
   setMini: (mini: boolean) => void;
   /** The line under the company's name in the sidebar. */
@@ -101,7 +110,7 @@ const FROM_DOCUMENT = new Set(["driver", "truck", "trailer", "load", "invoice", 
 export const addOf = (kind: string): ConsoleState => ({ modal: "add", kind, mstep: FROM_DOCUMENT.has(kind) ? "choose" : "manual", overlay: "none", dd: null, ddq: "", fv: {}, ferr: {} });
 
 /** Everything the shell draws: navigation for the signed-in role, who and where, and what is open on top. */
-export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, counts }: ShellInput) {
+export function buildShell({ me, can, state, set, theme, density, mini, setMini, orgSub, counts }: ShellInput) {
   const screen = typeof state.screen === "string" ? state.screen : "dashboard";
   const section = sectionOf(screen, state);
   // Alert policies sit in Settings but are read by whoever works the alerts, and changed by those allowed to.
@@ -143,7 +152,7 @@ export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, 
     uid: "ff",
     screen,
     theme,
-    density: "compact",
+    density,
     fin,
     noFin: !fin,
     user: { ini: initials(me.user.full_name), name: me.user.full_name, role: me.organization.role_label || humanize(me.organization.role), email: me.user.email },
@@ -163,8 +172,9 @@ export function buildShell({ me, can, state, set, theme, mini, setMini, orgSub, 
     toggleCreate: () => set({ overlay: overlay === "create" ? "none" : "create" }),
     toggleAcct: () => set({ overlay: overlay === "account" ? "none" : "account" }),
     CR: CREATE.filter(([, , , , anyOf]) => can(...anyOf)).map(([key, t, s, icon]) => ({ t, s, ic: I[icon], go: () => set(key === "owner" ? { ...goTo("ownerform"), ownerForm: "new", ownerId: null } : addOf(key)) })),
-    ACCT: ACCOUNT.map(([t, icon, kbd, dialog]) => ({ t, ic: I[icon], kbd, go: () => set({ overlay: "none", acct: dialog }) })),
-    openHelp: () => set({ overlay: "none", acct: "help" }),
+    // choosing one closes the menu: going to a screen closes every overlay, the dialog replaces the menu
+    ACCT: ACCOUNT.map(([t, icon, kbd, to]) => ({ t, ic: I[icon], kbd, go: () => set("screen" in to ? goTo(to.screen) : { overlay: "none", acct: to.dialog }) })),
+    openHelp: () => set(goTo("help")),
     hasModal: modal !== "none" && can(...(ADD_PERMISSION[kind] ?? [])),
     closeModal: () => set({ modal: "none" }),
     hasToast: !!toast,
