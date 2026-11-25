@@ -109,7 +109,7 @@ export type ShellInput = {
 };
 
 /** Moving to a section closes whatever was open on the way and starts its list afresh. */
-export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, overlay: "none", panel: "none", modal: "none", lsel: [], lsort: null, dd: null, ltab: 0, lq: "", lpage: [], lf: {} });
+export const goTo = (screen: string): ConsoleState => ({ screen, drawer: null, overlay: "none", panel: "none", modal: "none", lsel: [], lsort: null, dd: null, ltab: 0, lq: "", lpage: [], lf: {}, lpreset: null });
 
 /** Opening the add flow for a kind of record. */
 /** Kinds that can be added from a document or a spreadsheet as well as by hand: they open on the choice. */

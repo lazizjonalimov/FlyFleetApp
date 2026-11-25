@@ -16,7 +16,7 @@ test("adding a customer from the list", async ({ page }) => {
 
 test("adding a driver from Create, then opening and editing the record", async ({ page }) => {
   const account = await signUp(page);
-  await page.getByRole("button", { name: "Create" }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
   await page.getByRole("menuitem", { name: /Add a driver/ }).click();
   await page.getByRole("dialog", { name: "Add a driver" }).getByRole("button", { name: /Enter manually/ }).click();
   const dialog = page.getByRole("dialog", { name: "Add a driver" });

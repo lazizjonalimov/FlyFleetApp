@@ -23,6 +23,8 @@ const noop = () => {};
 
 /** A page of a list. In All companies each item names its company and the page counts them by company. */
 export type ListPage<Item> = { items: Item[]; page: PageInfo; by_company?: { organization: { name: string; code: string }; count: number }[] };
+/** The list a dashboard card counted: its screen, a name for the chip, and the API parameters. */
+export type Preset = { screen: string; label: string; params: Record<string, string | string[]> };
 type Owned = { organization?: { id: string; code: string; name: string; slug: string; color: string; logo_url?: string | null } };
 export type ListQuery = Record<string, string | number | boolean | undefined>;
 
@@ -223,7 +225,10 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
     const value = picked[f.key];
     if (value) Object.assign(filterParams, f.params ? f.params(value) : { [f.key]: value });
   }
-  const filters: ListQuery = { ...tab?.params, ...filterParams, ...(q ? { q } : {}) };
+  // A dashboard card opens its list with the exact parameters it counted: they apply until the chip is removed.
+  const preset = state.lpreset && typeof state.lpreset === "object" && (state.lpreset as Preset).screen === state.screen ? (state.lpreset as Preset) : null;
+  const presetParams: ListQuery = preset ? (preset.params as ListQuery) : {};
+  const filters: ListQuery = { ...tab?.params, ...presetParams, ...filterParams, ...(q ? { q } : {}) };
   const query = useQuery({
     queryKey: [me.organization.id, spec.key, "list", filters, sort, cursor ?? null, size],
     queryFn: () => spec.fetch({ ...filters, sort, cursor, limit: size, count: true }),
@@ -233,8 +238,8 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
   // every tab shows how many records it holds under the filters in force, whichever tab is open
   const counts = useQueries({
     queries: tabs.map((each) => ({
-      queryKey: [me.organization.id, spec.key, "count", each.params ?? {}, filterParams],
-      queryFn: () => spec.fetch({ ...each.params, ...filterParams, limit: 1, count: true }),
+      queryKey: [me.organization.id, spec.key, "count", each.params ?? {}, presetParams, filterParams],
+      queryFn: () => spec.fetch({ ...each.params, ...presetParams, ...filterParams, limit: 1, count: true }),
       staleTime: 30_000,
       enabled: enabled && each.count !== false,
     })),
@@ -342,6 +347,7 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
   const chips = (spec.filters ?? [])
     .filter((f) => picked[f.key])
     .map((f) => ({ l: `${f.label}: ${f.options.find((o) => o.value === picked[f.key])?.label ?? picked[f.key]}`, clear: () => setFilter(f.key, null) }));
+  if (preset) chips.unshift({ l: `From dashboard: ${preset.label}`, clear: () => set({ lpreset: null, ...restart }) });
   const adds: FilterMenu[] = (spec.filters ?? [])
     .filter((f) => !picked[f.key])
     .map((f) => {
@@ -449,7 +455,7 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
     error: query.error,
     retry: () => void query.refetch(),
     empty: spec.empty,
-    clearFilters: () => set({ lq: "", ltab: 0, lf: {}, ...restart }),
+    clearFilters: () => set({ lq: "", ltab: 0, lf: {}, lpreset: null, ...restart }),
     pager: {
       page: trail.length + 1,
       previous: trail.length ? () => set({ lpage: trail.slice(0, -1), lsel: [] }) : null,

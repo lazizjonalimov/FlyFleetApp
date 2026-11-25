@@ -2668,6 +2668,43 @@
         "title": "CategoryTotal",
         "type": "object"
       },
+      "Change": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This period minus the one before; empty when there's no earlier figure",
+            "title": "Delta"
+          },
+          "text": {
+            "description": "In words, with an arrow: \"\u25b2 2 vs yesterday\"",
+            "title": "Text",
+            "type": "string"
+          },
+          "tone": {
+            "enum": [
+              "good",
+              "bad",
+              "neutral"
+            ],
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delta",
+          "tone",
+          "text"
+        ],
+        "title": "Change",
+        "type": "object"
+      },
       "ChannelOut": {
         "properties": {
           "connected": {
@@ -12960,6 +12997,128 @@
           "purchases"
         ],
         "title": "JurisdictionFuel",
+        "type": "object"
+      },
+      "Kpi": {
+        "properties": {
+          "change": {
+            "$ref": "#/components/schemas/Change"
+          },
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "good": {
+            "description": "Which way is better: up, down, or neither",
+            "enum": [
+              "up",
+              "down",
+              "neutral"
+            ],
+            "title": "Good",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "series": {
+            "description": "Seven points, oldest first, the current period last",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "sub": {
+            "title": "Sub",
+            "type": "string"
+          },
+          "target": {
+            "$ref": "#/components/schemas/Target"
+          },
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shown after the value, as \"/ 42\"",
+            "title": "Total"
+          },
+          "value": {
+            "title": "Value",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "tone",
+          "good",
+          "value",
+          "sub",
+          "definition",
+          "change",
+          "series",
+          "target"
+        ],
+        "title": "Kpi",
+        "type": "object"
+      },
+      "KpisOut": {
+        "properties": {
+          "kpis": {
+            "items": {
+              "$ref": "#/components/schemas/Kpi"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "period": {
+            "enum": [
+              "today",
+              "week",
+              "month"
+            ],
+            "title": "Period",
+            "type": "string"
+          },
+          "since": {
+            "title": "Since",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "today",
+          "since",
+          "kpis"
+        ],
+        "title": "KpisOut",
         "type": "object"
       },
       "LinkIn": {
@@ -25897,6 +26056,105 @@
         "title": "SavedViewOut",
         "type": "object"
       },
+      "ScheduleOut": {
+        "properties": {
+          "at_risk": {
+            "title": "At Risk",
+            "type": "integer"
+          },
+          "no_driver": {
+            "title": "No Driver",
+            "type": "integer"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduleStop"
+            },
+            "title": "Stops",
+            "type": "array"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "to_go": {
+            "title": "To Go",
+            "type": "integer"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          }
+        },
+        "required": [
+          "today",
+          "timezone",
+          "stops",
+          "to_go",
+          "at_risk",
+          "no_driver"
+        ],
+        "title": "ScheduleOut",
+        "type": "object"
+      },
+      "ScheduleStop": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "pickup",
+              "delivery"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "load_id": {
+            "format": "uuid",
+            "title": "Load Id",
+            "type": "string"
+          },
+          "load_number": {
+            "title": "Load Number",
+            "type": "string"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "on_time",
+              "no_driver",
+              "late"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "load_id",
+          "load_number",
+          "kind",
+          "at",
+          "place",
+          "state"
+        ],
+        "title": "ScheduleStop",
+        "type": "object"
+      },
       "SearchResult": {
         "properties": {
           "id": {
@@ -28183,6 +28441,50 @@
           }
         },
         "title": "SwitchIn",
+        "type": "object"
+      },
+      "Target": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "description": "Its parameters: the list's count is the figure",
+            "title": "Params",
+            "type": "object"
+          },
+          "resource": {
+            "description": "The API list behind the figure",
+            "title": "Resource",
+            "type": "string"
+          },
+          "screen": {
+            "description": "The console screen that shows the list",
+            "title": "Screen",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screen",
+          "resource",
+          "params",
+          "label"
+        ],
+        "title": "Target",
         "type": "object"
       },
       "TaskAction": {
@@ -41268,6 +41570,177 @@
         ]
       }
     },
+    "/api/v1/dashboard/kpis": {
+      "get": {
+        "description": "Each figure is its list's own count (the list is asked, in-process, with the parameters in `target`), with a\ncomparison against the period before and seven points for a sparkline.",
+        "operationId": "dashboard_kpis_api_v1_dashboard_kpis_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "period",
+            "required": false,
+            "schema": {
+              "default": "today",
+              "enum": [
+                "today",
+                "week",
+                "month"
+              ],
+              "title": "Period",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KpisOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The dashboard's six figures for the caller's role, each with the list behind it",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/schedule": {
+      "get": {
+        "description": "Every pickup and delivery with an appointment today, on the loads the caller can see (a dispatch team's\ndispatcher, the team's loads only). Done when the truck has arrived; late when the appointment has passed or an\nalert says it will be missed; no driver when nobody is assigned.",
+        "operationId": "dashboard_schedule_api_v1_dashboard_schedule_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Today's pickups and deliveries, by appointment time, for those who dispatch",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/dashboard/summary": {
       "get": {
         "operationId": "dashboard_summary_api_v1_dashboard_summary_get",
@@ -42450,7 +42923,10 @@
                     "at_risk",
                     "in_transit",
                     "missing_pod",
-                    "ready_to_invoice"
+                    "ready_to_invoice",
+                    "unassigned_soon",
+                    "deliveries",
+                    "late_or_at_risk"
                   ],
                   "type": "string"
                 },
@@ -53421,7 +53897,10 @@
                     "at_risk",
                     "in_transit",
                     "missing_pod",
-                    "ready_to_invoice"
+                    "ready_to_invoice",
+                    "unassigned_soon",
+                    "deliveries",
+                    "late_or_at_risk"
                   ],
                   "type": "string"
                 },

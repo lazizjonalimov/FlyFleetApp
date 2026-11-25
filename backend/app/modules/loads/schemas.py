@@ -16,7 +16,7 @@ ChargeType = Literal["detention", "layover", "lumper", "fuel_surcharge", "tarp",
 Money = Annotated[Decimal, Field(ge=0, max_digits=12, decimal_places=2)]
 # Views the dispatch board and the load list offer as one-click filters.
 LoadView = Literal["active", "unassigned", "pickups_today", "deliveries_today", "at_risk", "in_transit",
-                   "missing_pod", "ready_to_invoice"]
+                   "missing_pod", "ready_to_invoice", "unassigned_soon", "deliveries", "late_or_at_risk"]
 Action = Literal["mark_ready", "dispatch", "arrive", "depart", "approve_pod", "reject_pod", "hold", "release",
                  "cancel"]
 

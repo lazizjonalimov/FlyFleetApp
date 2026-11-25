@@ -7,7 +7,6 @@ import { cell } from "@/components/data-table/cell";
 import { BasicCell } from "@/components/data-table/cells";
 import { EmptyState } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
-import { placeOf } from "@/features/alerts/exceptions";
 import { useConsole } from "@/features/console/console-provider";
 import { goTo } from "@/features/console/shell";
 import { useAction } from "@/features/console/use-action";
@@ -22,6 +21,9 @@ import { formatDate, formatDateTime, timeZoneLabel, toLocalInput } from "@/lib/f
 import { formatMoney } from "@/lib/format/money";
 import { formatNumber, humanize, place, plural } from "@/lib/format/text";
 import { cents, useDashboardData } from "./dashboard-data";
+import { KpiCards, useKpis } from "./kpi-cards";
+import { QuickActions } from "./quick-actions";
+import { TodaysSchedule } from "./schedule";
 
 /** "$184.2k" — a short amount for a figure that is read at a glance. */
 function short(value: string | number, currency: string): string {
@@ -41,7 +43,6 @@ function axis(amount: number, currency: string): string {
   return `${symbol}${Math.round(amount)}`;
 }
 const pct = (part: number, whole: number) => (whole ? `${Math.round((part / whole) * 100)}%` : "0%");
-const monthName = (day: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short" }).format(new Date(`${day}T12:00:00Z`));
 const longMonth = (day: string) => new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "long" }).format(new Date(`${day}T12:00:00Z`));
 const span = (from: string, to: string) => `${formatDate(from).replace(/, \d{4}$/, "")}–${new Date(`${to}T12:00:00Z`).getUTCDate()}`;
 /** "1h 40m", "35m". */
@@ -49,7 +50,6 @@ const minutes = (total: number) => (total >= 60 ? `${Math.floor(total / 60)}h${t
 
 type Attention = Schema<"AttentionItem">;
 
-type Kpi = { label: string; value: string; suffix: string; sub: string; k: string; sk: string; go?: () => void };
 type Widget =
   | { kind: "avail"; title: string; note?: string; rows: { label: string; total: number; segs: { l: string; n: string; k: string; w: string }[] }[] }
   | { kind: "money"; title: string; note?: string; items: { label: string; v: string; s: string; k: string }[]; foot: string }
@@ -63,55 +63,26 @@ function CompanyDashboard() {
   const [view, setView] = useState<Record<string, "chart" | "table">>({});
   const [tip, setTip] = useState<string | null>(null);
   const data = useDashboardData(period);
+  const kpiData = useKpis(period);
   const org = me.organization;
   const zone = org.timezone;
   const currency = org.base_currency;
   const money = (value: string | number | null | undefined) => formatMoney(value, currency);
   const s = data.summary.data;
-  const loads = s?.loads;
-  const outlook = s?.outlook;
   const fleet = s?.fleet;
   const receivables = s?.receivables;
   const safety = s?.safety ?? undefined;
   // Finance roles that don't run the road get the billing overview, as the server decides it.
   const billing = s ? s.view === "billing" : can("invoices.read") && !can("dispatch.read") && !can("tracking.read");
   const team = me.scope?.team_name ?? null;
-  const exceptions = data.exceptions.data ?? [];
-  const exception = (code: string) => exceptions.find((each) => each.code === code);
   const loadsTab = (params: Record<string, string>) => set({ ...goTo("loads"), ltab: tabFor(LOAD_TABS, params) });
   const dash = "—";
-  const n = (value: number | undefined) => (value === undefined ? dash : formatNumber(value));
   const hm = (iso: string) => toLocalInput(iso, zone).slice(11);
   const dayOf = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(iso));
   const shortDay = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "short", day: "numeric" }).format(new Date(iso));
   const now = new Date();
 
-  const trucksTotal = data.trucks.data?.items.length ?? (fleet ? fleet.trucks_active + fleet.trucks_unavailable : undefined);
-  const available = fleet ? Math.max(0, fleet.drivers_active - fleet.drivers_on_load - (safety?.drivers_blocked ?? 0)) : undefined;
   const attention = data.attention.data?.items ?? [];
-  const oldestReview = attention.find((a) => a.kind === "pod_review");
-  const reviewAge = oldestReview ? Math.max(0, Math.round((now.getTime() - Date.parse(oldestReview.at)) / 86_400_000)) : null;
-  const statements = data.statements.data;
-  const kpis: Kpi[] = billing
-    ? [
-        { label: "Ready to invoice", value: n(receivables?.ready_to_invoice_loads), suffix: "", sub: receivables ? `est. ${short(receivables.ready_to_invoice_amount, currency)}` : "", k: "brand", sk: "mu", go: () => loadsTab({ view: "ready_to_invoice" }) },
-        { label: "POD review", value: n(exception("POD_REVIEW")?.count ?? (data.exceptions.isSuccess ? 0 : undefined)), suffix: "", sub: reviewAge === null ? "Approve to invoice" : reviewAge < 1 ? "oldest today" : `oldest ${plural(reviewAge, "day")}`, k: "info", sk: "mu", go: () => { const e = exception("POD_REVIEW"); if (e) set(placeOf(e)!); } },
-        { label: "Draft invoices", value: n(receivables?.draft_invoices), suffix: "", sub: receivables ? (receivables.draft_invoices ? short(receivables.draft_amount, currency) : "None started") : "", k: "mu", sk: "mu", go: () => set({ ...goTo("invoices"), ltab: 1 }) },
-        { label: "Overdue", value: receivables ? short(receivables.overdue_balance, currency) : dash, suffix: "", sub: receivables ? plural(receivables.overdue_invoices, "invoice") : "", k: "bad", sk: receivables?.overdue_invoices ? "bad" : "mu", go: () => set({ ...goTo("invoices"), ltab: 2 }) },
-        { label: `Collected · ${monthName(data.today)}`, value: data.month.ready ? short(data.month.cash, currency) : dash, suffix: "", sub: data.month.ready ? plural(data.month.payments, "payment") : "", k: "ok", sk: "mu" },
-        { label: "Statements to approve", value: n(statements?.drafts), suffix: "", sub: statements ? (statements.drafts && statements.drafts_from && statements.drafts_to ? span(statements.drafts_from, statements.drafts_to).replace("–", " – ") : "None waiting") : "", k: "warn", sk: statements?.drafts ? "warn" : "mu", go: () => set({ ...goTo("settlements"), ltab: 0 }) },
-      ]
-    : [
-        { label: "Unassigned loads", value: n(loads?.unassigned), suffix: "", sub: loads && outlook ? (team && loads.unassigned ? `Tagged for ${team} or shared` : `${formatNumber(outlook.unassigned_today)} pick up today`) : "", k: "warn", sk: outlook?.unassigned_today ? "warn" : "mu", go: () => (can("dispatch.assign") ? set({ ...goTo("dispatch") }) : loadsTab({ view: "unassigned" })) },
-        { label: "Late or at risk", value: n(loads?.at_risk), suffix: "", sub: !outlook ? "" : outlook.will_miss ? `${formatNumber(outlook.will_miss)} will miss ${outlook.will_miss === 1 ? "its" : "their"} appointment` : outlook.late ? `${formatNumber(outlook.late)} past ${outlook.late === 1 ? "an appointment" : "appointments"}` : loads?.at_risk ? "Picking up within a day with no driver" : "Nothing late right now", k: "bad", sk: loads?.at_risk ? "bad" : "mu", go: () => set(goTo("alerts")) },
-        { label: "Deliveries next 4 h", value: n(outlook?.deliveries), suffix: "", sub: outlook ? `${formatNumber(outlook.deliveries_on_time)} on schedule` : "", k: "info", sk: "mu", go: () => loadsTab({ view: "deliveries_today" }) },
-        { label: "Drivers available", value: available === undefined ? dash : formatNumber(available), suffix: fleet ? ` / ${formatNumber(fleet.drivers_active)}` : "", sub: outlook?.drivers_free ? `${formatNumber(outlook.drivers_free)} more free by ${hm(outlook.until)}` : safety?.drivers_blocked ? `${formatNumber(safety.drivers_blocked)} can’t be dispatched` : fleet ? `${formatNumber(fleet.drivers_on_load)} on a load` : "", k: "ok", sk: "mu", go: () => set(goTo(can("dispatch.read") ? "dispatch" : "drivers")) },
-        { label: "Trucks unavailable", value: n(fleet?.trucks_unavailable), suffix: trucksTotal !== undefined ? ` / ${formatNumber(trucksTotal)}` : "", sub: [outlook?.trucks_in_shop ? `${formatNumber(outlook.trucks_in_shop)} in shop` : "", outlook?.trucks_out_of_service ? `${formatNumber(outlook.trucks_out_of_service)} out of service` : "", safety?.units_blocked ? `${formatNumber(safety.units_blocked)} blocked by paperwork` : ""].filter(Boolean).join(" · ") || (fleet ? "Every truck can run" : ""), k: "mu", sk: "mu", go: () => set(goTo(can("maintenance.read") ? "maintenance" : "trucks")) },
-        can("invoices.read")
-          ? { label: "Overdue invoices", value: receivables ? short(receivables.overdue_balance, currency) : dash, suffix: "", sub: receivables ? `${plural(receivables.overdue_invoices, "invoice")}${receivables.oldest_overdue_days ? ` · oldest ${plural(receivables.oldest_overdue_days, "day")}` : ""}` : "", k: "bad", sk: "mu", go: () => set({ ...goTo("invoices"), ltab: 2 }) }
-          : { label: "POD missing", value: n(loads?.missing_pod), suffix: "", sub: "Blocks invoicing", k: "bad", sk: loads?.missing_pod ? "bad" : "mu", go: () => loadsTab({ view: "missing_pod" }) },
-      ];
-
   // Needs attention: each row's one action.
   const onMap = (a: Attention) => set({ ...goTo("tracking"), ...(a.vehicle_id ? { vehicle: a.vehicle_id } : {}) });
   const openLoad = (id: string) => set({ screen: "loads", drawer: id, overlay: "none", modal: "none" });
@@ -375,21 +346,10 @@ function CompanyDashboard() {
           ) : null}
         </div>
       </div>
-      <div className="kpis" style={{ margin: "0 24px", gridTemplateColumns: "repeat(6,minmax(0,1fr))" }}>
-        {kpis.map((k) => (
-          <button key={k.label} className="kpi" onClick={k.go}>
-            <span className="kl">
-              <span className="dot" data-k={k.k}></span>
-              <span className="ell"><span>{k.label}</span></span>
-            </span>
-            <span className="kv2">
-              <span>{k.value}</span>
-              <small><span>{k.suffix}</span></small>
-            </span>
-            <span className="ks" data-k={k.sk}><span>{k.sub}</span></span>
-          </button>
-        ))}
-      </div>
+      <QuickActions />
+      <KpiCards kpis={kpiData.data?.kpis ?? []} loading={kpiData.isPending} />
+      {kpiData.isError ? <div className="banner" data-k="bad" role="alert" style={{ margin: "8px 24px 0" }}><div className="f1">The figures couldn’t be loaded. They’ll try again in a minute.</div></div> : null}
+      {can("dispatch.read") ? <TodaysSchedule /> : null}
       {data.books ? (
         <>
           <div className="r g8" style={{ padding: "20px 24px 0" }}>

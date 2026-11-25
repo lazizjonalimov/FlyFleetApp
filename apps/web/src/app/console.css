@@ -1137,3 +1137,30 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 /* company logos: shown in place of the coloured initials */
 .ff .cmark.logo{display:inline-block;background:#fff;box-shadow:inset 0 0 0 1px var(--bd);position:relative}
 .ff .cmark.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+
+/* dashboard: KPI change and sparkline, quick actions, today's schedule, by company */
+.ff .kchg{font-size:12px;line-height:16px;font-weight:500;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ff .kchg.good{color:#137A3E}.ff .kchg.bad{color:#B42318}
+.ff[data-theme=dark] .kchg.good{color:#4ADE80}.ff[data-theme=dark] .kchg.bad{color:#F97066}
+.ff .kspark{width:100%;height:22px;margin-top:4px;overflow:visible}
+.ff .kspark path{stroke:var(--d,var(--pri));stroke-width:1.5}
+.ff .kspark circle{fill:var(--d,var(--pri))}
+.ff .qact{display:flex;flex-wrap:wrap;gap:8px;padding:0 24px 14px}
+.ff .tl{position:relative;padding:8px 16px 22px 108px}
+.ff .tl-hours{position:relative;height:18px;font-size:11px;color:var(--mu)}
+.ff .tl-hours span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.ff .tl-body{position:relative}
+.ff .tl-grid{position:absolute;inset:0;pointer-events:none}
+.ff .tl-grid span{position:absolute;top:0;bottom:0;border-left:1px dashed var(--bd2)}
+.ff .tl-now{position:absolute;top:-4px;bottom:0;border-left:2px solid #D92D20;z-index:2}
+.ff .tl-now{bottom:-16px}
+.ff .tl-now b{position:absolute;bottom:0;left:-13px;font-size:10px;line-height:14px;font-weight:600;color:#B42318;background:var(--sf);padding:0 3px}
+.ff .tl-lane{position:relative;border-top:1px solid var(--bd2)}
+.ff .tl-name{position:absolute;left:-92px;top:12px;font-size:12px;font-weight:500;color:var(--tx2)}
+.ff .tl-track{position:relative}
+.ff .tl-chip{position:absolute;display:flex;align-items:center;gap:6px;width:164px;white-space:nowrap;overflow:hidden;height:28px;padding:0 8px;border:1px solid var(--bd);border-radius:7px;background:var(--sf);box-shadow:var(--sh1);font-size:12px;text-align:left;color:var(--tx);z-index:1}
+.ff .tl-chip:hover{border-color:var(--pri)}
+.ff .tl-chip.done{opacity:.55}
+.ff .bycoline{display:grid;align-items:center;gap:12px;width:100%;padding:10px 16px;border:none;border-top:1px solid var(--bd2);background:var(--sf);text-align:left;color:inherit;font-size:13px}
+.ff .bycoline:hover{background:var(--sf2)}
+.ff .bycohead{display:grid;gap:12px;padding:8px 16px;font-size:12px;font-weight:500;color:var(--tx2)}

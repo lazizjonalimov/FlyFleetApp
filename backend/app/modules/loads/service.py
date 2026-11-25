@@ -554,6 +554,15 @@ def view_conditions(p: Principal, now: datetime) -> dict:
         "on_hold": Load.status == "on_hold",
         "ready_to_invoice": and_(Load.status == "completed", Load.billing_status == "unbilled",
                                  Load.invoice_id.is_(None)),
+        # The dashboard's cards, so a card's number and the list it opens are the same query.
+        # Picking up within 24 hours (or already past) with no driver.
+        "unassigned_soon": unassigned_soon,
+        # Every load with a delivery appointment (narrowed by delivery_from / delivery_to), drafts and cancelled aside.
+        "deliveries": and_(Load.delivery_at.is_not(None), Load.status.not_in(("draft", "cancelled"))),
+        # Late or at risk now, or delivered after the appointment (narrowed by delivery_from / delivery_to).
+        "late_or_at_risk": or_(late_pickup, late_delivery, unassigned_soon,
+                               and_(Load.delivered_at.is_not(None), Load.delivery_at.is_not(None),
+                                    Load.delivered_at > Load.delivery_at)),
     }
 
 

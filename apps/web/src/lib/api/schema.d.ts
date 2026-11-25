@@ -997,6 +997,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The dashboard's six figures for the caller's role, each with the list behind it
+         * @description Each figure is its list's own count (the list is asked, in-process, with the parameters in `target`), with a
+         *     comparison against the period before and seven points for a sparkline.
+         */
+        get: operations["dashboard_kpis_api_v1_dashboard_kpis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today's pickups and deliveries, by appointment time, for those who dispatch
+         * @description Every pickup and delivery with an appointment today, on the loads the caller can see (a dispatch team's
+         *     dispatcher, the team's loads only). Done when the truck has arrived; late when the appointment has passed or an
+         *     alert says it will be missed; no driver when nobody is assigned.
+         */
+        get: operations["dashboard_schedule_api_v1_dashboard_schedule_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -6403,6 +6446,24 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** Change */
+        Change: {
+            /**
+             * Delta
+             * @description This period minus the one before; empty when there's no earlier figure
+             */
+            delta: number | null;
+            /**
+             * Text
+             * @description In words, with an arrow: "▲ 2 vs yesterday"
+             */
+            text: string;
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "good" | "bad" | "neutral";
+        };
         /** ChannelOut */
         ChannelOut: {
             /** Connected */
@@ -9610,6 +9671,56 @@ export interface components {
             jurisdiction: string;
             /** Purchases */
             purchases: number;
+        };
+        /** Kpi */
+        Kpi: {
+            change: components["schemas"]["Change"];
+            /** Definition */
+            definition: string;
+            /**
+             * Good
+             * @description Which way is better: up, down, or neither
+             * @enum {string}
+             */
+            good: "up" | "down" | "neutral";
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Series
+             * @description Seven points, oldest first, the current period last
+             */
+            series: (number | null)[];
+            /** Sub */
+            sub: string;
+            target: components["schemas"]["Target"];
+            /** Tone */
+            tone: string;
+            /**
+             * Total
+             * @description Shown after the value, as "/ 42"
+             */
+            total?: number | null;
+            /** Value */
+            value: number;
+        };
+        /** KpisOut */
+        KpisOut: {
+            /** Kpis */
+            kpis: components["schemas"]["Kpi"][];
+            /**
+             * Period
+             * @enum {string}
+             */
+            period: "today" | "week" | "month";
+            /** Since */
+            since: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
         };
         /** LinkIn */
         LinkIn: {
@@ -13793,6 +13904,51 @@ export interface components {
             /** Shared */
             shared: boolean;
         };
+        /** ScheduleOut */
+        ScheduleOut: {
+            /** At Risk */
+            at_risk: number;
+            /** No Driver */
+            no_driver: number;
+            /** Stops */
+            stops: components["schemas"]["ScheduleStop"][];
+            /** Timezone */
+            timezone: string;
+            /** To Go */
+            to_go: number;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+        };
+        /** ScheduleStop */
+        ScheduleStop: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pickup" | "delivery";
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Load Number */
+            load_number: string;
+            /** Place */
+            place: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "done" | "on_time" | "no_driver" | "late";
+        };
         /** SearchResult */
         SearchResult: {
             /**
@@ -14587,6 +14743,28 @@ export interface components {
              * @enum {string}
              */
             scope: "company" | "all";
+        };
+        /** Target */
+        Target: {
+            /** Label */
+            label: string;
+            /**
+             * Params
+             * @description Its parameters: the list's count is the figure
+             */
+            params: {
+                [key: string]: string | string[];
+            };
+            /**
+             * Resource
+             * @description The API list behind the figure
+             */
+            resource: string;
+            /**
+             * Screen
+             * @description The console screen that shows the list
+             */
+            screen: string;
         };
         /** TaskAction */
         TaskAction: {
@@ -21243,6 +21421,138 @@ export interface operations {
             };
         };
     };
+    dashboard_kpis_api_v1_dashboard_kpis_get: {
+        parameters: {
+            query?: {
+                period?: "today" | "week" | "month";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KpisOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_schedule_api_v1_dashboard_schedule_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     dashboard_summary_api_v1_dashboard_summary_get: {
         parameters: {
             query?: {
@@ -22020,7 +22330,7 @@ export interface operations {
                 count?: boolean;
                 status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
                 billing_status?: ("unbilled" | "invoiced" | "paid") | null;
-                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice") | null;
+                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
                 customer_id?: string | null;
                 terminal_id?: string | null;
                 driver_id?: string | null;
@@ -29136,7 +29446,7 @@ export interface operations {
                 count?: boolean;
                 status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
                 billing_status?: ("unbilled" | "invoiced" | "paid") | null;
-                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice") | null;
+                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
                 customer_id?: string | null;
                 terminal_id?: string | null;
                 driver_id?: string | null;

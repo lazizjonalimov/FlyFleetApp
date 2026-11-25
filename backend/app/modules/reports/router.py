@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from sqlalchemy import case, func, literal, or_, select
@@ -32,7 +32,7 @@ from app.modules.loads.schemas import BoardSummary
 from app.modules.maintenance import service as maintenance
 from app.modules.maintenance.models import WorkOrder
 from app.modules.organizations.models import Terminal
-from app.modules.reports import attention
+from app.modules.reports import attention, kpis
 from app.modules.safety.router import SafetySummary, summary_counts
 from app.modules.settlements import service as settlements
 from app.modules.tracking.models import Incident
@@ -187,6 +187,71 @@ def dashboard_summary(terminal_id: uuid.UUID | None = None, p: Principal = Depen
         out.revenue = Revenue(currency=p.currency, this_month=amount, loads_delivered_this_month=count,
                               miles_this_month=miles, last_month=_delivered_totals(db, *_month_bounds(p, 1))[2])
     return out
+
+
+@router.get("/dashboard/kpis", response_model=kpis.KpisOut, tags=["dashboard"],
+            summary="The dashboard's six figures for the caller's role, each with the list behind it")
+async def dashboard_kpis(request: Request, period: kpis.Period = "today",
+                         p: Principal = Depends(require("dashboard.read")), db: Session = Depends(get_db)):
+    """Each figure is its list's own count (the list is asked, in-process, with the parameters in `target`), with a
+    comparison against the period before and seven points for a sparkline."""
+    headers = {k: v for k, v in request.headers.items() if k.lower() in ("authorization", "x-request-id", "x-preview-team")}
+    headers["X-Company"] = str(p.org_id)
+    return await kpis.compute(request.app, headers, db, p, period, attention.billing_view(p))
+
+
+class ScheduleStop(BaseModel):
+    load_id: uuid.UUID
+    load_number: str
+    kind: Literal["pickup", "delivery"]
+    at: datetime
+    place: str | None
+    state: Literal["done", "on_time", "no_driver", "late"]
+
+
+class ScheduleOut(BaseModel):
+    today: date
+    timezone: str
+    stops: list[ScheduleStop]
+    to_go: int
+    at_risk: int
+    no_driver: int
+
+
+@router.get("/dashboard/schedule", response_model=ScheduleOut, tags=["dashboard"],
+            summary="Today's pickups and deliveries, by appointment time, for those who dispatch")
+def dashboard_schedule(p: Principal = Depends(require("dispatch.read")), db: Session = Depends(get_db)):
+    """Every pickup and delivery with an appointment today, on the loads the caller can see (a dispatch team's
+    dispatcher, the team's loads only). Done when the truck has arrived; late when the appointment has passed or an
+    alert says it will be missed; no driver when nobody is assigned."""
+    start, end = loads.day_bounds(p.timezone, p.today())
+    now = datetime.now(start.tzinfo)
+    at = func.coalesce(LoadStop.appt_start, LoadStop.appt_end)
+    rows = db.execute(team_scope.where(
+        select(Load.id, Load.load_number, Load.status, LoadStop.type, at, LoadStop.city, LoadStop.state,
+               LoadStop.arrived_at)
+        .join(LoadStop, LoadStop.load_id == Load.id)
+        .where(LoadStop.type.in_(("pickup", "delivery")), at >= start, at < end,
+               Load.status.not_in(("draft", "cancelled")))
+        .order_by(at), team_scope.loads(p.scope))).all()
+    flagged = set(db.scalars(select(Incident.load_id).where(
+        Incident.kind.in_(("late", "at_risk")), Incident.state != "resolved", Incident.load_id.in_({r[0] for r in rows}))))
+    stops = []
+    for load_id, number, status, kind, when, city, state, arrived in rows:
+        if arrived is not None or status in ("delivered", "pod_review", "completed"):
+            mark = "done"
+        elif status == "planned":
+            mark = "no_driver"
+        elif load_id in flagged or when < now:
+            mark = "late"
+        else:
+            mark = "on_time"
+        stops.append(ScheduleStop(load_id=load_id, load_number=number, kind=kind, at=when, state=mark,
+                                  place=", ".join(x for x in (city, state) if x) or None))
+    left = [x for x in stops if x.state != "done"]
+    return ScheduleOut(today=p.today(), timezone=p.timezone, stops=stops, to_go=len(left),
+                       at_risk=sum(1 for x in left if x.state == "late"),
+                       no_driver=sum(1 for x in left if x.state == "no_driver"))
 
 
 @router.get("/dashboard/exceptions", response_model=list[Exception_], tags=["dashboard"])

@@ -11,9 +11,9 @@ export function currentScope(): string | null {
   return scope;
 }
 
-// Lists the API can answer for several companies at once, and the dashboard's summary. Everything else is
+// Lists the API can answer for several companies at once, and the dashboard's summary, figures and schedule. Everything else is
 // per company. Only these exact addresses are combined: a request for one record never is.
-const COMBINED = /^\/api\/v1\/(customers|drivers|vehicles|trailers|loads|invoices|owners|documents|tasks|settlements|owner-settlements|maintenance\/inspections|maintenance\/work-orders|expenses|incidents|payments|dashboard\/summary)$/;
+const COMBINED = /^\/api\/v1\/(customers|drivers|vehicles|trailers|loads|invoices|owners|documents|tasks|settlements|owner-settlements|maintenance\/inspections|maintenance\/work-orders|expenses|incidents|payments|dashboard\/summary|dashboard\/kpis|dashboard\/schedule)$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Which company each record seen in a combined list belongs to, so what is done to it later (open it, an action
