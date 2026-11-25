@@ -80,7 +80,14 @@ export function SettingsNav({ current }: { current: SettingsKey }) {
   );
 }
 
-/** A Settings page: breadcrumbs "Settings > page", the title and what it is for, actions, the list and the body. */
+/** Personal pages (the "You" group): reached from the account menu, not from Administration. */
+export const isPersonal = (key: SettingsKey): boolean => SETTINGS_NAV[0]!.items.some((item) => item.key === key);
+
+/**
+ * A Settings page: breadcrumbs, the title and what it is for, actions, the list and the body. The company's
+ * pages sit under Administration in the sidebar, so they read "Administration > Settings > page"; your own
+ * pages read "Settings > page".
+ */
 export function SettingsFrame({ current, sub, actions, children }: { current: SettingsKey; sub: string; actions?: ReactNode; children: ReactNode }) {
   const label = settingsLabel(current);
   return (
@@ -88,6 +95,12 @@ export function SettingsFrame({ current, sub, actions, children }: { current: Se
       <div className="ph" style={{ paddingBottom: "14px", borderBottom: "1px solid var(--bd)" }}>
         <div className="f1">
           <nav className="crumb" aria-label="Breadcrumb">
+            {isPersonal(current) ? null : (
+              <>
+                <span>Administration</span>
+                <Icon className="s12" d={I.chevR} />
+              </>
+            )}
             <span>Settings</span>
             <Icon className="s12" d={I.chevR} />
             <b aria-current="page"><span>{label}</span></b>

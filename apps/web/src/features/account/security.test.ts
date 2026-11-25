@@ -16,3 +16,11 @@ describe("Security & privacy", () => {
     expect(ago("2026-02-14T08:00:00Z", now)).toBe("today");
   });
 });
+
+describe("Settings breadcrumbs", () => {
+  it("put the company's pages under Administration, and your own pages under Settings alone", async () => {
+    const { isPersonal } = await import("@/features/administration/settings-frame");
+    expect(["profile", "security", "notifications"].every((key) => isPersonal(key as never))).toBe(true);
+    expect(["integrations", "organization", "policy", "billing"].some((key) => isPersonal(key as never))).toBe(false);
+  });
+});
