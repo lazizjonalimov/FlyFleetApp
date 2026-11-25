@@ -89,3 +89,7 @@ These rules replace the earlier limit and archive rules above where they differ.
   it falls back to another active company when archived or left.
 - Every create, join, accept, decline, make-default, archive, restore and leave is recorded in the affected company's
   audit log.
+- **Company logos** are optional: a JPEG, PNG or WebP up to 5 MB, set under Settings › Organization (or when adding a
+  company) by anyone who may change company settings. It is re-encoded as a 256 × 256 WebP, fitted (never cropped),
+  and shown instead of the coloured initials wherever the company's mark appears; members of the company fetch it
+  from `/me/companies/{id}/logo`. The colour stays, for places a picture doesn't fit.

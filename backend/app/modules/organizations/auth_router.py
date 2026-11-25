@@ -1,5 +1,4 @@
 """Sign-up, sign-in, the current session, switching company, and changing your password."""
-import io
 import re
 import secrets
 import uuid
@@ -7,13 +6,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
-from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core import passwords
+from app.core import images, passwords
 from app.core.audit import audit
 from app.core.config import get_settings
 from app.core.db import new_session
@@ -65,7 +63,8 @@ def add_organization(db: Session, taken: list[tuple[str, str]] | None = None, **
 def user_organizations(db: Session, user_id: uuid.UUID) -> list[s.OrgRef]:
     rows = db.execute(text("SELECT * FROM auth_user_organizations(:u)"), {"u": user_id})
     return [s.OrgRef(id=r.organization_id, name=r.name, slug=r.slug, role=r.role, status=r.status, code=r.code,
-                     color=r.color, mc_number=r.mc_number) for r in rows]
+                     color=r.color, mc_number=r.mc_number, logo_url=identity.logo_url(r.organization_id, r.logo_updated_at))
+            for r in rows]
 
 
 def _remember(user_id: uuid.UUID, org_id: uuid.UUID, scope: str | None = None) -> None:
@@ -223,7 +222,7 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
         organization=s.MeOrganization(id=p.org_id, name=p.org_name, slug=p.org_slug, role=p.role,
                                       status=p.org_status, timezone=p.timezone, base_currency=p.currency,
                                       role_label=access.label_of(db, p.role), code=here.code, color=here.color,
-                                      mc_number=here.mc_number),
+                                      mc_number=here.mc_number, logo_url=here.logo_url),
         account=s.MeAccount(id=account.id, name=account.name, is_owner=p.is_account_owner,
                             max_companies=account.max_companies),
         memberships=memberships,
@@ -280,39 +279,10 @@ def update_me(body: s.ProfileIn, p: Principal = Depends(get_principal), db: Sess
 
 
 # ---------------------------------------------------------------- your profile photo
-PHOTO_MAX_BYTES = 5 * 1024 * 1024
-PHOTO_SIZE = 256
-
-
-def _square_photo(data: bytes) -> bytes:
-    """The upload as a 256 × 256 WebP, cropped to its centre. Re-encoding drops whatever else the file held
-    (location and camera data, scripts, a second format hidden inside), so only a plain picture is ever served."""
-    try:
-        with Image.open(io.BytesIO(data)) as probe:
-            if probe.format not in ("JPEG", "PNG", "WEBP"):
-                raise Invalid("Upload a JPEG, PNG or WebP picture", field="file")
-            if probe.width * probe.height > 40_000_000:
-                raise Invalid("That picture is too large. Use one under 40 megapixels.", field="file")
-            probe.verify()
-        with Image.open(io.BytesIO(data)) as image:
-            image = ImageOps.exif_transpose(image).convert("RGB")
-            image = ImageOps.fit(image, (PHOTO_SIZE, PHOTO_SIZE), method=Image.Resampling.LANCZOS)
-            out = io.BytesIO()
-            image.save(out, format="WEBP", quality=85)
-            return out.getvalue()
-    except (UnidentifiedImageError, OSError, SyntaxError) as e:
-        raise Invalid("That file isn’t a picture FlyFleet can read. Use a JPEG, PNG or WebP.", field="file") from e
-
-
 @router.put("/me/photo", response_model=s.MeUser)
 def upload_photo(file: UploadFile = File(...), p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     """Set your profile photo: a JPEG, PNG or WebP up to 5 MB, cropped to a square. Open to every role."""
-    data = file.file.read(PHOTO_MAX_BYTES + 1)
-    if not data:
-        raise Invalid("That file is empty", field="file")
-    if len(data) > PHOTO_MAX_BYTES:
-        raise Invalid("Photos can be up to 5 MB", field="file")
-    picture = _square_photo(data)
+    picture = images.square_webp(file.file.read(images.MAX_BYTES + 1), "cover")
     user = db.get(User, p.user_id)
     storage = get_storage()
     key = f"users/{p.user_id}/photo-{uuid.uuid4().hex}.webp"

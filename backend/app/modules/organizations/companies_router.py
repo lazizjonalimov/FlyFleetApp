@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.orm import Session
@@ -23,6 +23,7 @@ from app.core.deps import Principal, get_db, get_principal
 from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.core.permissions import Role
 from app.core.ratelimit import FailureLimiter
+from app.core.storage import get_storage
 from app.modules.access import service as access
 from app.modules.access.models import Invitation
 from app.modules.loads.models import Load
@@ -78,6 +79,7 @@ class MyCompany(BaseModel):
     trucks: int
     people: int
     is_default: bool
+    logo_url: str | None = None
 
 
 class MyInvitation(BaseModel):
@@ -120,7 +122,8 @@ def _companies(db: Session, user_id: uuid.UUID) -> list[MyCompany]:
             restorable_until=r.archived_at + timedelta(days=RESTORE_DAYS) if r.archived_at else None,
             role=r.role, role_label=_label(r.role, r.role_name), is_main_admin=main,
             sole_main_admin=main and r.main_admins <= 1, member_since=r.member_since, last_opened_at=r.last_opened_at,
-            drivers=r.drivers, trucks=r.trucks, people=r.people, is_default=r.organization_id == default))
+            drivers=r.drivers, trucks=r.trucks, people=r.people, is_default=r.organization_id == default,
+            logo_url=identity.logo_url(r.organization_id, r.logo_updated_at)))
     return out
 
 
@@ -548,3 +551,24 @@ def leave(company_id: uuid.UUID, p: Principal = Depends(get_principal), db: Sess
     db.commit()
     return _overview(db, p)
 
+
+
+# ---------------------------------------------------------------- company logos
+def _logo_key(db: Session, company_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+    there = new_session(org_id=company_id, user_id=user_id)
+    try:
+        return there.scalar(select(Organization.logo_key).where(Organization.id == company_id))
+    finally:
+        there.close()
+
+
+@router.get("/companies/{company_id}/logo", response_class=Response, responses={200: {"content": {"image/webp": {}}}})
+def company_logo(company_id: uuid.UUID, p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """A company's logo, for its members (from any of their companies, for the switcher)."""
+    _mine(db, p.user_id, company_id)
+    key = _logo_key(db, company_id, p.user_id)
+    storage = get_storage()
+    if not key or not storage.exists(key):
+        raise NotFound("This company has no logo")
+    return Response(storage.get(key), media_type="image/webp",
+                    headers={"Cache-Control": "private, max-age=31536000, immutable"})

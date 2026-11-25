@@ -23,7 +23,7 @@ const noop = () => {};
 
 /** A page of a list. In All companies each item names its company and the page counts them by company. */
 export type ListPage<Item> = { items: Item[]; page: PageInfo; by_company?: { organization: { name: string; code: string }; count: number }[] };
-type Owned = { organization?: { id: string; code: string; name: string; slug: string; color: string } };
+type Owned = { organization?: { id: string; code: string; name: string; slug: string; color: string; logo_url?: string | null } };
 export type ListQuery = Record<string, string | number | boolean | undefined>;
 
 export type Column<Item> = {
@@ -161,7 +161,7 @@ function withCompanies<Item extends { id: string }>(spec: ListSpec<Item>, inAll:
     width: "170px",
     cell: (item) => {
       const o = of(item);
-      return o ? cells.company(o.name, o.code, o.color) : cells.text("—");
+      return o ? cells.company(o.name, o.code, o.color, o.logo_url) : cells.text("—");
     },
     csv: (item) => of(item)?.name ?? "",
   };

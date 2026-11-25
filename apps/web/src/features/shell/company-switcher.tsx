@@ -99,7 +99,7 @@ export function CompanySwitcher() {
       : [c!.role_label, c!.mc_number, plural(c!.drivers, "driver")].filter(Boolean).join(" · ");
     return (
       <button key={entry.key} className={clsx("coi", index(entry.key) === active && "on")} role="menuitemradio" aria-checked={current} onClick={() => void choose(entry)} onMouseEnter={() => setCursor(index(entry.key))}>
-        {entry.all ? <span className="cmark" style={{ width: 28, height: 28, background: "var(--sf3)", color: "var(--tx2)" }}><Icon className="s14" d={GRID} /></span> : <CompanyMark code={c!.code} color={c!.color} size={28} />}
+        {entry.all ? <span className="cmark" style={{ width: 28, height: 28, background: "var(--sf3)", color: "var(--tx2)" }}><Icon className="s14" d={GRID} /></span> : <CompanyMark code={c!.code} color={c!.color} logo={c!.logo_url} size={28} />}
         <span className="f1 c" style={{ minWidth: 0 }}>
           <span className="r g6 fs13 w5" style={{ minWidth: 0 }}>
             <span className="ell">{entry.all ? "All companies" : c!.name}</span>
@@ -151,7 +151,11 @@ export function CompanySwitcher() {
         </div>
       ) : null}
       <button className="org" aria-label="Switch company" aria-haspopup="menu" aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
-        <span className="orgmk" style={{ background: org.c, color: inAll ? "#fff" : undefined, fontSize: org.ini.length > 3 ? "9px" : undefined }}><span>{org.ini}</span></span>
+        {org.logo && !inAll ? (
+          <CompanyMark code={org.ini} color={org.c} logo={org.logo} size={28} className="orgmk" />
+        ) : (
+          <span className="orgmk" style={{ background: org.c, color: inAll ? "#fff" : undefined, fontSize: org.ini.length > 3 ? "9px" : undefined }}><span>{org.ini}</span></span>
+        )}
         <span className="f1">
           <span className="blk ell" style={{ color: "var(--ntstrong)", fontSize: "13px", fontWeight: "500", lineHeight: "16px" }}><span>{org.name}</span></span>
           <span className="blk ell" style={{ fontSize: "11px", lineHeight: "14px" }}><span>{inAll ? `${companies.filter((m) => m.status === "active").length || me.memberships.filter((m) => m.status === "active").length} companies` : org.sub}</span></span>

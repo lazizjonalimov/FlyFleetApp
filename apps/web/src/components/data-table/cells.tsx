@@ -66,7 +66,7 @@ export function DataCell({ c }: { c: Cell }) {
       ) : null}
       {c.isCo && c.co ? (
         <div className="r g8" style={{ alignItems: "center", minWidth: 0 }}>
-          <CompanyMark code={c.co.code} color={c.co.color} size={22} />
+          <CompanyMark code={c.co.code} color={c.co.color} logo={c.co.logo} size={22} />
           <div className="ell">{tx(c.v)}</div>
         </div>
       ) : null}

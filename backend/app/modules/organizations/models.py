@@ -128,6 +128,9 @@ class Organization(Base, IdMixin, TimestampMixin):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Trucks the company runs, as chosen when it was added: 1-5, 6-20, 21-50 or 51+.
     fleet_size: Mapped[str | None] = mapped_column(String(8))
+    # An optional logo shown instead of the coloured initials: where it is stored, and when it changed.
+    logo_key: Mapped[str | None] = mapped_column(String(120))
+    logo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     dot_number: Mapped[str | None] = mapped_column(String(20))
     mc_number: Mapped[str | None] = mapped_column(String(20))
     # Printed on invoices.

@@ -10,7 +10,7 @@ export type Cell = {
   isTx?: number;
   /** A company's mark and name, in the Company column of a combined list. */
   isCo?: number;
-  co?: { code: string; color: string };
+  co?: { code: string; color: string; logo?: string | null };
   /** The company's short code shown before a number where companies mix. */
   pre?: string;
   v?: string;

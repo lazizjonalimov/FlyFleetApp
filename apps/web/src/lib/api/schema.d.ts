@@ -3334,6 +3334,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/companies/{company_id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Logo
+         * @description A company's logo, for its members (from any of their companies, for the switcher).
+         */
+        get: operations["company_logo_api_v1_me_companies__company_id__logo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/companies/{company_id}/restore": {
         parameters: {
             query?: never;
@@ -3479,6 +3499,31 @@ export interface paths {
         head?: never;
         /** Update Organization */
         patch: operations["update_organization_api_v1_organization_patch"];
+        trace?: never;
+    };
+    "/api/v1/organization/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload Logo
+         * @description Set the company's logo: a JPEG, PNG or WebP up to 5 MB, fitted into a square (never cropped). It is shown
+         *     instead of the coloured initials wherever the company's mark appears.
+         */
+        put: operations["upload_logo_api_v1_organization_logo_put"];
+        post?: never;
+        /**
+         * Remove Logo
+         * @description Remove the logo; the coloured initials show again.
+         */
+        delete: operations["remove_logo_api_v1_organization_logo_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/owner-settlements": {
@@ -6274,6 +6319,14 @@ export interface components {
              * @enum {string}
              */
             kind: "drivers" | "trucks" | "trailers" | "mileage" | "loads";
+        };
+        /** Body_upload_logo_api_v1_organization_logo_put */
+        Body_upload_logo_api_v1_organization_logo_put: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: string;
         };
         /** Body_upload_photo_api_v1_auth_me_photo_put */
         Body_upload_photo_api_v1_auth_me_photo_put: {
@@ -10295,6 +10348,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Logo Url
+             * @description The company's logo, shown instead of its coloured initials
+             */
+            logo_url?: string | null;
             /** Mc Number */
             mc_number?: string | null;
             /** Name */
@@ -10622,6 +10680,8 @@ export interface components {
             is_main_admin: boolean;
             /** Last Opened At */
             last_opened_at: string | null;
+            /** Logo Url */
+            logo_url?: string | null;
             /** Mc Number */
             mc_number: string | null;
             /**
@@ -10863,6 +10923,11 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Logo Url
+             * @description The company's logo, shown instead of its coloured initials
+             */
+            logo_url?: string | null;
             /** Mc Number */
             mc_number?: string | null;
             /** Name */
@@ -32073,6 +32138,73 @@ export interface operations {
             };
         };
     };
+    company_logo_api_v1_me_companies__company_id__logo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     restore_api_v1_me_companies__company_id__restore_post: {
         parameters: {
             query?: never;
@@ -32698,6 +32830,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    upload_logo_api_v1_organization_logo_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_logo_api_v1_organization_logo_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRef"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    remove_logo_api_v1_organization_logo_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgRef"];
                 };
             };
             /** @description Unauthorized */

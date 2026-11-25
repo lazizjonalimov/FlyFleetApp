@@ -1,13 +1,15 @@
 """Company administration: settings, team, roles, terminals, preferences, saved views, audit log."""
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter, Depends, File, Path, Query, UploadFile
 from sqlalchemy import func, or_, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import images
 from app.core.audit import audit
 from app.core.crud import like, resource_router
 from app.core.deps import Principal, get_db, get_principal, require
@@ -15,6 +17,7 @@ from app.core.errors import Conflict, Forbidden, Invalid, NotFound
 from app.core.pagination import Page, envelope, paginate, parse_sort
 from app.core.permissions import Role
 from app.core.security import hash_password
+from app.core.storage import get_storage
 from app.modules.access import service as access
 from app.modules.organizations import schemas as s
 from app.modules.organizations.models import (
@@ -36,6 +39,41 @@ settings_router = APIRouter(tags=["organization"])
 @settings_router.get("/organization", response_model=s.OrganizationOut)
 def get_organization(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     return db.get(Organization, p.org_id)
+
+
+@settings_router.put("/organization/logo", response_model=s.OrgRef)
+def upload_logo(file: UploadFile = File(...), p: Principal = Depends(require("organization.manage")),
+                db: Session = Depends(get_db)):
+    """Set the company's logo: a JPEG, PNG or WebP up to 5 MB, fitted into a square (never cropped). It is shown
+    instead of the coloured initials wherever the company's mark appears."""
+    picture = images.square_webp(file.file.read(images.MAX_BYTES + 1), "contain")
+    org = db.get(Organization, p.org_id)
+    storage = get_storage()
+    key = f"{p.org_id}/logo-{uuid.uuid4().hex}.webp"
+    storage.put(key, picture)
+    old, org.logo_key, org.logo_updated_at = org.logo_key, key, datetime.now(UTC)
+    audit(db, p, "organization.logo_changed", "organization", p.org_id)
+    db.commit()
+    if old:
+        storage.delete(old)
+    return _ref(db, p)
+
+
+@settings_router.delete("/organization/logo", response_model=s.OrgRef)
+def remove_logo(p: Principal = Depends(require("organization.manage")), db: Session = Depends(get_db)):
+    """Remove the logo; the coloured initials show again."""
+    org = db.get(Organization, p.org_id)
+    if org.logo_key:
+        old, org.logo_key, org.logo_updated_at = org.logo_key, None, None
+        audit(db, p, "organization.logo_removed", "organization", p.org_id)
+        db.commit()
+        get_storage().delete(old)
+    return _ref(db, p)
+
+
+def _ref(db: Session, p: Principal) -> s.OrgRef:
+    from app.modules.organizations.auth_router import user_organizations
+    return next(o for o in user_organizations(db, p.user_id) if o.id == p.org_id)
 
 
 @settings_router.patch("/organization", response_model=s.OrganizationOut)

@@ -1133,3 +1133,7 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .bad.btn,.ff .btn.badt{color:#B42318}
 .ff .cosw .cobanner{background:var(--prit);color:var(--pritx)}
 .ff .cosw .cobanner:hover{background:var(--prit)}
+
+/* company logos: shown in place of the coloured initials */
+.ff .cmark.logo{display:inline-block;background:#fff;box-shadow:inset 0 0 0 1px var(--bd);position:relative}
+.ff .cmark.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}

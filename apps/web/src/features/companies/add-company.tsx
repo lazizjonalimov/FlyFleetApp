@@ -11,6 +11,7 @@ import { useSwitchCompany } from "@/features/shell/company-switch";
 import { useDebounced } from "@/hooks/use-debounced";
 import { api, unwrap } from "@/lib/api/client";
 import { ApiError, errorMessage } from "@/lib/api/errors";
+import { checkLogo, LOGO_ACCEPT, uploadLogo } from "./logo";
 import { COMPANIES_KEY, useMyCompanies } from "./use-companies";
 
 /** The company colours, with names for people who can't see them. The API accepts these eight. */
@@ -62,6 +63,9 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
   const [mode, setMode] = useState<"create" | "join">(start === "join" ? "join" : "create");
   const [form, setForm] = useState<Details>({ name: "", mc: "", dot: "", state: "", fleet: "", color: SWATCHES[0]![0] });
   const [invites, setInvites] = useState("");
+  // An optional logo, shown instead of the initials; uploaded to the company once it exists.
+  const [logo, setLogo] = useState<{ file: File; url: string } | null>(null);
+  const [logoProblem, setLogoProblem] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -109,9 +113,17 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
       const made = await unwrap(api.POST("/api/v1/me/companies", {
         body: { name: form.name.trim(), mc_number: form.mc, dot_number: form.dot || null, home_state: form.state, fleet_size: form.fleet as "1-5", color: form.color, invite_emails: people.valid },
       }));
+      let note = "";
+      if (logo) {
+        try {
+          await uploadLogo(logo.file, made.company.slug);
+        } catch {
+          note = " · the logo couldn’t be saved, add it under Settings › Organization";
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: COMPANIES_KEY });
       onClose();
-      await switchTo(made.company, { toast: `${made.company.name} created · you are its Main Admin`, path: `/${made.company.slug}/dashboard` });
+      await switchTo(made.company, { toast: `${made.company.name} created · you are its Main Admin${note}`, path: `/${made.company.slug}/dashboard` });
     } catch (error) {
       const fields = error instanceof ApiError ? error.fieldErrors : {};
       setErrors(fields);
@@ -197,7 +209,7 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
       {step === "details" ? (
         <div className="c g12">
           <div className="r g12">
-            <CompanyMark code={form.name.trim() ? initialsOf(form.name) : "?"} color={form.color} size={44} />
+            <CompanyMark code={form.name.trim() ? initialsOf(form.name) : "?"} color={form.color} logo={logo?.url} size={44} />
             <div className="c"><span className="fs13 w6">{form.name.trim() || "Your company"}</span><span className="fs12 mu">How the company’s mark will look</span></div>
           </div>
           <div className="fld">
@@ -236,6 +248,27 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
             </div>
           </div>
           <div className="fld">
+            <span className="lbl" id={`${id}-logo`}>Logo <span className="mu">(optional)</span></span>
+            <div className="r g8" role="group" aria-labelledby={`${id}-logo`}>
+              <label className="btn sm" style={{ cursor: "pointer" }}>
+                <Icon className="s14" d={I.upload} />
+                {logo ? "Change logo" : "Upload a logo"}
+                <input type="file" accept={LOGO_ACCEPT} className="sr-only" onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  const problem = checkLogo(file);
+                  setLogoProblem(problem);
+                  if (problem) return;
+                  if (logo) URL.revokeObjectURL(logo.url);
+                  setLogo({ file, url: URL.createObjectURL(file) });
+                }} />
+              </label>
+              {logo ? <button type="button" className="btn sm ghost" onClick={() => { URL.revokeObjectURL(logo.url); setLogo(null); }}>Use initials instead</button> : null}
+            </div>
+            <span className={logoProblem ? "errt" : "fs12 mu"}>{logoProblem ?? "Shown instead of the initials. JPEG, PNG or WebP, up to 5 MB. The colour is still used where a logo doesn’t fit."}</span>
+          </div>
+          <div className="fld">
             <span className="lbl" id={`${id}-color`}>Company colour</span>
             <div className="r g8" role="radiogroup" aria-labelledby={`${id}-color`}>
               {SWATCHES.map(([color, name]) => (
@@ -252,7 +285,7 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
       {step === "review" ? (
         <div className="c g12">
           <div className="r g12">
-            <CompanyMark code={initialsOf(form.name)} color={form.color} size={44} />
+            <CompanyMark code={initialsOf(form.name)} color={form.color} logo={logo?.url} size={44} />
             <div className="c"><span className="fs14 w6">{form.name.trim()}</span><span className="fs12 mu">You’ll be its Main Admin</span></div>
           </div>
           <dl className="dl2">
@@ -260,6 +293,7 @@ export function AddCompanyDialog({ onClose, start = "choose" }: { onClose: () =>
             <dt>USDOT</dt><dd className="mono">{form.dot || "—"}</dd>
             <dt>Home state</dt><dd>{STATES.find(([c]) => c === form.state)?.[1]}</dd>
             <dt>Fleet size</dt><dd>{FLEET_SIZES.find(([v]) => v === form.fleet)?.[1]}</dd>
+            <dt>Logo</dt><dd>{logo ? logo.file.name : "None · its initials on its colour"}</dd>
             <dt>Colour</dt><dd>{SWATCHES.find(([c]) => c === form.color)?.[1]}</dd>
           </dl>
           <div className="fld">

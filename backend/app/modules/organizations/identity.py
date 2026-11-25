@@ -29,3 +29,8 @@ def default_color(taken: list[str]) -> str:
         if color.lower() not in used:
             return color
     return PALETTE[len(used) % len(PALETTE)]
+
+
+def logo_url(company_id, updated_at) -> str | None:
+    """Where a company's logo is served, for its members; changes whenever the logo does, so it's never stale."""
+    return f"/api/v1/me/companies/{company_id}/logo?v={int(updated_at.timestamp())}" if updated_at else None

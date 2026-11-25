@@ -100,7 +100,7 @@ function ActiveTab({ data, currentId }: { data: MyCompanies; currentId: string |
               <button type="button" className="coline" aria-pressed={chosen?.id === c.id} onClick={() => set({ cosel: c.id })}
                 aria-label={`${c.name}${c.id === currentId ? ", current" : ""}${c.is_default ? ", default" : ""}: ${c.role_label}, ${c.mc_number ?? "no MC number"}, ${plural(c.drivers, "driver")}, ${plural(c.trucks, "truck")}, last opened ${opened(c.last_opened_at)}`}>
                 <span className="r g8" style={{ minWidth: 0 }}>
-                  <CompanyMark code={c.code} color={c.color} size={28} />
+                  <CompanyMark code={c.code} color={c.color} logo={c.logo_url} size={28} />
                   <span className="ell w5">{c.name}</span>
                   {c.id === currentId ? <span className="tag" data-k="ok">Current</span> : null}
                   {c.is_default ? <span className="tag" data-k="info">Default</span> : null}
@@ -147,7 +147,7 @@ function Detail({ company, current }: { company: MyCompany; current: boolean }) 
     <aside className="card" aria-label={`${company.name} details`}>
       <div className="cb c g12">
         <div className="r g10">
-          <CompanyMark code={company.code} color={company.color} size={40} />
+          <CompanyMark code={company.code} color={company.color} logo={company.logo_url} size={40} />
           <div className="c" style={{ minWidth: 0 }}><span className="fs14 w6 ell">{company.name}</span><span className="fs12 mu">{company.role_label}</span></div>
         </div>
         <div className="r g8" style={{ flexWrap: "wrap" }}>
@@ -327,7 +327,7 @@ function ArchivedTab({ data }: { data: MyCompanies }) {
       {archived.map((c) => (
         <section key={c.id} className="card" aria-label={c.name}>
           <div className="cb r g12" style={{ flexWrap: "wrap" }}>
-            <CompanyMark code={c.code} color={c.color} size={40} />
+            <CompanyMark code={c.code} color={c.color} logo={c.logo_url} size={40} />
             <div className="f1 c g2" style={{ minWidth: "220px" }}>
               <span className="r g6 fs14 w6">{c.name}<span className="tag" data-k="mu">Read-only</span></span>
               <span className="fs12 mu">{[c.mc_number, c.archived_at ? `Archived ${day(c.archived_at)}` : "", c.restorable_until ? `restorable for 90 days, until ${day(c.restorable_until)}` : ""].filter(Boolean).join(" · ")}</span>

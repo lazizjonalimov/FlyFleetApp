@@ -7,6 +7,7 @@ import { Problem } from "@/components/feedback/dialog";
 import { EmptyState, ErrorState, Skeleton } from "@/components/feedback/states";
 import { useAlertPolicyPage } from "./alert-policy";
 import { SettingsFrame, type SettingsPage } from "./settings-frame";
+import { CompanyLogoCard } from "@/features/companies/logo";
 import { IntegrationsPage } from "./integrations-page";
 import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
@@ -113,6 +114,7 @@ export function SettingsScreen() {
 
   return (
     <SettingsFrame current={page} sub={SUB[page]} actions={policy.actions}>
+      {page === "organization" ? <CompanyLogoCard /> : null}
       {page === "organization" || page === "numbering" ? (
         organization.data ? (
           <OrganizationForm key={`${page}-${organization.dataUpdatedAt}`} organization={organization.data} fields={page === "organization" ? FIELDS : NUMBERING} />

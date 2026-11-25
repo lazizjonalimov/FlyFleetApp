@@ -70,6 +70,7 @@ class OrgRef(BaseModel):
     code: str = Field(description="The company's short code, shown beside its numbers where companies mix")
     color: str = Field(description="The colour of the company's mark")
     mc_number: str | None = None
+    logo_url: str | None = Field(default=None, description="The company's logo, shown instead of its coloured initials")
 
     @model_validator(mode="before")
     @classmethod

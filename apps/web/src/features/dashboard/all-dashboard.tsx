@@ -56,7 +56,7 @@ export function AllDashboard() {
             <span className="kv"><span>{summary.data ? formatNumber(t.value) : "—"}</span></span>
             <span className="cobreak" style={{ marginTop: 4 }}>
               {rows.map((r) => (t.of(r.data) === undefined ? null : (
-                <span key={r.organization.id} className="cobi" style={{ padding: "1px 6px 1px 1px" }}><CompanyMark code={r.organization.code} color={r.organization.color} size={16} />{formatNumber(t.of(r.data) ?? 0)}</span>
+                <span key={r.organization.id} className="cobi" style={{ padding: "1px 6px 1px 1px" }}><CompanyMark code={r.organization.code} color={r.organization.color} logo={(r.organization as { logo_url?: string | null }).logo_url} size={16} />{formatNumber(t.of(r.data) ?? 0)}</span>
               )))}
             </span>
           </div>
@@ -65,7 +65,7 @@ export function AllDashboard() {
       <div className="c g12" style={{ margin: "16px 24px" }}>
         {rows.map(({ organization: o, data: s }) => (
           <button key={o.id} className="card" onClick={() => open(o.slug)} style={{ textAlign: "left", padding: 16, display: "flex", gap: 14, alignItems: "center" }}>
-            <CompanyMark code={o.code} color={o.color} size={36} />
+            <CompanyMark code={o.code} color={o.color} logo={(o as { logo_url?: string | null }).logo_url} size={36} />
             <span className="f1 c">
               <span className="fs14 w6">{o.name}</span>
               <span className="fs12 mu">

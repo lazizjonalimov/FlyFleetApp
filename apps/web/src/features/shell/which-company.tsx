@@ -57,7 +57,7 @@ export function WhichCompany() {
       <div className="c g6" role="radiogroup" aria-label="Company">
         {companies.map((c) => (
           <button key={c.id} role="radio" aria-checked={picked === c.id} className={`coi${picked === c.id ? " on" : ""}`} style={{ display: "flex", gap: 10, alignItems: "center", padding: 8, border: "1px solid var(--bd)", borderRadius: 8, background: picked === c.id ? "var(--sel)" : "transparent", textAlign: "left" }} onClick={() => setChoice(c.id)}>
-            <CompanyMark code={c.code} color={c.color} size={28} />
+            <CompanyMark code={c.code} color={c.color} logo={c.logo_url} size={28} />
             <span className="f1 c"><span className="fs13 w5">{c.name}</span><span className="fs12 mu">{[c.role_label, c.mc_number].filter(Boolean).join(" · ")}</span></span>
           </button>
         ))}

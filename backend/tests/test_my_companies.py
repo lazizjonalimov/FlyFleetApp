@@ -184,3 +184,35 @@ def test_leaving_a_company(org, make_org, owner_sql):
     # A Main Admin can invite them back, and they rejoin with the new role.
     code = org.post("/invitations", {"email": other.email, "full_name": "Ollie", "role": "viewer"}, 201).json()["code"]
     assert other.post("/me/invitations/join", {"code": code}, 200).json()["role"] == "viewer"
+
+
+def _logo(size=(600, 200)) -> bytes:
+    import io
+
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGBA", size, (31, 79, 224, 255)).save(out, format="PNG")
+    return out.getvalue()
+
+
+def test_a_company_logo_shows_instead_of_its_initials(org, make_org, owner_sql):
+    import io
+
+    from PIL import Image
+    dispatcher = org.add_user("dispatcher")
+    dispatcher.error("PUT", "/organization/logo", 403, "FORBIDDEN", files={"file": ("logo.png", _logo(), "image/png")})
+    ref = org.put("/organization/logo", files={"file": ("logo.png", _logo(), "image/png")}, expect=200).json()
+    assert ref["logo_url"].startswith(f"/api/v1/me/companies/{org.org_id}/logo?v=")
+
+    # Every member sees it, wherever the company is listed.
+    assert dispatcher.get("/auth/me").json()["organization"]["logo_url"] == ref["logo_url"]
+    assert dispatcher.get("/me/companies").json()["companies"][0]["logo_url"] == ref["logo_url"]
+    served = dispatcher.get(f"/me/companies/{org.org_id}/logo")
+    with Image.open(io.BytesIO(served.content)) as logo:       # fitted into a square, never cropped
+        assert logo.format == "WEBP" and logo.size == (256, 256) and logo.getpixel((128, 10))[3] == 0
+    make_org("Outsider Co").error("GET", f"/me/companies/{org.org_id}/logo", 404, "NOT_FOUND")
+    org.error("PUT", "/organization/logo", 422, "VALIDATION_ERROR", files={"file": ("x.svg", b"<svg/>", "image/svg+xml")})
+
+    assert org.delete("/organization/logo", 200).json()["logo_url"] is None
+    dispatcher.error("GET", f"/me/companies/{org.org_id}/logo", 404, "NOT_FOUND")
+    assert {"organization.logo_changed", "organization.logo_removed"} <= set(actions(owner_sql, org.org_id))

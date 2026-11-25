@@ -25,6 +25,7 @@ from app.core.db import new_session
 from app.core.deps import Principal, get_principal
 from app.core.errors import Invalid, NotFound
 from app.core.pagination import DEFAULT_LIMIT, MAX_LIMIT
+from app.modules.organizations import identity
 
 router = APIRouter(prefix="/all", tags=["all companies"])
 
@@ -38,7 +39,7 @@ FETCH_CAP = 500  # rows read from each company to build one merged page
 def _companies(user_id: uuid.UUID, home: uuid.UUID) -> list:
     db = new_session(org_id=home, user_id=user_id)
     try:
-        rows = db.execute(text("SELECT organization_id, name, slug, status, code, color "
+        rows = db.execute(text("SELECT organization_id, name, slug, status, code, color, logo_updated_at "
                                "FROM auth_user_organizations(:u)"), {"u": user_id}).all()
     finally:
         db.close()
@@ -46,7 +47,8 @@ def _companies(user_id: uuid.UUID, home: uuid.UUID) -> list:
 
 
 def _ref(c) -> dict:
-    return {"id": str(c.organization_id), "code": c.code, "name": c.name, "slug": c.slug, "color": c.color}
+    return {"id": str(c.organization_id), "code": c.code, "name": c.name, "slug": c.slug, "color": c.color,
+            "logo_url": identity.logo_url(c.organization_id, c.logo_updated_at)}
 
 
 def _offset(cursor: str | None) -> int:
