@@ -8,6 +8,7 @@ import { Confirm, Problem } from "@/components/feedback/dialog";
 import { ErrorState, Skeleton } from "@/components/feedback/states";
 import { Icon } from "@/components/ui/icon";
 import { SettingsFrame } from "@/features/administration/settings-frame";
+import { Avatar, usePhotoUpload } from "./photo";
 import { signOut } from "@/features/auth/switch-organization";
 import { useConsole, useDensity, useTheme } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
@@ -46,6 +47,7 @@ export function ProfileScreen() {
   const [startPage, , { ready }] = usePreference<string>(START_PAGE_KEY, "dashboard");
   const pages = useMemo(() => startPages(can), [can]);
   const zones = useMemo(() => timeZones(user.timezone), [user.timezone]);
+  const photo = usePhotoUpload();
 
   const saved = { full_name: user.full_name, phone: user.phone ?? "", timezone: user.timezone ?? "", start: startPage };
   const [edits, setEdits] = useState<Partial<typeof saved>>({});
@@ -111,6 +113,25 @@ export function ProfileScreen() {
 
         <section className="card" aria-labelledby={`${id}-profile`}>
           <div className="ch"><h2 id={`${id}-profile`} className="fs14 w6">Profile</h2></div>
+          <div className="r g14" style={{ padding: "16px 16px 0" }}>
+            <Avatar size="xl" />
+            <div className="f1 c g6">
+              <span className="fs13 w6" id={`${id}-photo`}>Profile photo</span>
+              <span className="fs12 mu">JPEG, PNG or WebP, up to 5 MB. It’s cropped to a square and shown beside your name.</span>
+              <div className="r g8" role="group" aria-labelledby={`${id}-photo`}>
+                <button type="button" className="btn sm" onClick={photo.pick} disabled={photo.pending !== null}>
+                  <Icon className="s14" d={I.upload} />
+                  {photo.pending === "upload" ? "Uploading…" : user.photo_url ? "Change photo" : "Upload photo"}
+                </button>
+                {user.photo_url ? (
+                  <button type="button" className="btn sm ghost" onClick={() => void photo.remove()} disabled={photo.pending !== null}>
+                    {photo.pending === "remove" ? "Removing…" : "Remove"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            {photo.input}
+          </div>
           <div className="sgrid">
             <div className="fld" style={{ gridColumn: "span 3" }}>
               <label htmlFor={`${id}-full_name`}>Full name</label>

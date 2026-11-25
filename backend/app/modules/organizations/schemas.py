@@ -100,6 +100,7 @@ class MeUser(BaseModel):
     full_name: str
     phone: str | None = None
     timezone: str | None = Field(default=None, description="Your own time zone; empty means the company's")
+    photo_url: str | None = Field(default=None, description="Your profile photo, when you have one")
 
 
 class ProfileIn(BaseModel):

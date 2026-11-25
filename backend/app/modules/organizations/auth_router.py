@@ -1,11 +1,13 @@
 """Sign-up, sign-in, the current session, switching company, and changing your password."""
+import io
 import re
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Request, Response, UploadFile
+from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, Field
 from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +22,7 @@ from app.core.errors import AppError, Conflict, Forbidden, Invalid, NotFound, Un
 from app.core.permissions import ROLE_LABELS, Role
 from app.core.ratelimit import FailureLimiter
 from app.core.security import create_token, hash_password, verify_password
+from app.core.storage import get_storage
 from app.modules.access import service as access
 from app.modules.organizations import identity, security
 from app.modules.organizations import schemas as s
@@ -225,8 +228,15 @@ def me(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
     )
 
 
+def _photo_url(user: User) -> str | None:
+    if not user.photo_key or not user.photo_updated_at:
+        return None
+    return f"/api/v1/auth/me/photo?v={int(user.photo_updated_at.timestamp())}"
+
+
 def _me_user(user: User) -> s.MeUser:
-    return s.MeUser(id=user.id, email=user.email, full_name=user.full_name, phone=user.phone, timezone=user.timezone)
+    return s.MeUser(id=user.id, email=user.email, full_name=user.full_name, phone=user.phone, timezone=user.timezone,
+                    photo_url=_photo_url(user))
 
 
 @router.patch("/me", response_model=s.MeUser)
@@ -260,6 +270,76 @@ def update_me(body: s.ProfileIn, p: Principal = Depends(get_principal), db: Sess
         audit(db, p, "user.profile_changed", "user", p.user_id, changes)
         db.commit()
     return _me_user(user)
+
+
+# ---------------------------------------------------------------- your profile photo
+PHOTO_MAX_BYTES = 5 * 1024 * 1024
+PHOTO_SIZE = 256
+
+
+def _square_photo(data: bytes) -> bytes:
+    """The upload as a 256 × 256 WebP, cropped to its centre. Re-encoding drops whatever else the file held
+    (location and camera data, scripts, a second format hidden inside), so only a plain picture is ever served."""
+    try:
+        with Image.open(io.BytesIO(data)) as probe:
+            if probe.format not in ("JPEG", "PNG", "WEBP"):
+                raise Invalid("Upload a JPEG, PNG or WebP picture", field="file")
+            if probe.width * probe.height > 40_000_000:
+                raise Invalid("That picture is too large. Use one under 40 megapixels.", field="file")
+            probe.verify()
+        with Image.open(io.BytesIO(data)) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")
+            image = ImageOps.fit(image, (PHOTO_SIZE, PHOTO_SIZE), method=Image.Resampling.LANCZOS)
+            out = io.BytesIO()
+            image.save(out, format="WEBP", quality=85)
+            return out.getvalue()
+    except (UnidentifiedImageError, OSError, SyntaxError) as e:
+        raise Invalid("That file isn’t a picture FlyFleet can read. Use a JPEG, PNG or WebP.", field="file") from e
+
+
+@router.put("/me/photo", response_model=s.MeUser)
+def upload_photo(file: UploadFile = File(...), p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Set your profile photo: a JPEG, PNG or WebP up to 5 MB, cropped to a square. Open to every role."""
+    data = file.file.read(PHOTO_MAX_BYTES + 1)
+    if not data:
+        raise Invalid("That file is empty", field="file")
+    if len(data) > PHOTO_MAX_BYTES:
+        raise Invalid("Photos can be up to 5 MB", field="file")
+    picture = _square_photo(data)
+    user = db.get(User, p.user_id)
+    storage = get_storage()
+    key = f"users/{p.user_id}/photo-{uuid.uuid4().hex}.webp"
+    storage.put(key, picture)
+    old = user.photo_key
+    user.photo_key, user.photo_updated_at = key, datetime.now(UTC)
+    audit(db, p, "user.photo_changed", "user", p.user_id)
+    db.commit()
+    if old:
+        storage.delete(old)
+    return _me_user(user)
+
+
+@router.delete("/me/photo", response_model=s.MeUser)
+def remove_photo(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Remove your profile photo; your initials show instead."""
+    user = db.get(User, p.user_id)
+    old = user.photo_key
+    if old:
+        user.photo_key, user.photo_updated_at = None, None
+        audit(db, p, "user.photo_removed", "user", p.user_id)
+        db.commit()
+        get_storage().delete(old)
+    return _me_user(user)
+
+
+@router.get("/me/photo", response_class=Response, responses={200: {"content": {"image/webp": {}}}})
+def get_photo(p: Principal = Depends(get_principal), db: Session = Depends(get_db)):
+    """Your profile photo, as stored."""
+    user = db.get(User, p.user_id)
+    if not user.photo_key or not get_storage().exists(user.photo_key):
+        raise NotFound("No profile photo")
+    return Response(get_storage().get(user.photo_key), media_type="image/webp",
+                    headers={"Cache-Control": "private, max-age=31536000, immutable"})
 
 
 # ---------------------------------------------------------------- your sessions (devices signed in)

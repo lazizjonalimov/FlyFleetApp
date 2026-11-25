@@ -54,6 +54,9 @@ class User(Base, IdMixin, TimestampMixin):
     # Privacy: support may view the account until this time; product usage counts shared or not.
     support_access_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     share_usage: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Profile photo: where the re-encoded square image is stored, and when it changed (for cache busting).
+    photo_key: Mapped[str | None] = mapped_column(String(120))
+    photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (CheckConstraint("email = lower(email)", name="email_lowercase"),)
 
 

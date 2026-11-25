@@ -47,7 +47,7 @@ describe("navigation for a role", () => {
   });
 
   it("names who is signed in from the session", () => {
-    expect(shell("owner", []).view.user).toEqual({ ini: "OO", name: "Olive Owner", role: "Main Admin", email: "olive@example.com" });
+    expect(shell("owner", []).view.user).toEqual({ ini: "OO", name: "Olive Owner", role: "Main Admin", email: "olive@example.com", photo: null });
   });
 });
 

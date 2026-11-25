@@ -60,3 +60,44 @@ def test_sign_out_ends_the_token_at_once(client, org):
     device.post("/auth/logout", None, 204)
     device.error("GET", "/auth/me", 401, "UNAUTHENTICATED")
     org.get("/auth/me")
+
+
+def _picture(fmt: str = "PNG", size: tuple[int, int] = (400, 300)) -> bytes:
+    import io
+
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGB", size, (31, 79, 224)).save(out, format=fmt)
+    return out.getvalue()
+
+
+@pytest.mark.parametrize("role", ["dispatcher", "accountant", "viewer"])
+def test_any_role_sets_and_removes_its_profile_photo(org, role):
+    import io
+
+    from PIL import Image
+    member = org.add_user(role)
+    assert member.get("/auth/me").json()["user"]["photo_url"] is None
+    me = member.put("/auth/me/photo", files={"file": ("me.png", _picture(), "image/png")}, expect=200).json()
+    assert me["photo_url"].startswith("/api/v1/auth/me/photo?v=")
+    photo = member.get("/auth/me/photo")
+    assert photo.headers["content-type"] == "image/webp"
+    with Image.open(io.BytesIO(photo.content)) as served:            # re-encoded as a square
+        assert served.format == "WEBP" and served.size == (256, 256)
+    assert member.get("/auth/me").json()["user"]["photo_url"] == me["photo_url"]
+    assert org.get("/auth/me").json()["user"]["photo_url"] is None   # nobody else's photo changed
+
+    assert member.delete("/auth/me/photo", 200).json()["photo_url"] is None
+    member.error("GET", "/auth/me/photo", 404, "NOT_FOUND")
+    actions = [e["action"] for e in org.items("/audit-logs", limit=100)]
+    assert "user.photo_changed" in actions and "user.photo_removed" in actions
+
+
+def test_a_profile_photo_must_be_a_real_picture_of_a_sensible_size(org):
+    for name, data, kind in [("x.png", b"not a picture", "image/png"), ("x.gif", _picture("GIF"), "image/gif"),
+                             ("x.svg", b"<svg xmlns='http://www.w3.org/2000/svg'><script>1</script></svg>", "image/svg+xml"),
+                             ("x.png", b"", "image/png")]:
+        org.error("PUT", "/auth/me/photo", 422, "VALIDATION_ERROR", files={"file": (name, data, kind)})
+    big = b"\x89PNG" + b"\x00" * (5 * 1024 * 1024 + 10)
+    body = org.error("PUT", "/auth/me/photo", 422, "VALIDATION_ERROR", files={"file": ("big.png", big, "image/png")})
+    assert "5 MB" in body["message"]

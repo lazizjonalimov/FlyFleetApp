@@ -3,13 +3,20 @@
 import { clsx } from "clsx";
 import { Icon } from "@/components/ui/icon";
 import { signOut } from "@/features/auth/switch-organization";
+import { Avatar, usePhotoUpload } from "@/features/account/photo";
 import { useConsole } from "@/features/console/console-provider";
 import { plural } from "@/lib/format/text";
 
 /** Search, Ask FlyFleet, Create, help, notifications and the account menu. */
 export function TopBar() {
-  const { me, toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT, openHelp } = useConsole();
+  const { me, toggleSb, sbLabel, sbExp, sbIcon, openPalette, I, aiOn, toggleAI, toggleCreate, createExp, isCreate, CR, notifOn, toggleNotif, alertCount, acctOn, toggleAcct, acctExp, user, isAcct, org, ACCT, openHelp, closeOverlay } = useConsole();
   // A dispatch team's dispatcher sees only the team's trucks; the chip says so wherever they are.
+  const photo = usePhotoUpload();
+  // The file chooser opens from the click itself (browsers require that); the menu closes behind it.
+  const choosePhoto = () => {
+    photo.pick();
+    closeOverlay();
+  };
   const scope = me.scope;
   const scopeLabel = scope ? (scope.team_name ? `${scope.team_name} · ${plural(scope.trucks, "truck")}` : "No team · no trucks") : "";
   const scopeTip = scope ? (scope.team_name ? `You see only ${scope.team_name}’s trucks and the loads, drivers and alerts on them` : "You’re on no dispatch team, and the company has set dispatchers on no team to see no trucks") : "";
@@ -65,7 +72,7 @@ export function TopBar() {
       <span className="vdiv"></span>
       <div className="mwrap">
         <button className={clsx("me", acctOn)} onClick={toggleAcct} aria-label="Account menu" aria-haspopup="menu" aria-expanded={acctExp}>
-          <span className="av md me"><span>{user.ini}</span></span>
+          <Avatar size="md" />
           <span className="c">
             <span className="fs13 w5 tx"><span>{user.name}</span></span>
             <span className="fs11 mu"><span>{user.role}</span></span>
@@ -75,7 +82,10 @@ export function TopBar() {
         {isAcct ? (
           <div className="menu" role="menu" aria-label="Account" style={{ width: "288px" }}>
             <div className="r g10" style={{ padding: "8px 8px 10px" }}>
-              <span className="av md me"><span>{user.ini}</span></span>
+              <button type="button" className="avbtn" onClick={choosePhoto} aria-label={user.photo ? "Change profile photo" : "Upload profile photo"} title={user.photo ? "Change profile photo" : "Upload profile photo"}>
+                <Avatar size="lg" />
+                <span className="cam" aria-hidden="true"><Icon className="s12" d={I.camera} /></span>
+              </button>
               <div className="f1">
                 <div className="fs13 w6 tx ell"><span>{user.name}</span></div>
                 <div className="fs12 mu ell"><span>{user.email}</span></div>
@@ -85,6 +95,16 @@ export function TopBar() {
               <span className="tag" data-k="brand"><span>{user.role}</span></span>
               <span className="fs12 mu ell"><span>{org.name}</span></span>
             </div>
+            <button className="menui" role="menuitem" onClick={choosePhoto} disabled={photo.pending !== null}>
+              <Icon d={I.camera} />
+              <span className="f1">{photo.pending === "upload" ? "Uploading photo…" : user.photo ? "Change profile photo" : "Upload profile photo"}</span>
+            </button>
+            {user.photo ? (
+              <button className="menui" role="menuitem" onClick={() => { closeOverlay(); void photo.remove(); }} disabled={photo.pending !== null}>
+                <Icon d={I.x} />
+                <span className="f1">Remove photo</span>
+              </button>
+            ) : null}
             <div className="hr"></div>
             {ACCT.map((m, i) => (
               <button key={i} className="menui" role="menuitem" onClick={m.go}>
@@ -103,6 +123,7 @@ export function TopBar() {
           </div>
         ) : null}
       </div>
+      {photo.input}
     </header>
   );
 }
