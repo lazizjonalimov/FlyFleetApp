@@ -55,13 +55,17 @@ describe("the account menu", () => {
   const entry = (view: ReturnType<typeof shell>["view"], title: string) => view.ACCT.find((each) => each.t === title)!;
 
   it("opens personal pages for every role, even one with no Settings access", () => {
-    for (const [title, screen] of [["Profile & preferences", "profile"], ["Notification settings", "notify"], ["Help & support", "help"]]) {
+    for (const [title, screen] of [["Profile & preferences", "profile"], ["Security & privacy", "security"], ["Notification settings", "notify"], ["Help & support", "help"]]) {
       const { view, changes } = shell("dispatcher", ["dispatch.read"], { screen: "dispatch", overlay: "account" });
       entry(view, title).go();
       expect(changes).toEqual([goTo(screen)]);
       expect(changes[0]!.overlay).toBe("none");
       expect(shell("dispatcher", ["dispatch.read"], { screen }).view.isForbidden).toBe(false);
     }
+  });
+
+  it("lists Security & privacy right after Profile & preferences", () => {
+    expect(shell("viewer", []).view.ACCT.map((each) => each.t)).toEqual(["Profile & preferences", "Security & privacy", "Notification settings", "Keyboard shortcuts", "Help & support"]);
   });
 
   it("opens keyboard shortcuts as a dialog over the current page, closing the menu", () => {

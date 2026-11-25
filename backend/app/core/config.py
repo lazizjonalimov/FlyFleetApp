@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     assistant_model: str = "claude-opus-5-5"
 
     cors_origins: list[str] = ["http://localhost:3000"]
+    # Where people open FlyFleet, for links in emails (password resets, data exports).
+    public_url: str = "http://localhost:3000"
+    # Email. "outbox": no provider is connected; each message is written as a file under <storage_dir>/outbox
+    # and logged, so it can be read in development and tests. A provider adapter replaces it at deployment.
+    mail: str = "outbox"
     signup_enabled: bool = True
     # How many active companies one account (profile) may hold. Individual accounts can be given another limit.
     max_companies_per_account: int = 10

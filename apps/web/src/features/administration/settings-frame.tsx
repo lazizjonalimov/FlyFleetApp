@@ -9,7 +9,7 @@ import { goTo } from "@/features/console/shell";
 
 /** A page of Settings: a screen of its own, or one of the pages of the Settings screen (`setpage`). */
 export type SettingsPage = "organization" | "numbering" | "policy" | "integrations" | "retention" | "billing";
-export type SettingsKey = "profile" | "notifications" | "team" | "teams" | SettingsPage | "audit";
+export type SettingsKey = "profile" | "security" | "notifications" | "team" | "teams" | SettingsPage | "audit";
 
 type Item = { key: SettingsKey; label: string; icon: string; screen?: string; page?: SettingsPage; anyOf?: string[] };
 
@@ -22,6 +22,7 @@ export const SETTINGS_NAV: { label: string; items: Item[] }[] = [
     label: "You",
     items: [
       { key: "profile", label: "Profile & preferences", icon: I.user, screen: "profile" },
+      { key: "security", label: "Security & privacy", icon: I.shield, screen: "security" },
       { key: "notifications", label: "Notifications", icon: I.bell, screen: "notify" },
     ],
   },

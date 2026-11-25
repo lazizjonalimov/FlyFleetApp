@@ -162,7 +162,7 @@ test("the account menu's pages open for a role that can't open Settings", async 
   await live(dispatcher);
   const list = dispatcher.getByRole("navigation", { name: "Settings sections" });
   await expect(list.getByRole("heading")).toHaveText(["You", "Operations"]);
-  await expect(list.getByRole("button")).toHaveText(["Profile & preferences", "Notifications", "Fleet alert policies"]);
+  await expect(list.getByRole("button")).toHaveText(["Profile & preferences", "Security & privacy", "Notifications", "Fleet alert policies"]);
   await dispatcher.getByLabel("Mobile phone").fill("+1 214 555 0199");
   await dispatcher.getByRole("button", { name: "Save changes" }).click();
   await expect(dispatcher.locator(".toastw")).toContainText("saved");

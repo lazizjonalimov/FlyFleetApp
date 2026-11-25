@@ -7,6 +7,8 @@ import { allowEmbedding } from "@/lib/auth/embedding";
 
 export const API_URL = (process.env.FLYFLEET_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 export const SESSION_COOKIE = "flyfleet_session";
+/** Proof that this browser passed two-step verification recently. httpOnly, like the session. */
+export const TRUST_COOKIE = "flyfleet_trust";
 
 type CookieJar = Awaited<ReturnType<typeof cookies>>;
 
@@ -40,6 +42,18 @@ export function cookieOptions(request: Request) {
 
 export function setSession(jar: CookieJar, request: Request, token: string): void {
   jar.set(SESSION_COOKIE, token, cookieOptions(request));
+}
+
+/** Remember that this browser passed the second step, for as long as the API's proof lasts (at most 30 days). */
+export function setTrust(jar: CookieJar, request: Request, token: string): void {
+  let seconds = 60 * 10;
+  try {
+    const claims = JSON.parse(Buffer.from(token.split(".")[1]!, "base64url").toString()) as { exp?: number };
+    if (claims.exp) seconds = Math.max(60, Math.min(claims.exp - Math.floor(Date.now() / 1000), 60 * 60 * 24 * 30));
+  } catch {
+    // keep the short default
+  }
+  jar.set(TRUST_COOKIE, token, { ...cookieOptions(request), maxAge: seconds });
 }
 
 /** Sign the browser out. A cookie is only removed by a Set-Cookie with the same attributes it was set with. */

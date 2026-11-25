@@ -1085,3 +1085,20 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .faq summary .ic{transition:transform .15s}
 .ff .faq[open] summary .ic{transform:rotate(90deg)}
 .ff .faq p{padding:0 16px 14px 38px;font-size:13px;line-height:19px;color:var(--tx2)}
+
+/* Security & privacy: password meter and rules, setup panel, backup codes, sign-in activity */
+.ff .pwmeter{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ff .pwmeter span{height:6px;border-radius:3px;background:var(--bd3)}
+.ff .pwmeter[data-score="0"] span.on{background:#D92D20}
+.ff .pwmeter[data-score="1"] span.on{background:#B54708}
+.ff .pwmeter[data-score="2"] span.on{background:#1D8FE8}
+.ff .pwmeter[data-score="3"] span.on{background:#137A3E}
+.ff .pwok{color:#137A3E}
+.ff[data-theme=dark] .pwok{color:#4ADE80}
+.ff .mrow{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-top:1px solid var(--bd2)}
+.ff .setup{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;padding:16px;margin:0 16px 14px;border:1px solid var(--bd);border-radius:10px;background:var(--sf2)}
+.ff .setup .qr{width:164px;height:164px;background:#fff;border-radius:8px;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ff .setup .qr svg{width:100%;height:100%}
+.ff .codes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;padding:12px 16px;border:1px dashed var(--bd3);border-radius:8px;font:500 13px/20px var(--mono)}
+.ff .actrow{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--bd2)}
+@media (max-width:640px){.ff .setup{grid-template-columns:1fr}}

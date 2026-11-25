@@ -11,6 +11,7 @@ from sqlalchemy import select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import passwords
 from app.core.audit import audit
 from app.core.config import get_settings
 from app.core.db import new_session
@@ -20,7 +21,7 @@ from app.core.permissions import ROLE_LABELS, Role
 from app.core.ratelimit import FailureLimiter
 from app.core.security import create_token, hash_password, verify_password
 from app.modules.access import service as access
-from app.modules.organizations import identity
+from app.modules.organizations import identity, security
 from app.modules.organizations import schemas as s
 from app.modules.organizations.models import Account, AuditLog, Membership, Organization, User, UserSession
 
@@ -74,18 +75,9 @@ def _remember(user_id: uuid.UUID, org_id: uuid.UUID, scope: str | None = None) -
         db.close()
 
 
-def _client(request: Request) -> tuple[str | None, str | None]:
-    """The browser and address a sign-in came from, for telling your sessions apart. The web server passes on
-    the browser's own User-Agent and address; they are shown to the person, never used to decide access."""
-    agent = (request.headers.get("user-agent") or "")[:300] or None
-    forwarded = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
-    ip = (forwarded or (request.client.host if request.client else ""))[:64] or None
-    return agent, ip
-
-
 def start_session(user_id: uuid.UUID, request: Request) -> uuid.UUID:
     """Record a new sign-in on a device; the token issued for it carries the returned id."""
-    agent, ip = _client(request)
+    agent, ip = security.client(request)
     db = new_session(user_id=user_id)
     try:
         session = UserSession(user_id=user_id, user_agent=agent, ip_address=ip)
@@ -126,12 +118,15 @@ def signup(body: s.SignupIn, request: Request):
         db.close()
     org = s.OrgRef(id=org_id, name=body.organization_name, slug=slug, role=Role.OWNER.value, status="active",
                    code=created.code, color=created.color, mc_number=body.mc_number)
+    security.record(user_id, "signed_in", request)
     return s.SessionOut(access_token=create_token(user_id, org_id, 0, start_session(user_id, request)),
                         organization=org, organizations=[org])
 
 
 @router.post("/login", response_model=s.SessionOut)
 def login(body: s.LoginIn, request: Request):
+    """Sign in with email and password, then, when two-step verification is on, a code. A browser that passed the
+    second step recently (it sends X-Trusted-Device) isn't asked again."""
     key = f"login|{request.client.host if request.client else '?'}|{body.email.lower()}"
     _limiter.check(key)
 
@@ -142,10 +137,32 @@ def login(body: s.LoginIn, request: Request):
         ok = verify_password(body.password, row.password_hash if row else None)
         if not (ok and row and row.active):
             _limiter.fail(key)
+            if row is not None:
+                security.record(row.id, "failed_password", request)
             raise Unauthorized("Invalid email or password")
         orgs = user_organizations(db, row.id)
     finally:
         db.close()
+
+    trust = None
+    db = new_session(user_id=row.id)
+    try:
+        user = db.get(User, row.id)
+        second_step, version, remember_ok = bool(user.totp_secret), user.token_version, user.remember_device
+    finally:
+        db.close()
+    if second_step and not security.trusted(request.headers.get("x-trusted-device"), row.id, version):
+        if not body.code:
+            return s.SessionOut(requires_second_step=True)
+        if not security.second_step_ok(row.id, body.code):
+            _limiter.fail(key)
+            security.record(row.id, "failed_second_step", request)
+            raise Unauthorized("That code isn’t right. Try the newest code in your app, or a backup code.",
+                               code="SECOND_STEP_INVALID", field_errors={"code": "That code isn’t right"})
+        days = None
+        if body.remember and remember_ok:
+            days = security.REMEMBER_DAYS_REQUIRED if security.required([o.role for o in orgs]) else security.REMEMBER_DAYS
+        trust = security.trust_token(row.id, version, days=days)
     _limiter.reset(key)
 
     if not orgs:
@@ -160,11 +177,11 @@ def login(body: s.LoginIn, request: Request):
         last = row.last_organization_id if any(o.id == row.last_organization_id for o in orgs) else None
         return s.SessionOut(requires_organization_selection=True, last_organization_id=last,
                             last_scope="all" if row.last_scope == "all" and last else "company",
-                            organizations=sorted(orgs, key=lambda o: o.id != last))
+                            organizations=sorted(orgs, key=lambda o: o.id != last), trusted_device=trust)
     _remember(row.id, chosen.id)
-    return s.SessionOut(access_token=create_token(row.id, chosen.id, row.token_version, start_session(row.id, request)),
-                        organization=chosen,
-                        organizations=orgs)
+    security.record(row.id, "signed_in", request)
+    return s.SessionOut(access_token=create_token(row.id, chosen.id, version, start_session(row.id, request)),
+                        organization=chosen, organizations=orgs, trusted_device=trust)
 
 
 @router.post("/switch", response_model=s.SessionOut)
@@ -318,9 +335,11 @@ def change_password(body: s.PasswordChangeIn, p: Principal = Depends(get_princip
         raise Forbidden("That isn't your current password", code="WRONG_PASSWORD",
                         field_errors={"current_password": "That isn't your current password"})
     _limiter.reset(key)
-    if body.new_password == body.current_password:
-        raise Invalid("Choose a password different from the current one", field="new_password")
+    problems = passwords.problems(body.new_password, body.current_password)
+    if problems:
+        raise Invalid(problems[0], field="new_password", details={"problems": problems})
     user.password_hash = hash_password(body.new_password)
+    user.password_changed_at, user.password_strength = datetime.now(UTC), passwords.strength(body.new_password)
     user.token_version += 1
     _sign_out_others(db, p)
     audit(db, p, "user.password_changed", "user", p.user_id)
@@ -442,5 +461,6 @@ def accept_invitation(body: AcceptInvitationIn, request: Request):
     finally:
         db.close()
     chosen = next(o for o in orgs if o.id == org_id)
+    security.record(user_id, "signed_in", request)
     return s.SessionOut(access_token=create_token(user_id, org_id, version, start_session(user_id, request)),
                         organization=chosen, organizations=orgs)

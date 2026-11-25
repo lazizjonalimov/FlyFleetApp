@@ -35,7 +35,7 @@ export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const signedIn = request.cookies.has("flyfleet_session");
   // An invitation link is opened before its owner has a sign-in.
-  const isPublic = PUBLIC.includes(pathname) || pathname.startsWith("/invite/");
+  const isPublic = PUBLIC.includes(pathname) || pathname.startsWith("/invite/") || pathname.startsWith("/reset/");
   // Optimistic redirects only, to avoid a flash of the wrong page. Real authorization happens in the API on
   // every request, and the workspace layout checks the session with the API before rendering anything.
   if (!signedIn && !isPublic) {

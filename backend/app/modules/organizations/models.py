@@ -19,6 +19,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
+from app.core.crypto import EncryptedText
 from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 
 ROLES = ("('owner','admin','dispatcher','safety_manager','fleet_manager','accountant','viewer','driver','customer',"
@@ -41,6 +42,18 @@ class User(Base, IdMixin, TimestampMixin):
     # Your own contact number and time zone, under Profile & preferences. Neither changes the company's.
     phone: Mapped[str | None] = mapped_column(String(40))
     timezone: Mapped[str | None] = mapped_column(String(64))
+    # Security & privacy. The password's strength is rated when it is set, since the hash can't be rated later.
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    password_strength: Mapped[int | None] = mapped_column(Integer)
+    # Two-step verification with an authenticator app: the shared key, encrypted at rest. `totp_pending` holds a
+    # key being set up until a code from it is verified.
+    totp_secret: Mapped[str | None] = mapped_column(EncryptedText())
+    totp_pending: Mapped[str | None] = mapped_column(EncryptedText())
+    totp_added_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    remember_device: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Privacy: support may view the account until this time; product usage counts shared or not.
+    support_access_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    share_usage: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     __table_args__ = (CheckConstraint("email = lower(email)", name="email_lowercase"),)
 
 
@@ -53,6 +66,36 @@ class UserSession(Base, IdMixin):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     user_agent: Mapped[str | None] = mapped_column(String(300))
     ip_address: Mapped[str | None] = mapped_column(String(64))
+
+
+class BackupCode(Base, IdMixin):
+    """One single-use backup code for two-step verification. Only its hash is kept; the code is shown once."""
+    __tablename__ = "user_backup_codes"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PasswordReset(Base, IdMixin):
+    """A one-time link to set a new password. Only the token's hash is kept; it works once, for 30 minutes."""
+    __tablename__ = "password_resets"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SignInEvent(Base, IdMixin):
+    """A sign-in, or an attempt at one, on a person's own account. Each person sees only their own."""
+    __tablename__ = "sign_in_events"
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    # signed_in | new_device | failed_password | failed_second_step
+    kind: Mapped[str] = mapped_column(String(24))
+    user_agent: Mapped[str | None] = mapped_column(String(300))
+    ip_address: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class Account(Base, IdMixin, TimestampMixin):

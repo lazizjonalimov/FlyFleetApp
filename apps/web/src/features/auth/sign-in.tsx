@@ -23,7 +23,8 @@ const schema = z.object({
 });
 type Values = z.infer<typeof schema>;
 
-type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean; last_organization_id?: string | null; last_scope?: "company" | "all" };
+type SessionReply = { organization: OrgRef | null; organizations: OrgRef[]; requires_organization_selection: boolean; requires_second_step?: boolean; last_organization_id?: string | null; last_scope?: "company" | "all" };
+type SecondStep = { code: string; remember: boolean };
 
 /** Sign in, then choose an organization when the account belongs to more than one. */
 export function SignIn() {
@@ -34,13 +35,22 @@ export function SignIn() {
   // Set when the person belongs to several companies and has to say which one to open.
   const [choices, setChoices] = useState<OrgRef[] | null>(null);
   const [last, setLast] = useState<string | null>(null);
+  // Set when the password was right and two-step verification asks for a code.
+  const [second, setSecond] = useState<SecondStep | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
   const errors = form.formState.errors;
 
-  async function signIn(values: Values, organization?: OrgRef) {
+  async function signIn(values: Values, organization?: OrgRef, step?: SecondStep) {
     setPending(organization?.id ?? "form");
     setFormError(null);
+    setCodeError(null);
     try {
-      const reply = await postJson<SessionReply>("/api/auth/login", { ...values, ...(organization ? { organization_id: organization.id } : {}) });
+      const reply = await postJson<SessionReply>("/api/auth/login", { ...values, ...(organization ? { organization_id: organization.id } : {}), ...(step ? { code: step.code, remember: step.remember } : {}) });
+      if (reply.requires_second_step) {
+        setSecond({ code: "", remember: false });
+        setPending(null);
+        return;
+      }
       // Last worked in all companies: open there again, through the company worked in last.
       const home = reply.organizations.find((o) => o.id === reply.last_organization_id);
       if (reply.requires_organization_selection && reply.last_scope === "all" && home && !organization) {
@@ -55,7 +65,8 @@ export function SignIn() {
       }
       hardNavigate(safeNext(search.get("next"), homeOf(reply.organization)));
     } catch (error) {
-      if (organization) setFormError(errorMessage(error));
+      if (step) setCodeError(errorMessage(error));
+      else if (organization) setFormError(errorMessage(error));
       else {
         setFormError(applyApiErrors(form, error));
         setChoices(null);
@@ -66,7 +77,31 @@ export function SignIn() {
 
   return (
     <AuthFrame>
-      {choices ? (
+      {second && !choices ? (
+        <form className="authcard" method="post" noValidate onSubmit={(event) => { event.preventDefault(); void signIn(form.getValues(), undefined, second); }}>
+          <h2 style={{ fontSize: "22px", lineHeight: "28px", fontWeight: "600", letterSpacing: "-0.015em" }}>Two-step verification</h2>
+          <p className="fs13 mu" style={{ marginTop: "4px" }}>Enter the 6-digit code from your authenticator app, or one of your backup codes.</p>
+          <div className="c g12" style={{ marginTop: "20px" }}>
+            {codeError ? (
+              <div className="banner" data-k="bad" role="alert">
+                <Icon className="s14" d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" />
+                <div className="f1">{codeError}</div>
+              </div>
+            ) : null}
+            <div className="fld">
+              <label htmlFor="au-code" className="lbl">Code</label>
+              <input id="au-code" className="inp mono" style={{ height: "40px", letterSpacing: ".2em" }} inputMode="text" autoComplete="one-time-code" maxLength={9} autoFocus
+                value={second.code} onChange={(event) => setSecond({ ...second, code: event.target.value.trim() })} aria-invalid={codeError ? true : undefined} />
+            </div>
+            <label className="r g8 fs13" style={{ cursor: "pointer" }}>
+              <input type="checkbox" checked={second.remember} onChange={(event) => setSecond({ ...second, remember: event.target.checked })} />
+              <span>Remember this device</span>
+            </label>
+            <button type="submit" className="btn pri lg" style={{ width: "100%" }} disabled={pending !== null || second.code.length < 6}>{pending ? "Checking…" : "Verify"}</button>
+            <button type="button" className="btn ghost" onClick={() => { setSecond(null); setCodeError(null); }}>Back</button>
+          </div>
+        </form>
+      ) : choices ? (
         <Organizations
           email={form.getValues("email")}
           organizations={choices}

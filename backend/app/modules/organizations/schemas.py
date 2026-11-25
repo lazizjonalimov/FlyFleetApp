@@ -34,6 +34,9 @@ class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(max_length=200)
     organization_id: uuid.UUID | None = None
+    # The second step, when two-step verification is on: a code from the authenticator app or a backup code.
+    code: str | None = Field(default=None, max_length=20)
+    remember: bool = Field(default=False, description="Remember this device, so it isn't asked for a while")
 
 
 class SwitchIn(BaseModel):
@@ -43,7 +46,8 @@ class SwitchIn(BaseModel):
 
 class PasswordChangeIn(BaseModel):
     current_password: str = Field(max_length=200)
-    new_password: Password
+    # The rules (length, case, a number, not the current one) are checked by the endpoint, with messages to act on.
+    new_password: str = Field(max_length=200)
 
 
 def role_label_of(role: str | None) -> str:
@@ -84,6 +88,10 @@ class SessionOut(BaseModel):
     organizations: list[OrgRef] = []
     last_organization_id: uuid.UUID | None = Field(default=None, description="The company worked in last, offered first")
     last_scope: Literal["company", "all"] = "company"
+    # Set instead of a token when the password was right and the second step is needed.
+    requires_second_step: bool = False
+    # Proof that this browser passed the second step; the web app keeps it in an httpOnly cookie.
+    trusted_device: str | None = None
 
 
 class MeUser(BaseModel):

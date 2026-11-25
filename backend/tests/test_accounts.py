@@ -159,15 +159,15 @@ def test_adding_a_member_needs_a_password_only_for_a_new_sign_in(org, make_org):
 def test_password_change_revokes_every_earlier_token(org, client):
     old = org.h
     body = org.error("POST", "/auth/password", 403, "WRONG_PASSWORD",
-                     json={"current_password": "not-my-password", "new_password": "a-brand-new-password"})
+                     json={"current_password": "not-my-password", "new_password": "A-Brand-New-Password-9"})
     assert "current_password" in body["field_errors"]
     org.error("POST", "/auth/password", 422, "VALIDATION_ERROR",
               json={"current_password": PASSWORD, "new_password": PASSWORD})
-    fresh = org.post("/auth/password", {"current_password": PASSWORD, "new_password": "a-brand-new-password"}, 200).json()
+    fresh = org.post("/auth/password", {"current_password": PASSWORD, "new_password": "A-Brand-New-Password-9"}, 200).json()
     assert client.get("/api/v1/auth/me", headers=old).status_code == 401
     assert Api(client, fresh["access_token"], org.org_id).get("/auth/me").json()["user"]["email"] == org.email
     assert client.post("/api/v1/auth/login", json={"email": org.email, "password": PASSWORD}).status_code == 401
-    assert login(client, org.email, password="a-brand-new-password").org_id == org.org_id
+    assert login(client, org.email, password="A-Brand-New-Password-9").org_id == org.org_id
 
 
 def test_company_settings_terminals_preferences_and_saved_views(org):

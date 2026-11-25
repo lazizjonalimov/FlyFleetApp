@@ -2235,6 +2235,52 @@
         "title": "AuditOut",
         "type": "object"
       },
+      "AuthenticatorSetupOut": {
+        "properties": {
+          "otpauth_uri": {
+            "title": "Otpauth Uri",
+            "type": "string"
+          },
+          "qr_svg": {
+            "description": "The QR code the app scans, as an SVG document",
+            "title": "Qr Svg",
+            "type": "string"
+          },
+          "setup_key": {
+            "description": "The key in groups of four, for typing into the app by hand",
+            "title": "Setup Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setup_key",
+          "otpauth_uri",
+          "qr_svg"
+        ],
+        "title": "AuthenticatorSetupOut",
+        "type": "object"
+      },
+      "BackupCodesOut": {
+        "properties": {
+          "codes": {
+            "description": "Shown this once. Only their hashes are kept.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Codes",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SecurityOut"
+          }
+        },
+        "required": [
+          "codes",
+          "state"
+        ],
+        "title": "BackupCodesOut",
+        "type": "object"
+      },
       "BoardSummary": {
         "description": "Counts behind the dispatch board's summary strip. Each matches the view of the same name.",
         "properties": {
@@ -2941,6 +2987,21 @@
           "done"
         ],
         "title": "ChecklistItem",
+        "type": "object"
+      },
+      "CodeIn": {
+        "properties": {
+          "code": {
+            "maxLength": 10,
+            "minLength": 6,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CodeIn",
         "type": "object"
       },
       "ColumnOut": {
@@ -9320,6 +9381,19 @@
         "title": "ExpiringDocument",
         "type": "object"
       },
+      "ExportOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "ExportOut",
+        "type": "object"
+      },
       "FacilityOption": {
         "properties": {
           "address": {
@@ -14612,6 +14686,18 @@
       },
       "LoginIn": {
         "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
           "email": {
             "format": "email",
             "title": "Email",
@@ -14633,6 +14719,12 @@
             "maxLength": 200,
             "title": "Password",
             "type": "string"
+          },
+          "remember": {
+            "default": false,
+            "description": "Remember this device, so it isn't asked for a while",
+            "title": "Remember",
+            "type": "boolean"
           }
         },
         "required": [
@@ -20529,7 +20621,6 @@
           },
           "new_password": {
             "maxLength": 200,
-            "minLength": 10,
             "title": "New Password",
             "type": "string"
           }
@@ -20539,6 +20630,53 @@
           "new_password"
         ],
         "title": "PasswordChangeIn",
+        "type": "object"
+      },
+      "PasswordState": {
+        "properties": {
+          "changed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When it was last set; empty when set before this was kept",
+            "title": "Changed At"
+          },
+          "since": {
+            "description": "When it was set or, failing that, when the sign-in was made",
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Weak",
+                  "Fair",
+                  "Good",
+                  "Strong"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength"
+          }
+        },
+        "required": [
+          "changed_at",
+          "since",
+          "strength"
+        ],
+        "title": "PasswordState",
         "type": "object"
       },
       "PayContext": {
@@ -22083,6 +22221,32 @@
           "trace"
         ],
         "title": "PreviewOut",
+        "type": "object"
+      },
+      "PrivacyState": {
+        "properties": {
+          "share_usage": {
+            "title": "Share Usage",
+            "type": "boolean"
+          },
+          "support_access_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Support Access Until"
+          }
+        },
+        "required": [
+          "support_access_until",
+          "share_usage"
+        ],
+        "title": "PrivacyState",
         "type": "object"
       },
       "ProfileIn": {
@@ -23767,6 +23931,64 @@
         "title": "ReportColumn",
         "type": "object"
       },
+      "ResetIn": {
+        "properties": {
+          "new_password": {
+            "maxLength": 200,
+            "title": "New Password",
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 200,
+            "minLength": 20,
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "new_password"
+        ],
+        "title": "ResetIn",
+        "type": "object"
+      },
+      "ResetSentOut": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "expires_minutes": {
+            "title": "Expires Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "email",
+          "expires_minutes"
+        ],
+        "title": "ResetSentOut",
+        "type": "object"
+      },
+      "ResetStateOut": {
+        "properties": {
+          "state": {
+            "enum": [
+              "open",
+              "used",
+              "expired",
+              "invalid"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "ResetStateOut",
+        "type": "object"
+      },
       "ReturnLine": {
         "properties": {
           "jurisdiction": {
@@ -25399,6 +25621,76 @@
         "title": "SeatRef",
         "type": "object"
       },
+      "SecurityIn": {
+        "properties": {
+          "remember_device": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remember Device"
+          },
+          "share_usage": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Usage"
+          },
+          "support_access": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Let FlyFleet Support view the account for 24 hours",
+            "title": "Support Access"
+          }
+        },
+        "title": "SecurityIn",
+        "type": "object"
+      },
+      "SecurityOut": {
+        "properties": {
+          "active_sessions": {
+            "title": "Active Sessions",
+            "type": "integer"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "password": {
+            "$ref": "#/components/schemas/PasswordState"
+          },
+          "privacy": {
+            "$ref": "#/components/schemas/PrivacyState"
+          },
+          "two_factor": {
+            "$ref": "#/components/schemas/TwoFactorState"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "two_factor",
+          "active_sessions",
+          "privacy"
+        ],
+        "title": "SecurityOut",
+        "type": "object"
+      },
       "SessionInfo": {
         "description": "One device you are signed in on.",
         "properties": {
@@ -25514,10 +25806,26 @@
             "title": "Requires Organization Selection",
             "type": "boolean"
           },
+          "requires_second_step": {
+            "default": false,
+            "title": "Requires Second Step",
+            "type": "boolean"
+          },
           "token_type": {
             "default": "bearer",
             "title": "Token Type",
             "type": "string"
+          },
+          "trusted_device": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trusted Device"
           }
         },
         "title": "SessionOut",
@@ -26392,6 +26700,60 @@
           "at"
         ],
         "title": "ShipmentUpdate",
+        "type": "object"
+      },
+      "SignInOut": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "ip_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Address"
+          },
+          "kind": {
+            "enum": [
+              "signed_in",
+              "new_device",
+              "failed_password",
+              "failed_second_step"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "user_agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agent"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "user_agent",
+          "ip_address",
+          "at"
+        ],
+        "title": "SignInOut",
         "type": "object"
       },
       "SignupIn": {
@@ -31148,6 +31510,63 @@
         "title": "TruckSummary",
         "type": "object"
       },
+      "TwoFactorState": {
+        "properties": {
+          "authenticator_added_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authenticator Added At"
+          },
+          "backup_codes_total": {
+            "title": "Backup Codes Total",
+            "type": "integer"
+          },
+          "backup_codes_unused": {
+            "title": "Backup Codes Unused",
+            "type": "integer"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "remember_days": {
+            "title": "Remember Days",
+            "type": "integer"
+          },
+          "remember_device": {
+            "title": "Remember Device",
+            "type": "boolean"
+          },
+          "required": {
+            "description": "The person's role requires it: it can't be turned off",
+            "title": "Required",
+            "type": "boolean"
+          },
+          "setup_pending": {
+            "title": "Setup Pending",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "required",
+          "authenticator_added_at",
+          "setup_pending",
+          "remember_device",
+          "remember_days",
+          "backup_codes_unused",
+          "backup_codes_total"
+        ],
+        "title": "TwoFactorState",
+        "type": "object"
+      },
       "UnitDriver": {
         "properties": {
           "id": {
@@ -33036,6 +33455,27 @@
           }
         },
         "title": "VehicleUpdate",
+        "type": "object"
+      },
+      "VerifiedOut": {
+        "properties": {
+          "backup_codes": {
+            "default": [],
+            "description": "Shown once, when two-step verification is first turned on",
+            "items": {
+              "type": "string"
+            },
+            "title": "Backup Codes",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/SecurityOut"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "VerifiedOut",
         "type": "object"
       },
       "VersionOut": {
@@ -35665,6 +36105,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
+        "description": "Sign in with email and password, then, when two-step verification is on, a code. A browser that passed the\nsecond step recently (it sends X-Trusted-Device) isn't asked again.",
         "operationId": "login_api_v1_auth_login_post",
         "requestBody": {
           "content": {
@@ -36059,6 +36500,1018 @@
         "summary": "Change Password",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password-reset": {
+      "post": {
+        "description": "Email yourself a one-time link to set a new password. It works once, for 30 minutes.",
+        "operationId": "request_password_reset_api_v1_auth_password_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetSentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Password Reset",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/password-reset/confirm": {
+      "post": {
+        "description": "Set a new password from a reset link. The link is used up, and every session is signed out.",
+        "operationId": "confirm_password_reset_api_v1_auth_password_reset_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Confirm Password Reset",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/password-reset/{token}": {
+      "get": {
+        "description": "Whether a reset link can still be used. Opened before anyone is signed in.",
+        "operationId": "password_reset_state_api_v1_auth_password_reset__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetStateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "Password Reset State",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security": {
+      "get": {
+        "description": "Your security checkup: password, two-step verification, sessions and privacy choices.",
+        "operationId": "get_security_api_v1_auth_security_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Security",
+        "tags": [
+          "security"
+        ]
+      },
+      "patch": {
+        "operationId": "update_security_api_v1_auth_security_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SecurityIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Security",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/activity": {
+      "get": {
+        "description": "Your most recent sign-ins and attempts. Only ever your own.",
+        "operationId": "sign_in_activity_api_v1_auth_security_activity_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignInOut"
+                  },
+                  "title": "Response Sign In Activity Api V1 Auth Security Activity Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sign In Activity",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/authenticator": {
+      "delete": {
+        "description": "Turn two-step verification off: the authenticator and the backup codes are removed. Refused for a role\nthat requires it.",
+        "operationId": "remove_authenticator_api_v1_auth_security_authenticator_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Authenticator",
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "description": "Start setting up (or replacing) an authenticator app. Nothing changes until a code from it is verified.",
+        "operationId": "start_authenticator_api_v1_auth_security_authenticator_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatorSetupOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Authenticator",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/authenticator/setup": {
+      "delete": {
+        "operationId": "cancel_authenticator_api_v1_auth_security_authenticator_setup_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Authenticator",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/authenticator/verify": {
+      "post": {
+        "description": "Check a code from the app being set up, and make it the authenticator for this sign-in.",
+        "operationId": "verify_authenticator_api_v1_auth_security_authenticator_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Verify Authenticator",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/backup-codes": {
+      "post": {
+        "description": "A new set of backup codes. The old set stops working at once.",
+        "operationId": "regenerate_backup_codes_api_v1_auth_security_backup_codes_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupCodesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Regenerate Backup Codes",
+        "tags": [
+          "security"
+        ]
+      }
+    },
+    "/api/v1/auth/security/data-export": {
+      "get": {
+        "description": "What FlyFleet holds about you, as JSON: your profile, companies, preferences, sessions and sign-ins.",
+        "operationId": "download_data_export_api_v1_auth_security_data_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Download Data Export",
+        "tags": [
+          "security"
+        ]
+      },
+      "post": {
+        "description": "Email yourself a link to download what FlyFleet holds about you.",
+        "operationId": "request_data_export_api_v1_auth_security_data_export_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Request Data Export",
+        "tags": [
+          "security"
         ]
       }
     },

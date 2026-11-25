@@ -68,6 +68,7 @@ export const ADD_PERMISSION: Record<string, string[]> = { ...Object.fromEntries(
  */
 const ACCOUNT: [title: string, icon: keyof typeof I, kbd: string, to: { screen: string } | { dialog: string }][] = [
   ["Profile & preferences", "user", "", { screen: "profile" }],
+  ["Security & privacy", "shield", "", { screen: "security" }],
   ["Notification settings", "bell", "", { screen: "notify" }],
   ["Keyboard shortcuts", "kbd", "?", { dialog: "keys" }],
   ["Help & support", "help", "", { screen: "help" }],

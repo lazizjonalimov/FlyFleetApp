@@ -2,7 +2,7 @@
 // the browser only what it may know.
 import "server-only";
 import { cookies } from "next/headers";
-import { apiFetch, clientHeaders, errorResponse, sameOrigin, sessionToken, setSession } from "@/lib/auth/server";
+import { apiFetch, clientHeaders, errorResponse, sameOrigin, sessionToken, setSession, setTrust, TRUST_COOKIE } from "@/lib/auth/server";
 
 type Options = { path: string; authenticated?: boolean };
 
@@ -16,7 +16,9 @@ export async function exchange(request: Request, { path, authenticated = false }
 
   let upstream: Response;
   try {
-    upstream = await apiFetch(path, { method: "POST", token, headers: { "Content-Type": "application/json", ...clientHeaders(request) }, body: JSON.stringify(body) });
+    // A browser that passed the second step recently proves it with its trust cookie, and isn't asked again.
+    const trust = (await cookies()).get(TRUST_COOKIE)?.value;
+    upstream = await apiFetch(path, { method: "POST", token, headers: { "Content-Type": "application/json", ...clientHeaders(request), ...(trust ? { "X-Trusted-Device": trust } : {}) }, body: JSON.stringify(body) });
   } catch {
     return errorResponse(502, "UPSTREAM_UNAVAILABLE", "FlyFleet is not reachable right now. Try again in a moment.");
   }
@@ -25,9 +27,10 @@ export async function exchange(request: Request, { path, authenticated = false }
     return data ? Response.json(data, { status: upstream.status }) : errorResponse(502, "UPSTREAM_UNAVAILABLE", "FlyFleet is not reachable right now.");
   }
   if (data.access_token) setSession(await cookies(), request, data.access_token);
+  if (data.trusted_device) setTrust(await cookies(), request, data.trusted_device);
   // The token stays on the server. The browser learns which company it is now in, and nothing more.
   return Response.json(
-    { organization: data.organization ?? null, organizations: data.organizations ?? [], requires_organization_selection: data.requires_organization_selection ?? false, last_organization_id: data.last_organization_id ?? null, last_scope: data.last_scope ?? "company" },
+    { organization: data.organization ?? null, organizations: data.organizations ?? [], requires_organization_selection: data.requires_organization_selection ?? false, last_organization_id: data.last_organization_id ?? null, last_scope: data.last_scope ?? "company", requires_second_step: data.requires_second_step ?? false },
     { status: upstream.status, headers: { "Cache-Control": "no-store" } },
   );
 }

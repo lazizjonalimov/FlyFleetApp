@@ -9,6 +9,7 @@ describe("reading an address", () => {
     expect(parseLocation("/acme/finance/statements", query()).state.screen).toBe("settlements");
     expect(parseLocation("/acme/settings/alert-policy", query()).state.screen).toBe("policy");
     expect(parseLocation("/acme/settings/profile", query()).state.screen).toBe("profile");
+    expect(parseLocation("/acme/settings/security", query()).state.screen).toBe("security");
     expect(parseLocation("/acme/settings/notifications", query()).state.screen).toBe("notify");
     expect(parseLocation("/acme/help", query()).state.screen).toBe("help");
     expect(hrefOf({ screen: "profile" }, "acme")).toBe("/acme/settings/profile");

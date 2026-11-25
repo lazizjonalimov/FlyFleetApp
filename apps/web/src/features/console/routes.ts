@@ -30,6 +30,7 @@ const PATHS: Record<string, string> = {
   policy: "settings/alert-policy",
   audit: "settings/audit-log",
   profile: "settings/profile",
+  security: "settings/security",
   notify: "settings/notifications",
   help: "help",
   platform: "platform",
