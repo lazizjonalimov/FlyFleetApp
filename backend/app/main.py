@@ -35,6 +35,7 @@ from app.modules.messaging.router import router as messaging_router
 from app.modules.organizations.account_router import router as account_router
 from app.modules.organizations.auth_router import router as auth_router
 from app.modules.organizations.combined import router as combined_router
+from app.modules.organizations.companies_router import router as companies_router
 from app.modules.organizations.router import router as organization_router
 from app.modules.organizations.security_router import router as security_router
 from app.modules.owners.portal_router import router as owner_portal_router
@@ -85,7 +86,7 @@ def create_app() -> FastAPI:
 
     errors = {code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422)}
     v1 = APIRouter(prefix="/api/v1", responses=errors)
-    for router in (auth_router, security_router, account_router,
+    for router in (auth_router, security_router, companies_router, account_router,
                    organization_router, access_router, customers_router, fleet_summary_router,
                    drivers_router, driver_profile_router, people_router,
                    owners_router, ownership_router, owner_portal_router,

@@ -48,7 +48,7 @@ export function WhichCompany() {
       // the choice just isn't remembered
     }
     set({ whichCompany: null, afterSwitch: { slug: company.slug, patch: pending } });
-    await switchTo({ id: company.id, slug: company.slug });
+    await switchTo({ id: company.id, slug: company.slug, name: company.name });
     setBusy(false);
   };
   return (

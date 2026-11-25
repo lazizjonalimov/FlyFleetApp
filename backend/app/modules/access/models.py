@@ -63,9 +63,13 @@ class Invitation(Base, IdMixin, TenantScoped):
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     accepted_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The 8-character code someone can type under Add a company › Join; only its hash is kept.
+    code_hash: Mapped[str | None] = mapped_column(String(64))
+    declined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_invitations_token"),
+        Index("uq_invitations_code", "code_hash", unique=True, postgresql_where=text("code_hash IS NOT NULL")),
         Index("uq_invitations_open_email", "organization_id", "email", unique=True,
               postgresql_where=text("accepted_at IS NULL AND revoked_at IS NULL")),
     )

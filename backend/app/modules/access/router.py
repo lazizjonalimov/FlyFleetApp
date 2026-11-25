@@ -181,7 +181,7 @@ class InvitationOut(BaseModel):
     role: str
     role_label: str
     driver_id: uuid.UUID | None
-    state: Literal["pending", "expired", "accepted"]
+    state: Literal["pending", "expired", "accepted", "declined"]
     invited_by_name: str | None
     created_at: datetime
     expires_at: datetime
@@ -198,6 +198,8 @@ class InvitationIn(BaseModel):
 class InvitationLink(BaseModel):
     invitation: InvitationOut
     path: str = Field(description="The link to share, on the web app's own address. It is shown only once.")
+    code: str | None = Field(default=None, description="An 8-character code for someone who already has a FlyFleet "
+                             "sign-in to type under Add a company › Join. Shown only once; expires with the link.")
 
 
 def _one(db: Session, invitation_id: uuid.UUID) -> dict:
@@ -215,16 +217,18 @@ def create_invitation(body: InvitationIn, p: Principal = Depends(MANAGE), db: Se
     """An invitation to join with a role. FlyFleet doesn't send email yet: share the link the answer gives."""
     row, token = service.invite(db, p, email=body.email, full_name=body.full_name, role=body.role,
                                 driver_id=body.driver_id)
+    code = service.issue_code(row)
     db.commit()
-    return {"invitation": _one(db, row.id), "path": f"/invite/{token}"}
+    return {"invitation": _one(db, row.id), "path": f"/invite/{token}", "code": code}
 
 
 @router.post("/invitations/{invitation_id}/renew", response_model=InvitationLink)
 def renew_invitation(invitation_id: uuid.UUID, p: Principal = Depends(MANAGE), db: Session = Depends(get_db)):
     """A fresh link, valid for another week. The old link stops working."""
     row, token = service.renew(db, p, invitation_id)
+    code = service.issue_code(row)
     db.commit()
-    return {"invitation": _one(db, row.id), "path": f"/invite/{token}"}
+    return {"invitation": _one(db, row.id), "path": f"/invite/{token}", "code": code}
 
 
 @router.delete("/invitations/{invitation_id}", status_code=204)

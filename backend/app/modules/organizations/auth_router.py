@@ -73,6 +73,8 @@ def _remember(user_id: uuid.UUID, org_id: uuid.UUID, scope: str | None = None) -
     db = new_session(org_id=org_id, user_id=user_id)
     try:
         db.execute(update(User).where(User.id == user_id).values(last_organization_id=org_id, last_scope=scope))
+        db.execute(update(Membership).where(Membership.user_id == user_id, Membership.organization_id == org_id)
+                   .values(last_opened_at=datetime.now(UTC)))
         db.commit()
     finally:
         db.close()
@@ -112,7 +114,8 @@ def signup(body: s.SignupIn, request: Request):
         created = add_organization(db, id=org_id, account_id=account_id, name=body.organization_name,
                                    dot_number=body.dot_number, mc_number=body.mc_number, timezone=body.timezone)
         slug = created.slug
-        db.add(Membership(organization_id=org_id, user_id=user_id, role=Role.OWNER.value))
+        db.add(Membership(organization_id=org_id, user_id=user_id, role=Role.OWNER.value,
+                          last_opened_at=datetime.now(UTC)))
         db.add(AuditLog(organization_id=org_id, actor_user_id=user_id, action="organization.created",
                         entity_type="organization", entity_id=org_id, data={"name": body.organization_name}))
         db.execute(update(User).where(User.id == user_id).values(last_organization_id=org_id))
@@ -152,6 +155,7 @@ def login(body: s.LoginIn, request: Request):
     try:
         user = db.get(User, row.id)
         second_step, version, remember_ok = bool(user.totp_secret), user.token_version, user.remember_device
+        default = user.default_organization_id
     finally:
         db.close()
     if second_step and not security.trusted(request.headers.get("x-trusted-device"), row.id, version):
@@ -176,6 +180,9 @@ def login(body: s.LoginIn, request: Request):
         raise Unauthorized("You are not a member of that company")
     if chosen is None and len(orgs) == 1:
         chosen = orgs[0]
+    # The default company chosen under Settings › Account › Companies opens first.
+    if chosen is None and default:
+        chosen = next((o for o in orgs if o.id == default and o.status == "active"), None)
     if chosen is None:
         last = row.last_organization_id if any(o.id == row.last_organization_id for o in orgs) else None
         return s.SessionOut(requires_organization_selection=True, last_organization_id=last,
@@ -524,8 +531,11 @@ def accept_invitation(body: AcceptInvitationIn, request: Request):
             if not db.scalar(select(OrgRole.id).where(OrgRole.key == row.role)):
                 raise Conflict("The role this invitation gives no longer exists. Ask for a new invitation.",
                                code="INVITATION_CLOSED") from None
-        if not db.scalar(select(Membership.id).where(Membership.user_id == user_id)):
-            db.add(Membership(organization_id=org_id, user_id=user_id, role=row.role))
+        membership = db.scalar(select(Membership).where(Membership.user_id == user_id))
+        if membership is None:
+            db.add(Membership(organization_id=org_id, user_id=user_id, role=row.role, last_opened_at=datetime.now(UTC)))
+        elif not membership.active:   # someone who left, invited back
+            membership.active, membership.role = True, row.role
         invitation = db.get(Invitation, row.id)
         invitation.accepted_at, invitation.accepted_user_id = datetime.now(UTC), user_id
         if row.driver_id:

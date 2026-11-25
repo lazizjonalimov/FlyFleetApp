@@ -9,7 +9,7 @@ import { goTo } from "@/features/console/shell";
 
 /** A page of Settings: a screen of its own, or one of the pages of the Settings screen (`setpage`). */
 export type SettingsPage = "organization" | "numbering" | "policy" | "integrations" | "retention" | "billing";
-export type SettingsKey = "profile" | "security" | "notifications" | "team" | "teams" | SettingsPage | "audit";
+export type SettingsKey = "profile" | "security" | "notifications" | "account" | "team" | "teams" | SettingsPage | "audit";
 
 type Item = { key: SettingsKey; label: string; icon: string; screen?: string; page?: SettingsPage; anyOf?: string[] };
 
@@ -24,6 +24,7 @@ export const SETTINGS_NAV: { label: string; items: Item[] }[] = [
       { key: "profile", label: "Profile & preferences", icon: I.user, screen: "profile" },
       { key: "security", label: "Security & privacy", icon: I.shield, screen: "security" },
       { key: "notifications", label: "Notifications", icon: I.bell, screen: "notify" },
+      { key: "account", label: "Account", icon: I.building, screen: "companies" },
     ],
   },
   {
@@ -88,22 +89,24 @@ export const isPersonal = (key: SettingsKey): boolean => SETTINGS_NAV[0]!.items.
  * pages sit under Administration in the sidebar, so they read "Administration > Settings > page"; your own
  * pages read "Settings > page".
  */
-export function SettingsFrame({ current, sub, actions, children }: { current: SettingsKey; sub: string; actions?: ReactNode; children: ReactNode }) {
-  const label = settingsLabel(current);
+export function SettingsFrame({ current, sub, actions, children, trail, title }: { current: SettingsKey; sub: string; actions?: ReactNode; children: ReactNode; trail?: string[]; title?: string }) {
+  const label = title ?? settingsLabel(current);
+  const crumbs = trail ?? [...(isPersonal(current) ? [] : ["Administration"]), "Settings", label];
   return (
     <div className="col">
       <div className="ph" style={{ paddingBottom: "14px", borderBottom: "1px solid var(--bd)" }}>
         <div className="f1">
           <nav className="crumb" aria-label="Breadcrumb">
-            {isPersonal(current) ? null : (
-              <>
-                <span>Administration</span>
-                <Icon className="s12" d={I.chevR} />
-              </>
+            {crumbs.map((crumb, i) =>
+              i === crumbs.length - 1 ? (
+                <b key={crumb} aria-current="page"><span>{crumb}</span></b>
+              ) : (
+                <span key={crumb} className="r g6">
+                  <span>{crumb}</span>
+                  <Icon className="s12" d={I.chevR} />
+                </span>
+              ),
             )}
-            <span>Settings</span>
-            <Icon className="s12" d={I.chevR} />
-            <b aria-current="page"><span>{label}</span></b>
           </nav>
           <h1 className="h1"><span>{label}</span></h1>
           <p className="sub"><span>{sub}</span></p>

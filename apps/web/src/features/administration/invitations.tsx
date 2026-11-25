@@ -17,7 +17,7 @@ type Invitation = Schema<"InvitationOut">;
 const STATE: Record<string, [string, string]> = { pending: ["Waiting", "warn"], expired: ["Expired", "mu"], accepted: ["Joined", "ok"] };
 
 /** The link to share: FlyFleet doesn't send email yet, so whoever invites passes it on. */
-function ShareLink({ path, name }: { path: string; name: string }) {
+function ShareLink({ path, name, code }: { path: string; name: string; code?: string | null }) {
   const { notify } = useConsole();
   const link = typeof window === "undefined" ? path : `${window.location.origin}${path}`;
   return (
@@ -27,6 +27,12 @@ function ShareLink({ path, name }: { path: string; name: string }) {
         <input className="inp mono f1" readOnly value={link} aria-label="Invitation link" onFocus={(e) => e.currentTarget.select()} />
         <button className="btn" onClick={() => void navigator.clipboard?.writeText(link).then(() => notify("Link copied"), () => notify("Select the link and copy it", true))}><Icon className="s14" d={I.copy} />Copy</button>
       </div>
+      {code ? (
+        <div className="r g8">
+          <span className="fs12 mu f1">{`If ${name} already uses FlyFleet, they can instead choose Add a company › Join and enter this code:`}</span>
+          <code className="mono fs14 w6" aria-label="Invitation code" style={{ letterSpacing: ".15em" }}>{code}</code>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -43,7 +49,7 @@ export function InviteDialog({ onClose, onPassword, driver }: { onClose: () => v
   const [role, setRole] = useState(driver ? "driver" : "dispatcher");
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [made, setMade] = useState<{ path: string; name: string } | null>(null);
+  const [made, setMade] = useState<{ path: string; name: string; code?: string | null } | null>(null);
   const choices = (roles.data?.roles ?? []).filter((r) => r.assignable && r.key !== "owner_portal" && r.key !== "driver" && (r.key !== "owner" || me.organization.role === "owner"));
   const send = async () => {
     if (!name.trim()) return setProblem("Enter their name");
@@ -53,7 +59,7 @@ export function InviteDialog({ onClose, onPassword, driver }: { onClose: () => v
     try {
       const out = await unwrap(api.POST("/api/v1/invitations", { body: { email: email.trim(), full_name: name.trim(), role, driver_id: driver?.id ?? null } }));
       await client.invalidateQueries({ queryKey: [org, "invitations"] });
-      setMade({ path: out.path, name: name.trim().split(" ")[0] ?? name.trim() });
+      setMade({ path: out.path, name: name.trim().split(" ")[0] ?? name.trim(), code: out.code });
     } catch (e) {
       setProblem(errorMessage(e));
     } finally {
@@ -77,7 +83,7 @@ export function InviteDialog({ onClose, onPassword, driver }: { onClose: () => v
       )}
     >
       <Problem message={problem} />
-      {made ? <ShareLink path={made.path} name={made.name} /> : (
+      {made ? <ShareLink path={made.path} name={made.name} code={made.code} /> : (
         <>
           <div className="fld"><label htmlFor="inv-name">Name</label><input id="inv-name" className="inp" maxLength={120} value={name} onChange={(e) => setName(e.currentTarget.value)} autoFocus={!driver} /></div>
           <div className="fld"><label htmlFor="inv-email">Email</label><input id="inv-email" className="inp" type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.currentTarget.value)} /></div>
@@ -101,12 +107,12 @@ export function InvitationsPanel({ onInvite }: { onInvite: () => void }) {
   const org = me.organization;
   const client = useQueryClient();
   const list = useQuery({ queryKey: [org.id, "invitations"], queryFn: () => unwrap(api.GET("/api/v1/invitations")) });
-  const [link, setLink] = useState<{ path: string; name: string } | null>(null);
+  const [link, setLink] = useState<{ path: string; name: string; code?: string | null } | null>(null);
   const renew = async (i: Invitation) => {
     try {
       const out = await unwrap(api.POST("/api/v1/invitations/{invitation_id}/renew", { params: { path: { invitation_id: i.id } } }));
       await client.invalidateQueries({ queryKey: [org.id, "invitations"] });
-      setLink({ path: out.path, name: i.full_name.split(" ")[0] ?? i.full_name });
+      setLink({ path: out.path, name: i.full_name.split(" ")[0] ?? i.full_name, code: out.code });
     } catch (e) {
       notify(errorMessage(e), true);
     }
@@ -158,7 +164,7 @@ export function InvitationsPanel({ onInvite }: { onInvite: () => void }) {
       <div className="tfoot"><span>{list.data ? `${plural(list.data.filter((i) => i.state === "pending").length, "invitation")} waiting · links work once, for a week` : ""}</span></div>
       {link ? (
         <Dialog title="New invitation link" sub="The old link no longer works" icon={I.link} width={520} onClose={() => setLink(null)} footer={<><span className="sp"></span><button className="btn pri" onClick={() => setLink(null)}>Done</button></>}>
-          <ShareLink path={link.path} name={link.name} />
+          <ShareLink path={link.path} name={link.name} code={link.code} />
         </Dialog>
       ) : null}
     </div>

@@ -1,4 +1,5 @@
-"""Companies under one account (decision 0001): list, add (optionally copying setup), archive, restore.
+"""Companies under one account (decision 0001): list, and add one copying setup from another. Archiving,
+restoring and leaving are under /me/companies, by the Main Admin of the company concerned.
 
 Each company is a separate tenant. The account owner is the only person who can act across them, and does so
 through explicitly scoped sessions: one bound to the source company to read, one bound to the new company to
@@ -71,6 +72,12 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
                    db: Session = Depends(get_db)):
     """Add a company to the account. With `copy_from`, the chosen parts of an existing company are copied so
     the new one is ready to operate at once. Loads and financial records are never copied."""
+    # The same rules as adding a company from Settings › Account › Companies: ten per profile, one MC per company.
+    from app.modules.organizations.companies_router import _check_room
+    _check_room(db, p.user_id)
+    if body.mc_number and db.scalar(text("SELECT auth_mc_taken(:m)"), {"m": body.mc_number}):
+        message = "This MC number is already on FlyFleet. Ask its Main Admin to invite you."
+        raise Conflict(message, code="MC_TAKEN", field_errors={"mc_number": message})
     current = db.get(Organization, p.org_id)
     existing = {c.id for c in _companies(db, p.account_id)}
     if body.copy_from and body.copy_from not in existing:
@@ -188,43 +195,3 @@ def create_company(body: s.CompanyCreate, p: Principal = Depends(require_account
     return s.CompanyCreated(id=new_id, name=body.name, slug=slug, status="active", dot_number=body.dot_number,
                             mc_number=body.mc_number, created_at=datetime.now(UTC), code=made.code, color=made.color,
                             copied=copied)
-
-
-def _set_status(company_id: uuid.UUID, status: str, p: Principal, db: Session) -> s.CompanyOut:
-    companies = {c.id: c for c in _companies(db, p.account_id)}
-    company = companies.get(company_id)
-    if company is None:
-        raise NotFound("Company not found in your account")
-    if company.status == status:
-        return company
-    if status == "archived" and sum(1 for c in companies.values() if c.status == "active") <= 1:
-        raise Conflict("Keep at least one active company. Add or restore another before archiving this one.",
-                       code="LAST_ACTIVE_COMPANY")
-
-    target = new_session(org_id=company_id, user_id=p.user_id)
-    try:
-        if status == "active":
-            _check_limit(target, _lock_account(target, p.account_id))
-        org = target.get(Organization, company_id)
-        org.status = status
-        org.archived_at = datetime.now(UTC) if status == "archived" else None
-        target.add(AuditLog(organization_id=company_id, actor_user_id=p.user_id,
-                            action=f"organization.{'archived' if status == 'archived' else 'restored'}",
-                            entity_type="organization", entity_id=company_id))
-        target.commit()
-    finally:
-        target.close()
-    return company.model_copy(update={"status": status})
-
-
-@router.post("/companies/{company_id}/archive", response_model=s.CompanyOut)
-def archive_company(company_id: uuid.UUID, p: Principal = Depends(require_account_owner),
-                    db: Session = Depends(get_db)):
-    """Stop operating a company. Its records stay readable; nothing in it can be changed until it is restored."""
-    return _set_status(company_id, "archived", p, db)
-
-
-@router.post("/companies/{company_id}/restore", response_model=s.CompanyOut)
-def restore_company(company_id: uuid.UUID, p: Principal = Depends(require_account_owner),
-                    db: Session = Depends(get_db)):
-    return _set_status(company_id, "active", p, db)

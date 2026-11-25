@@ -90,29 +90,25 @@ def test_copying_without_the_team_drops_the_drivers_sign_in_link(org):
     assert driver["user_id"] is None and driver["terminal_id"] is None
 
 
-def test_at_most_ten_active_companies(org):
+def test_at_most_ten_companies_active_and_archived_together(org):
     for i in range(9):
         add_company(org, f"Company {i + 2}")
     body = add_company(org, "One too many", expect=409).json()["error"]
-    assert body["code"] == "COMPANY_LIMIT_REACHED" and body["details"] == {"max_companies": 10, "active": 10}
+    assert body["code"] == "COMPANY_LIMIT_REACHED" and body["details"] == {"limit": 10, "used": 10}
 
-    # Archiving one makes room, because archived companies don't count.
-    listing = org.get("/account/companies").json()
+    # Archiving doesn't make room: archived companies still count toward the ten.
+    listing = org.get("/me/companies").json()
+    assert listing["used"] == 10 and listing["limit"] == 10
     spare = next(c for c in listing["companies"] if c["name"] == "Company 5")
-    assert org.post(f"/account/companies/{spare['id']}/archive", expect=200).json()["status"] == "archived"
-    replacement = add_company(org, "Replacement").json()
-    assert org.get("/account/companies").json()["active_count"] == 10
-    # Restoring is held to the same limit.
-    assert org.post(f"/account/companies/{spare['id']}/restore", expect=409).json()["error"]["code"] == "COMPANY_LIMIT_REACHED"
-    org.post(f"/account/companies/{replacement['id']}/archive", expect=200)
-    assert org.post(f"/account/companies/{spare['id']}/restore", expect=200).json()["status"] == "active"
-
+    org.post(f"/me/companies/{spare['id']}/archive", {"confirm_name": "Company 5"}, 200)
+    assert org.get("/me/companies").json()["used"] == 10
+    assert add_company(org, "Replacement", expect=409).json()["error"]["code"] == "COMPANY_LIMIT_REACHED"
 
 def test_an_archived_company_is_read_only(org):
     s = seed(org)
     load = new_load(org, s["customer"]["id"])
     second = add_company(org).json()
-    org.post(f"/account/companies/{org.org_id}/archive", expect=200)
+    org.post(f"/me/companies/{org.org_id}/archive", {"confirm_name": "Acme Trucking"}, 200)
 
     assert org.get("/auth/me").json()["organization"]["status"] == "archived"
     assert org.get(f"/loads/{load['id']}").json()["load_number"] == "L-1001"          # still readable
@@ -123,29 +119,28 @@ def test_an_archived_company_is_read_only(org):
         assert org.error(method, url, 409, "ORGANIZATION_ARCHIVED", json=body)
     # Leaving for another company, or restoring this one, still works.
     assert org.switch(second["id"]).get("/auth/me").json()["organization"]["status"] == "active"
-    org.post(f"/account/companies/{org.org_id}/restore", expect=200)
+    org.post(f"/me/companies/{org.org_id}/restore", None, 200)
     org.post("/customers", {"name": "Back in business"}, 201)
 
-
 def test_the_last_active_company_cannot_be_archived(org):
-    org.error("POST", f"/account/companies/{org.org_id}/archive", 409, "LAST_ACTIVE_COMPANY")
+    body = org.error("POST", f"/me/companies/{org.org_id}/archive", 409, "ARCHIVE_BLOCKED",
+                     json={"confirm_name": "Acme Trucking"})
+    assert body["details"]["blockers"][0]["kind"] == "last_company"
 
-
-def test_only_the_account_owner_manages_companies(org, make_org):
+def test_only_the_account_owner_copies_setup_and_only_main_admins_archive(org, make_org):
     admin = org.add_user("admin")
     admin.error("GET", "/account/companies", 403, "FORBIDDEN")
     admin.error("POST", "/account/companies", 403, "FORBIDDEN", json={"name": "Sneaky Co"})
-    admin.error("POST", f"/account/companies/{org.org_id}/archive", 403, "FORBIDDEN")
+    admin.error("POST", f"/me/companies/{org.org_id}/archive", 403, "FORBIDDEN", json={"confirm_name": "Acme Trucking"})
     # A second owner of the company still isn't the account owner.
     co_owner = org.add_user("owner")
     co_owner.error("POST", "/account/companies", 403, "FORBIDDEN", json={"name": "Sneaky Co"})
     # Another account's owner can't reach into this one.
     stranger = make_org("Stranger Inc")
-    stranger.error("POST", f"/account/companies/{org.org_id}/archive", 404, "NOT_FOUND")
+    stranger.error("POST", f"/me/companies/{org.org_id}/archive", 404, "NOT_FOUND", json={"confirm_name": "Acme Trucking"})
     stranger.error("POST", "/account/companies", 404, "NOT_FOUND",
                    json={"name": "Clone", "copy_from": org.org_id, "include": ["customers", "drivers"]})
     assert [c["name"] for c in stranger.get("/account/companies").json()["companies"]] == ["Stranger Inc"]
-
 
 def test_switching_requires_membership(org, make_org):
     other = make_org("Not Yours")

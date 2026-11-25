@@ -264,7 +264,8 @@ def invite(db: Session, p: Principal, *, email: str, full_name: str, role: str,
     check_assignable(db, p, role)
     address = email.strip().lower()
     existing = db.execute(text("SELECT id FROM auth_lookup_user(:e)"), {"e": address}).first()
-    if existing and db.scalar(select(Membership.id).where(Membership.user_id == existing.id)):
+    # Someone who left (or was removed) can be invited again; only a current member can't.
+    if existing and db.scalar(select(Membership.id).where(Membership.user_id == existing.id, Membership.active.is_(True))):
         raise Conflict("This person is already on the team", code="DUPLICATE_REFERENCE",
                        field_errors={"email": "This person is already on the team"})
     if driver_id is not None:
@@ -289,6 +290,24 @@ def invite(db: Session, p: Principal, *, email: str, full_name: str, role: str,
     audit(db, p, "invitation.created", "invitation", row.id,
           {"email": address, "role": role, "text": f"invited {row.full_name} as {label_of(db, role)}"})
     return row, token
+
+
+CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no 0/O or 1/I, which are easy to mix up when typed
+
+
+def normalize_code(code: str) -> str:
+    return "".join(ch for ch in (code or "").upper() if ch.isalnum())
+
+
+def issue_code(row: Any) -> str | None:
+    """An 8-character code for the invitation, to type under Add a company › Join. Only its hash is kept; a new
+    code replaces the old. Driver-app invitations have none: drivers join through the app."""
+    if row.driver_id is not None:
+        row.code_hash = None
+        return None
+    code = "".join(secrets.choice(CODE_ALPHABET) for _ in range(8))
+    row.code_hash = token_hash(code)
+    return code
 
 
 def renew(db: Session, p: Principal, invitation_id: uuid.UUID) -> tuple[Any, str]:
@@ -319,7 +338,8 @@ def invitations(db: Session) -> list[dict[str, Any]]:
     names = dict(db.execute(select(User.id, User.full_name).where(User.id.in_(inviters))).all()) if inviters else {}
     out = []
     for r in rows:
-        state = "accepted" if r.accepted_at else "expired" if r.expires_at <= now else "pending"
+        state = ("accepted" if r.accepted_at else "declined" if r.declined_at
+                 else "expired" if r.expires_at <= now else "pending")
         out.append({"id": r.id, "email": r.email, "full_name": r.full_name, "role": r.role,
                     "role_label": label_of(db, r.role), "driver_id": r.driver_id, "state": state,
                     "invited_by_name": names.get(r.invited_by), "created_at": r.created_at,

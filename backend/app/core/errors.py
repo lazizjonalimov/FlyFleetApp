@@ -107,6 +107,9 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(IntegrityError)
     async def _integrity(_: Request, exc: IntegrityError):
         state = getattr(exc.orig, "sqlstate", None)
+        if state == "23505" and getattr(getattr(exc.orig, "diag", None), "constraint_name", None) == "uq_organizations_mc":
+            message = "This MC number is already on FlyFleet. Ask its Main Admin to invite you."
+            return JSONResponse(envelope("MC_TAKEN", message, {"mc_number": message}), status_code=409)
         if state == "23505":
             return JSONResponse(envelope("DUPLICATE_REFERENCE", "A record with these values already exists"),
                                 status_code=409)

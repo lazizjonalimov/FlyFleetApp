@@ -22,6 +22,8 @@ from sqlalchemy.types import Uuid
 from app.core.crypto import EncryptedText
 from app.core.db import Base, IdMixin, TenantScoped, TimestampMixin
 
+MC_DIGITS = "nullif(regexp_replace(coalesce(mc_number, ''), '[^0-9]', '', 'g'), '')"
+
 ROLES = ("('owner','admin','dispatcher','safety_manager','fleet_manager','accountant','viewer','driver','customer',"
          "'owner_portal')")
 
@@ -57,6 +59,8 @@ class User(Base, IdMixin, TimestampMixin):
     # Profile photo: where the re-encoded square image is stored, and when it changed (for cache busting).
     photo_key: Mapped[str | None] = mapped_column(String(120))
     photo_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The company that opens first at sign-in, when the person has chosen one.
+    default_organization_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     __table_args__ = (CheckConstraint("email = lower(email)", name="email_lowercase"),)
 
 
@@ -122,6 +126,8 @@ class Organization(Base, IdMixin, TimestampMixin):
     color: Mapped[str] = mapped_column(String(7), default="#1F4FE0", server_default="#1F4FE0")
     status: Mapped[str] = mapped_column(String(20), default="active", server_default="active")
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Trucks the company runs, as chosen when it was added: 1-5, 6-20, 21-50 or 51+.
+    fleet_size: Mapped[str | None] = mapped_column(String(8))
     dot_number: Mapped[str | None] = mapped_column(String(20))
     mc_number: Mapped[str | None] = mapped_column(String(20))
     # Printed on invoices.
@@ -150,6 +156,9 @@ class Organization(Base, IdMixin, TimestampMixin):
         CheckConstraint("base_currency ~ '^[A-Z]{3}$'", name="currency_code"),
         CheckConstraint("code ~ '^[A-Z0-9]{2,6}$'", name="code_valid"),
         CheckConstraint("color ~ '^#[0-9A-Fa-f]{6}$'", name="color_valid"),
+        CheckConstraint("fleet_size IS NULL OR fleet_size IN ('1-5', '6-20', '21-50', '51+')", name="fleet_size_valid"),
+        # One company per MC number across FlyFleet, compared by its digits ("MC-123456" is 123456).
+        Index("uq_organizations_mc", text(f"({MC_DIGITS})"), unique=True, postgresql_where=text(f"{MC_DIGITS} IS NOT NULL")),
         Index("uq_organizations_account_code", "account_id", text("lower(code)"), unique=True),
     )
 
@@ -163,6 +172,8 @@ class Membership(Base, IdMixin, TenantScoped, TimestampMixin):
     owner_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Shipment portal sign-ins: the customer whose shipments, papers and invoices they may see.
     customer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # When the person last opened the company, for the Companies page.
+    last_opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         UniqueConstraint("organization_id", "user_id"),
         UniqueConstraint("organization_id", "id"),

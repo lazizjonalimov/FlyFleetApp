@@ -5,7 +5,7 @@ import { ago } from "./security-screen";
 describe("Security & privacy", () => {
   it("sits under You, directly below Profile & preferences, open to every role", () => {
     const you = SETTINGS_NAV.find((group) => group.label === "You")!;
-    expect(you.items.map((item) => item.label)).toEqual(["Profile & preferences", "Security & privacy", "Notifications"]);
+    expect(you.items.map((item) => item.label)).toEqual(["Profile & preferences", "Security & privacy", "Notifications", "Account"]);
     expect(you.items.every((item) => !item.anyOf)).toBe(true);
   });
 

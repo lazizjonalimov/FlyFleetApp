@@ -3,6 +3,7 @@ import { ConsoleFrame } from "@/features/console/console-frame";
 import { ConsoleProvider } from "@/features/console/console-provider";
 import { CustomerPortalFrame } from "@/features/customers/customer-portal-frame";
 import { PortalFrame } from "@/features/owners/portal-frame";
+import { NoAccess } from "@/features/shell/no-access";
 import { getMe } from "@/lib/auth/server";
 import { SessionProvider } from "@/lib/auth/session";
 
@@ -31,9 +32,10 @@ export default async function WorkspaceLayout({ children, params }: LayoutProps<
 
   let me = home;
   if (home.organization.slug !== orgSlug) {
-    if (!home.memberships.some((membership) => membership.slug === orgSlug)) notFound();
+    // A link into a company the person can't open says so, rather than a bare "not found".
+    if (!home.memberships.some((membership) => membership.slug === orgSlug)) return <NoAccess home={`/${home.organization.slug}`} />;
     const there = await getMe(orgSlug);
-    if (!there) notFound();
+    if (!there) return <NoAccess home={`/${home.organization.slug}`} />;
     me = there;
   }
 

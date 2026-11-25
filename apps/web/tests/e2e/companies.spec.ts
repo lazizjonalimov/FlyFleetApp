@@ -21,6 +21,7 @@ test("switching companies in place, and working in all of them", async ({ page }
   await menu.getByRole("menuitemradio", { name: /Bravo Logistics/ }).click();
   await page.waitForURL(new RegExp(`/${bravo.slug}/customers`));
   await live(page);
+  await expect(page.locator(".toastw")).toContainText("Switched to Bravo Logistics, same page");
   await expect(page.locator(".trow", { hasText: "Initech" })).toBeVisible();
   await expect(page.locator(".trow", { hasText: "Globex" })).toHaveCount(0);
 
@@ -33,10 +34,10 @@ test("switching companies in place, and working in all of them", async ({ page }
   await expect(page.locator(".trow", { hasText: "Initech" })).toContainText("Bravo Logistics");
   await expect(page.getByText("Company", { exact: true }).first()).toBeVisible();
 
-  // A link into another of your companies opens directly, with no prompt; a stranger's slug is not found.
+  // A link into another of your companies opens directly, with no prompt; a stranger's slug says there's no access.
   await page.goto(`/${bravo.slug}/customers`);
   await live(page);
   await expect(page.locator(".trow", { hasText: "Initech" })).toBeVisible();
-  const missing = await page.goto("/someone-else-123456/customers");
-  expect(missing?.status()).toBe(404);
+  await page.goto("/someone-else-123456/customers");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("You don’t have access to this company");
 });

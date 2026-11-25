@@ -60,3 +60,32 @@ on a load or in an open driver or owner statement. The company it leaves keeps t
 (read-only, history intact, seat and team membership ended, ownership shares ended); the other company gets a new
 record with the same VIN, specs and current documents, optionally in one of its dispatch teams. Both audit logs
 record it, nothing financial moves, and a VIN is active in only one company of an account at a time.
+
+## Addendum: company management for every profile (2026-11)
+
+These rules replace the earlier limit and archive rules above where they differ.
+
+- **The limit is per profile, and archived companies count.** A person can open at most **10** companies, active and
+  archived together (`/me/companies`, enforced by the API on create, join and accept). An archived company still
+  counts until it is gone.
+- **Anyone can add a company** under Settings › Account › Companies (or the switcher's Add a company). They become its
+  Main Admin; it sits under their own account (made for them the first time); it starts empty. Copying setup from
+  another company stays with the account owner (`POST /account/companies`), under the same limit.
+- **One MC number, one company.** A unique index on the MC number's digits enforces it across FlyFleet. When
+  `FLYFLEET_FMCSA_WEB_KEY` is set, the MC number is checked with FMCSA's QCMobile API and must be authorized to
+  operate; without it, the app says it wasn't checked.
+- **Archive and restore** are for the company's Main Admin (role `owner` in that company), not the account owner.
+  Archiving is refused while loads are dispatched or on the road, while driver or owner statements are draft or
+  approved and unpaid, or when it is the person's only active company; the name must be typed to confirm. An archived
+  company is read-only and open to its **Main Admins only**: everyone else's access ends. The page shows it as
+  restorable for 90 days; nothing is deleted or purged automatically yet.
+- **Leave** ends the person's membership and removes their preferences and private saved views there. A company's
+  only Main Admin can't leave. A former member can be invited again.
+- **Invitations** carry an 8-character code (stored hashed, 7 days, single use) besides the link, so someone who
+  already uses FlyFleet joins under Add a company › Join. Invitations to a person's email are also listed for them,
+  but only those made after their sign-in existed, so nobody can claim invitations by signing up with another
+  person's address. FlyFleet doesn't verify email addresses yet.
+- **Default company**: the one that opens first at sign-in when the person has several (`users.default_organization_id`);
+  it falls back to another active company when archived or left.
+- Every create, join, accept, decline, make-default, archive, restore and leave is recorded in the affected company's
+  audit log.

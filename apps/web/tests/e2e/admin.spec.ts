@@ -42,10 +42,11 @@ test("company settings are saved", async ({ page }) => {
   await expect(page.locator(".icard", { hasText: "Loads, messages, alerts and phone GPS" })).toContainText("Connected");
   await expect(page.locator(".icard", { hasText: "Driver alerts and messaging" })).toContainText("Not connected");
   await page.getByRole("button", { name: "Organization", exact: true }).click();
-  await page.getByLabel("MC number").fill("MC-445566");
+  const mc = `MC-${String(Date.now()).slice(-6)}`;   // an MC number belongs to one company on FlyFleet
+  await page.getByLabel("MC number").fill(mc);
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.getByRole("status")).toContainText("Company settings saved");
-  await expect(page.getByRole("button", { name: "Switch company" })).toContainText("MC-445566");
+  await expect(page.getByRole("button", { name: "Switch company" })).toContainText(mc);
 });
 
 test("your own account: profile, shortcuts, notifications and help, from the account menu", async ({ page }) => {
@@ -162,7 +163,7 @@ test("the account menu's pages open for a role that can't open Settings", async 
   await live(dispatcher);
   const list = dispatcher.getByRole("navigation", { name: "Settings sections" });
   await expect(list.getByRole("heading")).toHaveText(["You", "Operations"]);
-  await expect(list.getByRole("button")).toHaveText(["Profile & preferences", "Security & privacy", "Notifications", "Fleet alert policies"]);
+  await expect(list.getByRole("button")).toHaveText(["Profile & preferences", "Security & privacy", "Notifications", "Account", "Fleet alert policies"]);
   await dispatcher.getByLabel("Mobile phone").fill("+1 214 555 0199");
   await dispatcher.getByRole("button", { name: "Save changes" }).click();
   await expect(dispatcher.locator(".toastw")).toContainText("saved");

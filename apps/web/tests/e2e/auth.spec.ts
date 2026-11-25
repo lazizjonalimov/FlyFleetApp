@@ -60,12 +60,14 @@ test("an account with two companies chooses one, and can switch", async ({ page 
   await expect(page.getByRole("button", { name: "Switch company" })).toContainText("First Freight");
 });
 
-test("signed out, the workspace sends you to sign in; an unknown company is not found", async ({ page }) => {
+test("signed out, the workspace sends you to sign in; a company you can't open says so", async ({ page }) => {
   await page.goto("/acme-trucking/dashboard");
   await expect(page).toHaveURL(/\/login/);
   const account = await signUp(page);
-  const response = await page.goto(`/not-${account.slug}/dashboard`);
-  expect(response?.status()).toBe(404);
+  await page.goto(`/not-${account.slug}/dashboard`);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("You don’t have access to this company");
+  await page.getByRole("link", { name: "Go to your company" }).click();
+  await page.waitForURL(new RegExp(`/${account.slug}/dashboard$`));
 });
 
 test("search finds a record and the sidebar marks the section", async ({ page }) => {

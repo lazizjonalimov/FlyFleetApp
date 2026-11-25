@@ -43,7 +43,13 @@ export const startPages = (can: Can): { key: string; label: string }[] =>
   NAV.flatMap((group) => group.items).filter(([, , , anyOf]) => can(...anyOf)).map(([key, label]) => ({ key, label }));
 
 /** The section a record's or sub-screen's address belongs to. */
-const SECTION_OF: Record<string, string> = { load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", customerportal: "customers", stmt: "settlements", ostmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
+/**
+ * Personal screens: every signed-in person can open them, whatever their role. Companies sits in Settings, so the
+ * sidebar marks Settings while it is open, but it is never locked like the company's own settings.
+ */
+const PERSONAL = new Set(["profile", "security", "notify", "help", "companies"]);
+
+const SECTION_OF: Record<string, string> = { companies: "settings",  load: "loads", newload: "loads", driver: "drivers", owner: "owners", ownerform: "owners", ownerportal: "owners", customerportal: "customers", stmt: "settlements", ostmt: "settlements", docreview: "documents", policy: "settings", teams: "team" };
 
 /** The platform operator's area is not part of a company's workspace: no company role opens it. */
 const SECTIONS: Record<string, { label: string; anyOf: string[] }> = { platform: { label: "Organizations", anyOf: ["platform.support"] } };
@@ -115,7 +121,7 @@ export function buildShell({ me, can, state, set, theme, density, mini, setMini,
   const screen = typeof state.screen === "string" ? state.screen : "dashboard";
   const section = sectionOf(screen, state);
   // Alert policies sit in Settings but are read by whoever works the alerts, and changed by those allowed to.
-  const required = screen === "policy" ? { label: "Fleet alert policies", anyOf: ["incidents.read", "alert_policies.manage"] } : SECTIONS[section];
+  const required = PERSONAL.has(screen) ? undefined : screen === "policy" ? { label: "Fleet alert policies", anyOf: ["incidents.read", "alert_policies.manage"] } : SECTIONS[section];
   const forbidden = !!required && !can(...required.anyOf);
   const overlay = typeof state.overlay === "string" ? state.overlay : "none";
   const modal = typeof state.modal === "string" ? state.modal : "none";

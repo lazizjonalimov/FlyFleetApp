@@ -1,6 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
+import { rememberToast } from "@/features/companies/pending-toast";
 import { useCallback } from "react";
 import { useConsole } from "@/features/console/console-provider";
 import { postJson } from "@/lib/api/post";
@@ -25,20 +27,26 @@ export function companyPath(pathname: string, slug: string): string {
 
 /**
  * Move to another company, or to All companies, in place: the page stays, the session is not asked to sign in
- * again. The API only remembers where the person last worked; which company a request is about comes from the
- * address, and the API re-checks membership every time.
+ * again, and a toast says where you are. Every query cached for the company being left is dropped, so nothing of
+ * it can show in the next one. The API only remembers where the person last worked; which company a request is
+ * about comes from the address, and the API re-checks membership every time.
  */
 export function useSwitchCompany() {
   const router = useRouter();
   const pathname = usePathname();
-  const { set } = useConsole();
+  const queryClient = useQueryClient();
+  const { me, set } = useConsole();
   return useCallback(
-    async (target: { id: string; slug: string } | "all") => {
+    async (target: { id: string; slug: string; name?: string } | "all", options: { toast?: string; path?: string } = {}) => {
       const slug = target === "all" ? "all" : target.slug;
       await postJson("/api/auth/switch", target === "all" ? { scope: "all" } : { organization_id: target.id }).catch(() => undefined);
-      set({ lsel: [], lpage: [], lf: {}, lq: "", ltab: 0 });
-      router.push(companyPath(pathname, slug));
+      const left = me.organization.id;
+      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] === left || query.queryKey[0] === "all" });
+      void queryClient.invalidateQueries({ queryKey: ["me", "companies"] });
+      set({ lsel: [], lpage: [], lf: {}, lq: "", ltab: 0, overlay: "none" });
+      rememberToast(options.toast ?? `Switched to ${target === "all" ? "All companies" : (target.name ?? "the company")}, same page`);
+      router.push(options.path ?? companyPath(pathname, slug));
     },
-    [router, pathname, set],
+    [router, pathname, queryClient, me.organization.id, set],
   );
 }

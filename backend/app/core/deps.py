@@ -21,7 +21,7 @@ from app.modules.organizations.models import Account, Membership, Organization, 
 bearer = HTTPBearer(auto_error=False)
 
 # What may still be done in an archived (read-only) company: leave it, or manage the session.
-ARCHIVED_WRITE_ALLOWLIST = ("/api/v1/auth/", "/api/v1/account/")
+ARCHIVED_WRITE_ALLOWLIST = ("/api/v1/auth/", "/api/v1/account/", "/api/v1/me/")
 
 
 @dataclass(frozen=True)
@@ -150,6 +150,9 @@ def get_principal(request: Request, creds: HTTPAuthorizationCredentials | None =
         raise Unauthorized("Your access to this company has ended. Sign in again.")
     if row.token_version != version:
         raise Unauthorized("Your session has expired. Sign in again.")
+    # An archived company stays open to its Main Admins only (read-only); everyone else's access has ended.
+    if row.status != "active" and row.role != "owner":
+        raise Unauthorized("This company is archived and only its Main Admins can open it. Sign in again.")
     if signed_out:
         raise Unauthorized("This device was signed out. Sign in again.")
 

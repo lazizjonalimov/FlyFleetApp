@@ -9,6 +9,7 @@ import { companyOfRecord } from "@/lib/api/scope";
 import type { Me } from "@/lib/api/types";
 import { useCan, useSession } from "@/lib/auth/session";
 import { plural } from "@/lib/format/text";
+import { takeToast } from "@/features/companies/pending-toast";
 import { hrefOf, parseLocation, sameScreenHref, staticPaths, touchesLocation } from "./routes";
 import { buildShell, type Shell } from "./shell";
 import type { ConsoleState, ConsoleUpdate } from "./state";
@@ -129,6 +130,16 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
     toastTimer.current = setTimeout(() => setStore((previous) => ({ ...previous, toast: null })), bad ? 8000 : 5000);
   }, []);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
+
+  // a confirmation left by the page before, when moving to another company remounted the workspace
+  // (the workspace may or may not remount when only the company changes, so this follows the company)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const pending = takeToast();
+      if (pending) notify(pending);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [notify, slug]);
 
   // what needs someone now, for the sidebar's badges and the bell
   const watching = can("dashboard.read");

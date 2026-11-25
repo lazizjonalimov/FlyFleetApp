@@ -32,6 +32,7 @@ const PATHS: Record<string, string> = {
   profile: "settings/profile",
   security: "settings/security",
   notify: "settings/notifications",
+  companies: "settings/account/companies",
   help: "help",
   platform: "platform",
 };

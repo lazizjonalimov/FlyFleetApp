@@ -57,7 +57,7 @@ export function CommandPalette() {
   const wantsSwitch = words.includes("switch") || words.includes("compan");
   const others = [
     ...(me.all_companies && me.organization.slug !== "all" ? [{ key: "all", t: "All companies", s: "Switch company · every company you can open", target: "all" as const }] : []),
-    ...me.memberships.filter((m) => m.status === "active" && m.slug !== me.organization.slug).map((m) => ({ key: m.id, t: m.name, s: `Switch company · ${m.role_label}`, target: { id: m.id, slug: m.slug } })),
+    ...me.memberships.filter((m) => m.status === "active" && m.slug !== me.organization.slug).map((m) => ({ key: m.id, t: m.name, s: `Switch company · ${m.role_label}`, target: { id: m.id, slug: m.slug, name: m.name } })),
   ].filter((o) => words && (wantsSwitch || o.t.toLowerCase().includes(words)));
   if (others.length) groups.push({ l: "Switch company", items: others.slice(0, 5).map((o) => ({ key: `co-${o.key}`, t: o.t, s: o.s, ic: I.building, go: () => { close(); void switchTo(o.target); } })) });
   // What can be done with what was found, then what can be made: the matching kinds, or the most common two.

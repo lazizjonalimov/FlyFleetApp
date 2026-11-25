@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # Email. "outbox": no provider is connected; each message is written as a file under <storage_dir>/outbox
     # and logged, so it can be read in development and tests. A provider adapter replaces it at deployment.
     mail: str = "outbox"
+    # Checking MC numbers with FMCSA (the QCMobile API) when a company is added. Empty: MC numbers are checked
+    # for format and uniqueness only, and the app says FMCSA wasn't asked. Get a WebKey at mobile.fmcsa.dot.gov.
+    fmcsa_web_key: str = ""
+    fmcsa_url: str = "https://mobile.fmcsa.dot.gov/qc/services"
     signup_enabled: bool = True
     # How many active companies one account (profile) may hold. Individual accounts can be given another limit.
     max_companies_per_account: int = 10
