@@ -5207,6 +5207,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Bulk
+         * @description The same change to several tasks. Each that can't take it (closed, waiting on another task) is reported and
+         *     left as it was; the rest are changed.
+         */
+        post: operations["bulk_api_v1_tasks_bulk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/counts": {
         parameters: {
             query?: never;
@@ -5224,6 +5245,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks/insights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Insights */
+        get: operations["task_insights_api_v1_tasks_insights_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Task Detail */
+        get: operations["task_detail_api_v1_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Task */
+        patch: operations["update_task_api_v1_tasks__task_id__patch"];
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}/actions": {
         parameters: {
             query?: never;
@@ -5235,6 +5291,43 @@ export interface paths {
         put?: never;
         /** Task Action */
         post: operations["task_action_api_v1_tasks__task_id__actions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Comment */
+        post: operations["add_comment_api_v1_tasks__task_id__comments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Update
+         * @description Send the suggested update to the load's customer, and mark the task done.
+         */
+        post: operations["send_update_api_v1_tasks__task_id__send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6379,6 +6472,46 @@ export interface components {
              */
             file: string;
         };
+        /** BulkFailure */
+        BulkFailure: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Message */
+            message: string;
+            /** Title */
+            title: string;
+        };
+        /** BulkIn */
+        BulkIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "complete" | "reopen" | "assign" | "snooze" | "unsnooze" | "priority";
+            /** Assignee User Id */
+            assignee_user_id?: string | null;
+            /** Ids */
+            ids: string[];
+            /** Priority */
+            priority?: ("high" | "medium" | "low") | null;
+            /** Until */
+            until?: string | null;
+        };
+        /** BulkOut */
+        BulkOut: {
+            /**
+             * Created
+             * @description Next ones given by repeating tasks that were completed
+             */
+            created: components["schemas"]["TaskOut"][];
+            /** Done */
+            done: components["schemas"]["TaskOut"][];
+            /** Failed */
+            failed: components["schemas"]["BulkFailure"][];
+        };
         /** BulkRequestIn */
         BulkRequestIn: {
             /** Driver Ids */
@@ -6619,6 +6752,11 @@ export interface components {
             note: string;
             /** Status */
             status: string;
+        };
+        /** CommentIn */
+        CommentIn: {
+            /** Text */
+            text: string;
         };
         /** CommitIn */
         CommitIn: {
@@ -7498,6 +7636,16 @@ export interface components {
              * @enum {string}
              */
             view: "operations" | "billing";
+        };
+        /** DayDone */
+        DayDone: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Done */
+            done: number;
         };
         /** DefectIn */
         DefectIn: {
@@ -12570,6 +12718,13 @@ export interface components {
             /** Reasons */
             reasons: string[];
         };
+        /** PersonOpen */
+        PersonOpen: {
+            /** Name */
+            name: string;
+            /** Open */
+            open: number;
+        };
         /** PersonOut */
         PersonOut: {
             /** City */
@@ -14092,6 +14247,11 @@ export interface components {
             privacy: components["schemas"]["PrivacyState"];
             two_factor: components["schemas"]["TwoFactorState"];
         };
+        /** SendIn */
+        SendIn: {
+            /** Body */
+            body: string;
+        };
         /**
          * SessionInfo
          * @description One device you are signed in on.
@@ -14629,6 +14789,16 @@ export interface components {
             /** To Status */
             to_status: string;
         };
+        /** Step */
+        Step: {
+            /**
+             * Done
+             * @default false
+             */
+            done: boolean;
+            /** Text */
+            text: string;
+        };
         /** StopIn */
         StopIn: {
             /** Address */
@@ -14772,61 +14942,32 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "complete" | "reopen" | "assign" | "cancel";
+            action: "complete" | "reopen" | "assign" | "snooze" | "unsnooze" | "escalate" | "cancel";
             /** Assignee User Id */
             assignee_user_id?: string | null;
             /** Note */
             note?: string | null;
+            /**
+             * Until
+             * @description snooze: when it comes back
+             */
+            until?: string | null;
             /** Version */
             version?: number | null;
         };
-        /** TaskCounts */
-        TaskCounts: {
-            /** By Me */
-            by_me: number;
-            /** Open */
-            open: number;
-            /** Overdue */
-            overdue: number;
-            /** Today */
-            today: number;
-        };
-        /** TaskIn */
-        TaskIn: {
-            /**
-             * All Day
-             * @default false
-             */
-            all_day: boolean;
-            /**
-             * Assignee User Id
-             * @description Left out: the task is for you
-             */
-            assignee_user_id?: string | null;
-            /** Detail */
-            detail?: string | null;
-            /** Due At */
-            due_at?: string | null;
-            /** Entity Id */
-            entity_id?: string | null;
-            /** Entity Type */
-            entity_type?: ("load" | "driver" | "vehicle" | "customer") | null;
-            /**
-             * Priority
-             * @default medium
-             * @enum {string}
-             */
-            priority: "high" | "medium" | "low";
-            /** Title */
-            title: string;
-        };
-        /** TaskOut */
-        TaskOut: {
+        /** TaskActionOut */
+        TaskActionOut: {
             /** Action */
             action: string | null;
             /** All Day */
             all_day: boolean;
             assignee: components["schemas"]["TaskPerson"] | null;
+            /** Auto Close */
+            auto_close: string | null;
+            /** Blocked By */
+            blocked_by: string | null;
+            /** @description The task this one waits on, while it is open */
+            blocker: components["schemas"]["TaskRef"] | null;
             /**
              * Created At
              * Format: date-time
@@ -14845,6 +14986,117 @@ export interface components {
             entity_label: string | null;
             /** Entity Type */
             entity_type: string | null;
+            /** Escalated */
+            escalated: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /** @description The next one, when completing a repeating task gave it */
+            next?: components["schemas"]["TaskOut"] | null;
+            /** Outcome */
+            outcome: string | null;
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "none" | "daily" | "weekly" | "monthly";
+            /** Sla At */
+            sla_at: string | null;
+            /** Sla Label */
+            sla_label: string | null;
+            /** Snoozed Until */
+            snoozed_until: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "incident" | "reminder" | "recurring";
+            /**
+             * Status
+             * @description snoozed: open, but put aside until snoozed_until
+             * @enum {string}
+             */
+            status: "open" | "snoozed" | "done" | "cancelled";
+            /** Subtasks */
+            subtasks: components["schemas"]["Step"][];
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+            /** Why */
+            why: string | null;
+        };
+        /** TaskCounts */
+        TaskCounts: {
+            /** By Me */
+            by_me: number;
+            /** Done */
+            done: number;
+            /**
+             * Hidden
+             * @description Your open tasks about records your role can't open, so not shown
+             */
+            hidden: number;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** Snoozed */
+            snoozed: number;
+            /** Today */
+            today: number;
+        };
+        /** TaskDetail */
+        TaskDetail: {
+            /** Action */
+            action: string | null;
+            /** All Day */
+            all_day: boolean;
+            assignee: components["schemas"]["TaskPerson"] | null;
+            /** Auto Close */
+            auto_close: string | null;
+            /** Blocked By */
+            blocked_by: string | null;
+            /** @description The task this one waits on, while it is open */
+            blocker: components["schemas"]["TaskRef"] | null;
+            /**
+             * Blocking
+             * @description Open tasks waiting on this one
+             */
+            blocking: components["schemas"]["TaskRef"][];
+            /** Comments */
+            comments: components["schemas"]["TaskEventOut"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["TaskPerson"] | null;
+            /** Detail */
+            detail: string | null;
+            /** Done At */
+            done_at: string | null;
+            /** Due At */
+            due_at: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Label */
+            entity_label: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /** Escalated */
+            escalated: boolean;
+            /** History */
+            history: components["schemas"]["TaskEventOut"][];
             /**
              * Id
              * Format: uuid
@@ -14860,19 +15112,203 @@ export interface components {
              */
             priority: "high" | "medium" | "low";
             /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "none" | "daily" | "weekly" | "monthly";
+            /** Sla At */
+            sla_at: string | null;
+            /** Sla Label */
+            sla_label: string | null;
+            /** Snoozed Until */
+            snoozed_until: string | null;
+            /**
              * Source
              * @enum {string}
              */
-            source: "manual" | "incident" | "reminder";
+            source: "manual" | "incident" | "reminder" | "recurring";
             /**
              * Status
+             * @description snoozed: open, but put aside until snoozed_until
              * @enum {string}
              */
-            status: "open" | "done" | "cancelled";
+            status: "open" | "snoozed" | "done" | "cancelled";
+            /** Subtasks */
+            subtasks: components["schemas"]["Step"][];
+            /**
+             * Suggested Message
+             * @description What to send the customer, for a task that asks for it
+             */
+            suggested_message: string | null;
             /** Title */
             title: string;
             /** Version */
             version: number;
+            /** Why */
+            why: string | null;
+        };
+        /** TaskEventOut */
+        TaskEventOut: {
+            actor: components["schemas"]["TaskPerson"] | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "comment" | "history";
+            /** Text */
+            text: string;
+        };
+        /** TaskIn */
+        TaskIn: {
+            /**
+             * All Day
+             * @default false
+             */
+            all_day: boolean;
+            /**
+             * Assignee User Id
+             * @description Left out: the task is for you
+             */
+            assignee_user_id?: string | null;
+            /** Blocked By */
+            blocked_by?: string | null;
+            /** Detail */
+            detail?: string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Entity Id */
+            entity_id?: string | null;
+            /**
+             * Entity Ref
+             * @description The record's own ID as people write it (a load number, a unit)
+             */
+            entity_ref?: string | null;
+            /** Entity Type */
+            entity_type?: ("load" | "driver" | "vehicle" | "trailer" | "customer" | "invoice" | "statement") | null;
+            /**
+             * Priority
+             * @default medium
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+            /**
+             * Recurrence
+             * @default none
+             * @enum {string}
+             */
+            recurrence: "none" | "daily" | "weekly" | "monthly";
+            /**
+             * Subtasks
+             * @description The steps, one per entry
+             */
+            subtasks?: string[];
+            /** Title */
+            title: string;
+            /** Why */
+            why?: string | null;
+        };
+        /** TaskInsights */
+        TaskInsights: {
+            /** Avg Close Minutes */
+            avg_close_minutes: number | null;
+            /** Done Today */
+            done_today: number;
+            /** Overdue */
+            overdue: number;
+            /** Per Day */
+            per_day: components["schemas"]["DayDone"][];
+            /** Per Person */
+            per_person: components["schemas"]["PersonOpen"][];
+            /** Sla At Risk */
+            sla_at_risk: number;
+        };
+        /** TaskOut */
+        TaskOut: {
+            /** Action */
+            action: string | null;
+            /** All Day */
+            all_day: boolean;
+            assignee: components["schemas"]["TaskPerson"] | null;
+            /** Auto Close */
+            auto_close: string | null;
+            /** Blocked By */
+            blocked_by: string | null;
+            /** @description The task this one waits on, while it is open */
+            blocker: components["schemas"]["TaskRef"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            created_by: components["schemas"]["TaskPerson"] | null;
+            /** Detail */
+            detail: string | null;
+            /** Done At */
+            done_at: string | null;
+            /** Due At */
+            due_at: string | null;
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Label */
+            entity_label: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /** Escalated */
+            escalated: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /** Outcome */
+            outcome: string | null;
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "high" | "medium" | "low";
+            /**
+             * Recurrence
+             * @enum {string}
+             */
+            recurrence: "none" | "daily" | "weekly" | "monthly";
+            /** Sla At */
+            sla_at: string | null;
+            /** Sla Label */
+            sla_label: string | null;
+            /** Snoozed Until */
+            snoozed_until: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "manual" | "incident" | "reminder" | "recurring";
+            /**
+             * Status
+             * @description snoozed: open, but put aside until snoozed_until
+             * @enum {string}
+             */
+            status: "open" | "snoozed" | "done" | "cancelled";
+            /** Subtasks */
+            subtasks: components["schemas"]["Step"][];
+            /** Title */
+            title: string;
+            /** Version */
+            version: number;
+            /** Why */
+            why: string | null;
         };
         /** TaskPerson */
         TaskPerson: {
@@ -14883,6 +15319,39 @@ export interface components {
             id: string;
             /** Name */
             name: string | null;
+        };
+        /** TaskRef */
+        TaskRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /** TaskUpdate */
+        TaskUpdate: {
+            /** All Day */
+            all_day?: boolean | null;
+            /** Assignee User Id */
+            assignee_user_id?: string | null;
+            /** Blocked By */
+            blocked_by?: string | null;
+            /** Detail */
+            detail?: string | null;
+            /** Due At */
+            due_at?: string | null;
+            /** Priority */
+            priority?: ("high" | "medium" | "low") | null;
+            /** Subtasks */
+            subtasks?: components["schemas"]["Step"][] | null;
+            /** Title */
+            title?: string | null;
+            /** Version */
+            version?: number | null;
         };
         /** TeamChange */
         TeamChange: {
@@ -40199,7 +40668,10 @@ export interface operations {
                 q?: string | null;
                 /** @description Also return the total number of matching records */
                 count?: boolean;
-                tab?: "open" | "today" | "by_me" | "done";
+                /** @description queue: every task the screen sorts (open, snoozed, given by you, done in 30 days) */
+                tab?: "open" | "today" | "by_me" | "snoozed" | "done" | "queue";
+                /** @description team: everyone's tasks, for full-access roles */
+                view?: "mine" | "team";
             };
             header?: never;
             path?: never;
@@ -40332,6 +40804,75 @@ export interface operations {
             };
         };
     };
+    bulk_api_v1_tasks_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     task_counts_api_v1_tasks_counts_get: {
         parameters: {
             query?: never;
@@ -40348,6 +40889,211 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskCounts"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    task_insights_api_v1_tasks_insights_get: {
+        parameters: {
+            query?: {
+                view?: "mine" | "team";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskInsights"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    task_detail_api_v1_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    update_task_api_v1_tasks__task_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
                 };
             };
             /** @description Unauthorized */
@@ -40418,7 +41164,149 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskOut"];
+                    "application/json": components["schemas"]["TaskActionOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    add_comment_api_v1_tasks__task_id__comments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    send_update_api_v1_tasks__task_id__send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskActionOut"];
                 };
             };
             /** @description Unauthorized */

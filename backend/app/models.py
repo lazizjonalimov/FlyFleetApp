@@ -39,7 +39,7 @@ from app.modules.reports.models import DashboardSnapshot  # noqa: F401
 from app.modules.safety.models import ComplianceReminder, ComplianceSettings  # noqa: F401
 from app.modules.settlements.models import DriverSettlement, SettlementLine  # noqa: F401
 from app.modules.settlements.owner_models import OwnerSettlement, OwnerSettlementLine  # noqa: F401
-from app.modules.tasks.models import Task  # noqa: F401
+from app.modules.tasks.models import Task, TaskEvent  # noqa: F401
 from app.modules.teams.models import DispatchTeam, DispatchTeamMember, DispatchTeamVehicle  # noqa: F401
 from app.modules.tracking.models import (  # noqa: F401
     AlertPolicy,
