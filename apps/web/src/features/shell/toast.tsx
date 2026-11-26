@@ -5,14 +5,17 @@ import { useConsole } from "@/features/console/console-provider";
 
 /** A confirmation after the server has answered, or what went wrong. */
 export function Toast() {
-  const { hasToast, toast, toastBad, closeToast, I } = useConsole();
+  const { hasToast, toast, toastBad, toastAction, closeToast, I } = useConsole();
   if (!hasToast) return null;
   return (
     <div className="toastw" role={toastBad ? "alert" : "status"}>
       <div className="toast">
         <Icon className="s14 b" d={toastBad ? I.alert : I.check} />
         <span className="f1"><span>{toast}</span></span>
-        <button className="lnk" style={{ color: "#8DA9FB" }} onClick={closeToast}>Dismiss</button>
+        {toastAction ? (
+          <button type="button" className="lnk" style={{ color: "#8DA9FB" }} onClick={() => { closeToast(); toastAction.run(); }}>{toastAction.label}</button>
+        ) : null}
+        <button type="button" className="lnk" style={{ color: "#8DA9FB" }} onClick={closeToast}>Dismiss</button>
       </div>
     </div>
   );

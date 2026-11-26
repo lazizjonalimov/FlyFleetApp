@@ -93,20 +93,20 @@ test("my tasks: an alert gives its owner a task, a task by hand, and done", asyn
   const alertTask = page.locator(".trow", { hasText: `Assign a driver to ${load.load_number}` });
   await expect(alertTask).toContainText("Pickup");
   await expect(alertTask).toContainText("High");
-  await expect(alertTask.getByRole("button", { name: "Assign" })).toBeVisible();
+  await expect(alertTask.getByRole("button", { name: `Assign: Assign a driver to ${load.load_number}` })).toBeVisible();
   await expect(nav(page, "My tasks")).toContainText("1");
 
   await page.getByRole("button", { name: "New task" }).click();
   const dialog = page.getByRole("dialog", { name: "New task" });
-  await dialog.getByLabel("Task").fill("Call the insurance broker");
-  await dialog.getByRole("radio", { name: "High" }).click();
-  await dialog.getByRole("button", { name: "Add task" }).click();
-  await expect(page.getByRole("status")).toContainText("Task added");
+  await dialog.getByLabel("Title").fill("Call the insurance broker");
+  await dialog.getByRole("button", { name: "High" }).click();
+  await dialog.getByRole("button", { name: "Create task" }).click();
+  await expect(page.getByRole("status")).toContainText("Task created: Call the insurance broker");
   const mine = page.locator(".trow", { hasText: "Call the insurance broker" });
-  await expect(mine).toContainText("Today");
+  await expect(mine).toContainText("17:00");
   await mine.locator(".chk").click();
   await expect(page.getByRole("status")).toContainText("Done: Call the insurance broker");
   await expect(page.locator(".trow", { hasText: "Call the insurance broker" })).toHaveCount(0);
-  await page.getByRole("button", { name: /^Done/ }).click();
+  await page.getByRole("tab", { name: /^Done/ }).click();
   await expect(page.locator(".trow", { hasText: "Call the insurance broker" })).toBeVisible();
 });

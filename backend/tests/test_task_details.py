@@ -172,3 +172,17 @@ def test_morning_summary_and_due_soon_reminders(org):
         assert service.send_reminders(db, p) == 0  # once a day, once a task
         db.commit()
     assert "Reminder emailed to Olive Owner" in history(org, task["id"])[-1]
+
+
+def test_all_companies_queue_carries_each_task_company(org):
+    from tests.test_companies import add_company
+    created = add_company(org, "Bravo Logistics").json()
+    second = org.switch(created["id"])
+    org.post("/tasks", {"title": "Task in the first company"}, 201)
+    second.post("/tasks", {"title": "Task in the second company"}, 201)
+    page = org.get("/all/tasks", params={"tab": "queue", "view": "mine", "limit": 100}).json()
+    by_title = {t["title"]: t["organization"]["name"] for t in page["items"]}
+    assert by_title["Task in the second company"] == "Bravo Logistics" and len(by_title) == 2
+    made = org.post("/all/tasks", {"title": "Made from all companies", "organization_id": created["id"]}, 201).json()
+    assert made["title"] == "Made from all companies"
+    assert "Made from all companies" in [t["title"] for t in second.items("/tasks")]
