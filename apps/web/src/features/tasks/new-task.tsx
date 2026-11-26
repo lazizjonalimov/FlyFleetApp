@@ -1,110 +1,190 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
 import { useState } from "react";
 import { Dialog, Problem } from "@/components/feedback/dialog";
-import { combo } from "@/components/forms/combo";
-import { Combobox } from "@/components/forms/combobox";
 import { useConsole } from "@/features/console/console-provider";
 import { I } from "@/features/console/icons";
 import { api, unwrap } from "@/lib/api/client";
-import { errorMessage } from "@/lib/api/errors";
-import { fromLocalInput, todayIn } from "@/lib/format/dates";
+import { ApiError, errorMessage } from "@/lib/api/errors";
+import { fromLocalInput } from "@/lib/format/dates";
+import type { Schema } from "@/lib/api/types";
+import { addDays, at, dayLabel, dayOf, LINKED, PRIORITY, REPEAT, type Linked, type Priority } from "./model";
+import type { Person } from "./task-drawer";
+import { useTaskActions } from "./use-tasks";
 
-const PRIORITIES: ["high" | "medium" | "low", string][] = [["high", "High"], ["medium", "Medium"], ["low", "Low"]];
+type Template = { name: string; title: string; priority: Priority; steps: string[]; repeat: Schema<"TaskIn">["recurrence"]; linked?: Linked };
+/** Starting points for work that comes round often. */
+export const TEMPLATES: Template[] = [
+  { name: "Onboard a new driver", title: "Onboard a new driver", priority: "medium", linked: "driver", repeat: "none",
+    steps: ["Collect CDL, medical card and MVR", "Run background and drug-screen checks", "Add to a dispatch team", "Connect the driver app", "Assign a truck", "Send the welcome message", "First-load check-in call"] },
+  { name: "Weekly: review expiring documents", title: "Review documents expiring in 30 days", priority: "medium", repeat: "weekly", steps: ["Drivers", "Trucks and trailers", "Insurance"] },
+  { name: "Weekly: reconcile fuel", title: "Reconcile fuel purchases", priority: "low", repeat: "weekly", steps: ["Import the fuel card file", "Match purchases to trucks", "Flag unmatched cards"] },
+  { name: "Send driver statements", title: "Approve and send driver statements", priority: "high", repeat: "weekly", steps: ["Check detention adjustments", "Approve statements", "Send to drivers"] },
+];
 
-/** A task for yourself or a teammate: what, by when, how urgent, and the load it's about. */
-export function NewTask({ onClose, loadId }: { onClose: () => void; loadId?: string }) {
+type Due = "none" | "hour" | "today" | "tomorrow" | "monday" | "custom";
+
+function dueAt(choice: Due, custom: string, now: number, zone: string): string | null {
+  const today = dayOf(now, zone);
+  const monday = addDays(today, ((8 - new Date(`${today}T12:00:00Z`).getUTCDay()) % 7) || 7);
+  if (choice === "hour") return new Date(now + 3_600_000).toISOString();
+  if (choice === "today") return new Date(at(today, "17:00", zone)).toISOString();
+  if (choice === "tomorrow") return new Date(at(addDays(today, 1), "09:00", zone)).toISOString();
+  if (choice === "monday") return new Date(at(monday, "09:00", zone)).toISOString();
+  if (choice === "custom") return custom ? fromLocalInput(custom, zone) : null;
+  return null;
+}
+
+type Props = { onClose: () => void; people: Person[]; companies?: { id: string; name: string }[] };
+
+/** A task for you or a teammate: from a template or written fresh, with what it's about, when, and its steps. */
+export function NewTask({ onClose, people, companies }: Props) {
   const { me, can, notify } = useConsole();
-  const client = useQueryClient();
-  const org = me.organization;
+  const { refresh } = useTaskActions();
+  const zone = me.organization.timezone;
   const [title, setTitle] = useState("");
+  const [touched, setTouched] = useState(false);
   const [detail, setDetail] = useState("");
+  const [linked, setLinked] = useState<"" | Linked>("");
+  const [ref, setRef] = useState("");
+  const [due, setDue] = useState<Due>("today");
+  const [custom, setCustom] = useState("");
   const [who, setWho] = useState(me.user.id);
-  const [day, setDay] = useState(todayIn(org.timezone));
-  const [time, setTime] = useState("");
-  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
-  const [load, setLoad] = useState(loadId ?? "");
-  const [open, setOpen] = useState<string | null>(null);
-  const [q, setQ] = useState("");
+  const [priority, setPriority] = useState<Priority>("medium");
+  const [repeat, setRepeat] = useState<Schema<"TaskIn">["recurrence"]>("none");
+  const [steps, setSteps] = useState("");
+  const [company, setCompany] = useState(companies?.length === 1 ? companies[0]!.id : "");
   const [problem, setProblem] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null);
   const [pending, setPending] = useState(false);
-  const state = { open, q, setOpen, setQ };
-  const team = useQuery({ queryKey: [org.id, "teammates"], queryFn: () => unwrap(api.GET("/api/v1/teammates")), enabled: can("tasks.assign"), staleTime: 60_000 });
-  const loads = useQuery({ queryKey: [org.id, "loads", "pick-task"], queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { sort: "-pickup_at", limit: 100 } } })), enabled: can("loads.read"), staleTime: 30_000 });
-  const people = [{ v: me.user.id, l: `${me.user.full_name} (you)` }, ...(team.data ?? []).filter((m) => m.id !== me.user.id).map((m) => ({ v: m.id, l: m.name, ab: m.role.replace("_", " ") }))];
-  const whoField = combo(state, { k: "who", l: "For", value: who, options: people, onPick: setWho, placeholder: "Choose who", head: "Team", search: people.length > 8, qph: "Search the team" });
-  const loadOptions = (loads.data?.items ?? []).map((l) => ({ v: l.id, l: l.load_number, ab: `${l.origin_city ?? ""} → ${l.destination_city ?? ""}` }));
-  const loadField = combo(state, { k: "load", l: "Load", value: load, options: loadOptions, onPick: setLoad, placeholder: "Optional", head: "Recent loads", search: true, qph: "Search loads" });
+  const [now] = useState(() => Date.now());
+  const short = title.trim().length < 3;
+  const valid = !short && (!linked || ref.trim().length > 0) && (due !== "custom" || !!custom) && (!companies || !!company);
+  const today = dayOf(now, zone);
+  const monday = addDays(today, ((8 - new Date(`${today}T12:00:00Z`).getUTCDay()) % 7) || 7);
+
+  const use = (t: Template) => {
+    setTitle(t.title);
+    setPriority(t.priority);
+    setRepeat(t.repeat);
+    setSteps(t.steps.join("\n"));
+    if (t.linked) setLinked(t.linked);
+    setTouched(false);
+  };
 
   const save = async () => {
-    if (!title.trim()) return setProblem("Say what needs doing");
+    setTouched(true);
+    if (!valid) return;
     setPending(true);
     setProblem(null);
+    setFieldError(null);
     try {
-      const due = day ? fromLocalInput(`${day}T${time || "23:59"}`, org.timezone) : null;
-      await unwrap(api.POST("/api/v1/tasks", { body: {
-        title: title.trim(), detail: detail.trim() || null, assignee_user_id: who, due_at: due, all_day: !!day && !time, priority,
-        entity_type: load ? "load" : null, entity_id: load || null,
-      } }));
-      await client.invalidateQueries({ queryKey: [org.id] });
-      notify(who === me.user.id ? "Task added" : `Task given to ${people.find((x) => x.v === who)?.l ?? "them"}`);
+      const body: Schema<"TaskIn"> & { organization_id?: string } = {
+        title: title.trim(), detail: detail.trim() || null, assignee_user_id: who, due_at: dueAt(due, custom, Date.now(), zone), all_day: false, priority,
+        entity_type: linked || null, entity_ref: linked ? ref.trim() : null, recurrence: repeat, subtasks: steps.split("\n").map((s) => s.trim()).filter(Boolean),
+        ...(companies ? { organization_id: company } : {}),
+      };
+      await unwrap(api.POST("/api/v1/tasks", { body }));
+      await refresh();
+      const person = people.find((p) => p.id === who);
+      notify(who === me.user.id ? `Task created: ${title.trim()}` : `Task created for ${person?.name ?? "them"} · they were notified`);
       onClose();
     } catch (e) {
-      setProblem(errorMessage(e));
+      const fields = e instanceof ApiError ? e.fieldErrors : undefined;
+      const first = fields ? Object.entries(fields)[0] : undefined;
+      if (first) setFieldError({ field: first[0], message: String(first[1]) });
+      else setProblem(errorMessage(e));
       setPending(false);
     }
   };
+  const err = (field: string) => (fieldError?.field === field ? fieldError.message : null);
+  const titleError = (touched && short ? "Use at least 3 characters" : null) ?? err("title");
 
   return (
-    <Dialog
-      title="New task"
-      sub="For you or a teammate"
-      icon={I.tasks}
-      width={520}
-      onClose={() => !pending && onClose()}
-      footer={
-        <>
-          <span className="sp"></span>
-          <button className="btn" onClick={onClose} disabled={pending}>Cancel</button>
-          <button className="btn pri" onClick={() => void save()} disabled={pending}>{pending ? "Saving…" : "Add task"}</button>
-        </>
-      }
-    >
+    <Dialog title="New task" sub="Start from a template, or write your own" icon={I.tasks} width={560} onClose={() => !pending && onClose()}
+      footer={<><span className="sp"></span><button type="button" className="btn" onClick={onClose} disabled={pending}>Cancel</button><button type="button" className="btn pri" onClick={() => void save()} disabled={pending || !valid}>{pending ? "Creating…" : "Create task"}</button></>}>
       <Problem message={problem} />
-      <div className="fld">
-        <label htmlFor="task-title">Task</label>
-        <input id="task-title" className="inp" maxLength={200} placeholder="What needs doing" value={title} onChange={(e) => setTitle(e.currentTarget.value)} autoFocus />
-      </div>
-      <div className="fld">
-        <label htmlFor="task-detail">Details</label>
-        <input id="task-detail" className="inp" maxLength={300} placeholder="Optional" value={detail} onChange={(e) => setDetail(e.currentTarget.value)} />
-      </div>
-      <div className="mgrid">
-        <div className="fld" style={{ gridColumn: "span 2" }}>
-          <span className="lbl"><span>For</span></span>
-          {can("tasks.assign") ? <Combobox f={whoField} /> : <input className="inp" value={`${me.user.full_name} (you)`} readOnly aria-label="For" />}
-        </div>
-        <div className="fld" style={{ gridColumn: "span 2" }}>
-          <span className="lbl"><span>Load</span></span>
-          <Combobox f={loadField} />
-        </div>
-        <div className="fld" style={{ gridColumn: "span 2" }}>
-          <label htmlFor="task-day">Due</label>
-          <input id="task-day" className="inp mono" type="date" value={day} onChange={(e) => setDay(e.currentTarget.value)} />
-        </div>
-        <div className="fld" style={{ gridColumn: "span 2" }}>
-          <label htmlFor="task-time">Time</label>
-          <input id="task-time" className="inp mono" type="time" value={time} onChange={(e) => setTime(e.currentTarget.value)} />
-          <span className="fs12 mu">Leave empty for any time that day</span>
+      <div className="c g6">
+        <span className="lbl" id="nt-tpl">Templates</span>
+        <div className="r g6 wrap" role="group" aria-labelledby="nt-tpl">
+          {TEMPLATES.map((t) => <button key={t.name} type="button" className="btn sm" onClick={() => use(t)}>{t.name}</button>)}
         </div>
       </div>
-      <div className="fld">
-        <span className="lbl"><span>Priority</span></span>
-        <div className="seg sm" role="radiogroup" aria-label="Priority" style={{ alignSelf: "flex-start" }}>
-          {PRIORITIES.map(([key, label]) => <button key={key} role="radio" aria-checked={priority === key} className={clsx(priority === key && "on")} onClick={() => setPriority(key)}>{label}</button>)}
+      {companies ? (
+        <div className="fld">
+          <label htmlFor="nt-co">Company</label>
+          <select id="nt-co" className="inp" value={company} onChange={(e) => setCompany(e.currentTarget.value)}>
+            <option value="">Choose a company</option>
+            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
+      ) : null}
+      <div className="fld">
+        <label htmlFor="nt-title">Title</label>
+        <input id="nt-title" className="inp" maxLength={200} placeholder="What needs to happen?" value={title} autoFocus aria-invalid={!!titleError} aria-describedby={titleError ? "nt-title-err" : undefined}
+          onChange={(e) => setTitle(e.currentTarget.value)} onBlur={() => title && setTouched(true)} />
+        {titleError ? <span id="nt-title-err" className="fs12 tc" data-k="bad">{titleError}</span> : null}
+      </div>
+      <div className="fld">
+        <label htmlFor="nt-detail">Details <span className="mu">(optional)</span></label>
+        <input id="nt-detail" className="inp" maxLength={300} value={detail} onChange={(e) => setDetail(e.currentTarget.value)} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div className="fld">
+          <label htmlFor="nt-lt">Linked to</label>
+          <select id="nt-lt" className="inp" value={linked} onChange={(e) => setLinked(e.currentTarget.value as Linked | "")}>
+            <option value="">Nothing</option>
+            {LINKED.map((l) => <option key={l.key} value={l.key}>{l.label}</option>)}
+          </select>
+        </div>
+        {linked ? (
+          <div className="fld">
+            <label htmlFor="nt-ref">{`${LINKED.find((l) => l.key === linked)!.label} ID or name`}</label>
+            <input id="nt-ref" className="inp mono" maxLength={60} value={ref} aria-invalid={!!err("entity_ref")} aria-describedby={err("entity_ref") ? "nt-ref-err" : undefined} onChange={(e) => setRef(e.currentTarget.value)} />
+            {err("entity_ref") ? <span id="nt-ref-err" className="fs12 tc" data-k="bad">{err("entity_ref")}</span> : null}
+          </div>
+        ) : <div></div>}
+        <div className="fld">
+          <label htmlFor="nt-due">Due</label>
+          <select id="nt-due" className="inp" value={due} onChange={(e) => setDue(e.currentTarget.value as Due)}>
+            <option value="none">No date</option>
+            <option value="hour">In 1 hour</option>
+            <option value="today">Today 17:00</option>
+            <option value="tomorrow">Tomorrow 09:00</option>
+            <option value="monday">{`${dayLabel(monday, today) === "Tomorrow" ? "Tomorrow" : "Monday"} 09:00`}</option>
+            <option value="custom">Pick a date and time…</option>
+          </select>
+        </div>
+        {due === "custom" ? (
+          <div className="fld">
+            <label htmlFor="nt-when">Date and time</label>
+            <input id="nt-when" className="inp mono" type="datetime-local" value={custom} onChange={(e) => setCustom(e.currentTarget.value)} />
+          </div>
+        ) : null}
+        <div className="fld">
+          <label htmlFor="nt-who">Assign to</label>
+          <select id="nt-who" className="inp" value={who} disabled={!can("tasks.assign")} onChange={(e) => setWho(e.currentTarget.value)}>
+            {people.map((p) => <option key={p.id} value={p.id}>{p.id === me.user.id ? `${p.name} (you)` : p.name}</option>)}
+          </select>
+          {err("assignee_user_id") ? <span className="fs12 tc" data-k="bad">{err("assignee_user_id")}</span> : null}
+        </div>
+        <div className="c g6">
+          <span className="lbl" id="nt-pri">Priority</span>
+          <div className="seg" role="group" aria-labelledby="nt-pri">
+            {(["high", "medium", "low"] as Priority[]).map((p) => <button key={p} type="button" className={clsx(priority === p && "on")} aria-pressed={priority === p} onClick={() => setPriority(p)}>{PRIORITY[p].label}</button>)}
+          </div>
+        </div>
+        <div className="fld">
+          <label htmlFor="nt-rep">Repeat</label>
+          <select id="nt-rep" className="inp" value={repeat} onChange={(e) => setRepeat(e.currentTarget.value as typeof repeat)}>
+            {(Object.keys(REPEAT) as (keyof typeof REPEAT)[]).map((k) => <option key={k} value={k}>{REPEAT[k]}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="fld">
+        <label htmlFor="nt-steps">Checklist <span className="mu">(one step per line, optional)</span></label>
+        <textarea id="nt-steps" className="inp" rows={3} style={{ height: "auto", padding: "8px 10px" }} value={steps} onChange={(e) => setSteps(e.currentTarget.value)} />
       </div>
     </Dialog>
   );

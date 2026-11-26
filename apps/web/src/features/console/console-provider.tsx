@@ -24,9 +24,11 @@ export type Console = Shell & {
   set: (update: ConsoleUpdate) => void;
   /** An address inside the company's workspace. */
   path: (...parts: string[]) => string;
-  /** Show a confirmation, or a failure with `bad`. */
-  notify: (text: string, bad?: boolean) => void;
+  /** Show a confirmation, or a failure with `bad`; with an action (Undo), and for how long. */
+  notify: (text: string, bad?: boolean, extra?: ToastExtra) => void;
 };
+
+export type ToastExtra = { action?: { label: string; run: () => void }; ms?: number };
 
 const ConsoleContext = createContext<Console | null>(null);
 
@@ -124,10 +126,10 @@ export function ConsoleProvider({ children }: { children: React.ReactNode }) {
 
   // one confirmation at a time; it leaves by itself
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const notify = useCallback((text: string, bad = false) => {
+  const notify = useCallback((text: string, bad = false, extra?: ToastExtra) => {
     clearTimeout(toastTimer.current);
-    setStore((previous) => ({ ...previous, toast: { text, bad } }));
-    toastTimer.current = setTimeout(() => setStore((previous) => ({ ...previous, toast: null })), bad ? 8000 : 5000);
+    setStore((previous) => ({ ...previous, toast: { text, bad, action: extra?.action } }));
+    toastTimer.current = setTimeout(() => setStore((previous) => ({ ...previous, toast: null })), extra?.ms ?? (bad ? 8000 : 5000));
   }, []);
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 

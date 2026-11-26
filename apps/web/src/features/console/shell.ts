@@ -152,7 +152,7 @@ export function buildShell({ me, can, state, set, theme, density, mini, setMini,
     }),
   }));
 
-  const toast = state.toast as { text: string; bad?: boolean } | null | undefined;
+  const toast = state.toast as { text: string; bad?: boolean; action?: { label: string; run: () => void } } | null | undefined;
 
   return {
     I,
@@ -187,6 +187,7 @@ export function buildShell({ me, can, state, set, theme, density, mini, setMini,
     hasToast: !!toast,
     toast: toast?.text ?? "",
     toastBad: !!toast?.bad,
+    toastAction: toast?.action ?? null,
     closeToast: () => set({ toast: null }),
     isConsole: true,
     isForbidden: forbidden,

@@ -1164,3 +1164,20 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .bycoline{display:grid;align-items:center;gap:12px;width:100%;padding:10px 16px;border:none;border-top:1px solid var(--bd2);background:var(--sf);text-align:left;color:inherit;font-size:13px}
 .ff .bycoline:hover{background:var(--sf2)}
 .ff .bycohead{display:grid;gap:12px;padding:8px 16px;font-size:12px;font-weight:500;color:var(--tx2)}
+
+/* ---------------------------------------------------------------- shared: a toggle button that is on */
+.ff .btn[aria-pressed=true]{background:var(--prit);border-color:var(--pri);color:var(--pritx);font-weight:500}
+.ff .btn.ghost[aria-pressed=true]{background:var(--prit);border-color:var(--pri);color:var(--pritx)}
+/* ---------------------------------------------------------------- My tasks */
+.ff .tkt{display:block;max-width:100%;padding:0;border:none;background:none;text-align:left;font-size:13px;line-height:18px;font-weight:500;color:var(--tx);cursor:pointer;overflow-wrap:anywhere}
+.ff .tkt:hover{color:var(--pri);text-decoration:underline}
+.ff .tkt.dim{color:var(--mu);text-decoration:line-through}
+.ff .tkt.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ff .trow.tkrow{position:relative}
+.ff .trow.foc{background:var(--prit)}
+.ff .trow.foc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pri)}
+.ff .tkgrid{display:grid;gap:10px;align-items:start}
+.ff .tktoday{outline:1px solid var(--pri);outline-offset:-1px}
+.ff .tkbar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.ff .tkbar>i{display:block;width:100%;max-width:28px;border-radius:3px 3px 0 0;background:var(--pri)}
+@media (max-width:900px){.ff .tkgrid{grid-template-columns:1fr!important}}
