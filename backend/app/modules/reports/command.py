@@ -177,7 +177,15 @@ class Dwell(BaseModel):
     longest_minutes: int
 
 
+class City(BaseModel):
+    name: str
+    state: str
+    lat: float
+    lon: float
+
+
 class OperationsOut(BaseModel):
+    cities: list[City] = Field(description="Large US cities, to label the live map")
     tiles: list[Tile]
     activity: list[Activity]
     on_time: OnTime
@@ -264,7 +272,10 @@ def operations(db: Session, p: Principal) -> OperationsOut:
                  .where(LoadStop.arrived_at >= since, LoadStop.arrived_at.is_not(None))
                  .group_by(facility, LoadStop.city).order_by(func.avg(minutes).desc()).limit(8),
                  team_scope.loads(p.scope))).all()]
-    return OperationsOut(tiles=tiles, activity=activity[:30], on_time=on_time, heatmap=grid, heatmap_weeks=weeks,
+    from app.core.places import _places
+    cities = [City(name=n, state=st, lat=la, lon=lo) for n, st, la, lo, pop in _places()
+              if pop >= 250_000 and n not in ("Brooklyn", "Queens", "Manhattan", "The Bronx", "Staten Island")]
+    return OperationsOut(cities=cities, tiles=tiles, activity=activity[:30], on_time=on_time, heatmap=grid, heatmap_weeks=weeks,
                          dwell=dwell, dwell_days=days)
 
 

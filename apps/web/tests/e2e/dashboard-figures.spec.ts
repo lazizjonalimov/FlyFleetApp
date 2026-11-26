@@ -42,7 +42,9 @@ test("figures by period, each opening the exact list behind it, and today's sche
   await expect(week.locator(".kchg")).toContainText("last week");
   await expect(page.getByRole("button", { name: /^Deliveries this week:/ })).toBeVisible();
   const shown = Number((await week.locator(".kv2 span").first().innerText()).replace(/\D/g, ""));
+  // A card opens its drawer; the drawer opens the exact list behind the number.
   await week.click();
+  await page.getByRole("complementary", { name: /^Unassigned this week details$/ }).getByRole("button", { name: "Open the full page" }).click();
   await page.waitForURL(/\/loads$/);
   await expect(page.getByRole("button", { name: "Remove filter From dashboard: Unassigned this week" })).toBeVisible();
   await expect(page.locator(".tab.on .tcnt")).toHaveText(String(shown));

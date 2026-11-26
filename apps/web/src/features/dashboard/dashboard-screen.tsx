@@ -24,6 +24,15 @@ import { cents, useDashboardData } from "./dashboard-data";
 import { KpiCards, useKpis } from "./kpi-cards";
 import { QuickActions } from "./quick-actions";
 import { TodaysSchedule } from "./schedule";
+import { ConsolePortal } from "@/features/console/portal";
+import { CalendarTab, eventDrawer } from "./dx-calendar";
+import { tabsFor, TABS, type CalEvent, type TabKey } from "./dx-data";
+import { FinancialTab, laneDrawer } from "./dx-financial";
+import { driverDrawer, FleetTab } from "./dx-fleet";
+import { OperationsTab, useTruckDrawer } from "./dx-operations";
+import { DayCard, kpiDrawer, TodaysBrief } from "./dx-overview";
+import { CustomizeDialog, ShareDialog, useLayout, type Section } from "./dx-settings";
+import { DxDrawer, type DrawerSpec } from "./dx-ui";
 
 /** "$184.2k" — a short amount for a figure that is read at a glance. */
 function short(value: string | number, currency: string): string {
@@ -57,13 +66,36 @@ type Widget =
 
 /** Role-aware dashboard: KPIs, financials, exceptions, today’s work and fleet availability. */
 function CompanyDashboard() {
-  const { me, can, set } = useConsole();
+  const { me, can, set, state } = useConsole();
   const act = useAction();
   const [period, setPeriod] = useState<"today" | "week" | "month">("today");
   const [view, setView] = useState<Record<string, "chart" | "table">>({});
   const [tip, setTip] = useState<string | null>(null);
   const data = useDashboardData(period);
   const kpiData = useKpis(period);
+  const [spec, setSpec] = useState<DrawerSpec | null>(null);
+  const [dialog, setDialog] = useState<"customize" | "share" | null>(null);
+  const truck = useTruckDrawer();
+  const { layout } = useLayout();
+  const allowedTabs = tabsFor(can, me.organization.role);
+  const shownTabs = allowedTabs.filter((t) => t === "overview" || !layout.hide_tabs.includes(t));
+  const wanted = (typeof state.dtab === "string" ? state.dtab : layout.open_on) as TabKey;
+  const tab: TabKey = shownTabs.includes(wanted) ? wanted : "overview";
+  const sections: Section[] = [
+    ...(can("loads.read") ? ["day" as const] : []),
+    ...(me.organization.role !== "accountant" ? ["brief" as const] : []),
+    ...(can("dispatch.read") ? ["schedule" as const] : []),
+    ...(can("invoices.read") && can("reports.read") && can("expenses.read") ? ["financials" as const] : []),
+  ];
+  const showSection = (key: Section) => !layout.hide_sections.includes(key);
+  const openTarget = (e: CalEvent) => {
+    const t = e.target;
+    if (t.screen === "load" && t.id) return set({ screen: "load", loadId: t.id, drawer: null });
+    if (t.screen === "stmt" && t.id) return set({ screen: "stmt", statementId: t.id });
+    if (t.screen === "invoices") return set({ ...goTo("invoices"), lq: e.reference ?? "" });
+    if (t.screen === "maintenance") return set(goTo("maintenance"));
+    return set(goTo(t.screen));
+  };
   const org = me.organization;
   const zone = org.timezone;
   const currency = org.base_currency;
@@ -319,6 +351,7 @@ function CompanyDashboard() {
   const weekLabel = (day: string) => formatDate(day).replace(/, \d{4}$/, "");
 
   return (
+    <>
     <div className="scr">
       <div className="ph">
         <div className="f1">
@@ -338,19 +371,38 @@ function CompanyDashboard() {
               <button key={each} className={clsx(period === each && "on")} onClick={() => setPeriod(each)} aria-pressed={period === each}>{each === "today" ? "Today" : each === "week" ? "This week" : "This month"}</button>
             ))}
           </div>
+          <button type="button" className="btn" onClick={() => setDialog("customize")}><Icon className="s14" d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6" />Customize</button>
+          <button type="button" className="btn" onClick={() => setDialog("share")}><Icon className="s14" d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />Share</button>
           {can("loads.create") ? (
-            <button className="btn pri" onClick={() => set(goTo("newload"))}>
+            <button type="button" className="btn pri" onClick={() => set(goTo("newload"))}>
               <Icon className="s14 b" d="M12 5v14M5 12h14" />
               New load
             </button>
           ) : null}
         </div>
       </div>
+      <nav className="tabs dx-tabs" aria-label="Dashboard tabs">
+        {shownTabs.map((t) => (
+          <button key={t} type="button" className={clsx("tab", tab === t && "on")} aria-current={tab === t ? "page" : undefined} onClick={() => set({ dtab: t })}>{TABS.find((x) => x.key === t)!.label}</button>
+        ))}
+      </nav>
+      {tab === "operations" ? <OperationsTab openTruck={truck.open} /> : null}
+      {tab === "financial" ? <FinancialTab openLane={(l) => setSpec(laneDrawer(l, data.today, () => setSpec(null), () => set(goTo("loads"))))} /> : null}
+      {tab === "fleet" ? <FleetTab openDriver={(d) => setSpec(driverDrawer(d, () => setSpec(null), () => set({ screen: "driver", driverId: d.driver_id }), (id) => set({ screen: "load", loadId: id, drawer: null })))} /> : null}
+      {tab === "calendar" ? <CalendarTab openEvent={(e) => setSpec(eventDrawer(e, () => setSpec(null), openTarget))} /> : null}
+      {tab === "overview" ? (
+      <>
+      {showSection("day") && can("loads.read") ? <DayCard /> : null}
+      {showSection("brief") && me.organization.role !== "accountant" ? (
+        <TodaysBrief attention={attention} run={runAction} openFinancial={() => set({ dtab: "financial" })}
+          revenue={data.books && data.month.ready ? { now: cents(data.month.invoiced) / 100, last: cents(data.weekly.lastMonthToDate) / 100 } : null} />
+      ) : null}
       <QuickActions />
-      <KpiCards kpis={kpiData.data?.kpis ?? []} loading={kpiData.isPending} />
+      <KpiCards kpis={(kpiData.data?.kpis ?? []).filter((k) => !layout.hide_kpis.includes(k.key))} loading={kpiData.isPending}
+        onOpen={(k) => setSpec(kpiDrawer(k, kpiData.data?.companies ?? [], () => set({ ...goTo(k.target.screen), lpreset: { screen: k.target.screen, label: k.target.label, params: k.target.params } }), () => setSpec(null), period))} />
       {kpiData.isError ? <div className="banner" data-k="bad" role="alert" style={{ margin: "8px 24px 0" }}><div className="f1">The figures couldn’t be loaded. They’ll try again in a minute.</div></div> : null}
-      {can("dispatch.read") ? <TodaysSchedule /> : null}
-      {data.books ? (
+      {showSection("schedule") && can("dispatch.read") ? <TodaysSchedule /> : null}
+      {data.books && showSection("financials") ? (
         <>
           <div className="r g8" style={{ padding: "20px 24px 0" }}>
             <span className="over">Financials</span>
@@ -698,7 +750,14 @@ function CompanyDashboard() {
           ))}
         </div>
       </div>
+      </>
+      ) : null}
     </div>
+    {spec ? <DxDrawer spec={spec} onClose={() => setSpec(null)} /> : null}
+    {truck.spec ? <DxDrawer spec={truck.spec} onClose={truck.close} /> : null}
+    {dialog === "customize" ? <ConsolePortal><CustomizeDialog tabs={allowedTabs} sections={sections} kpis={(kpiData.data?.kpis ?? []).map((k) => ({ key: k.key, label: k.label }))} onClose={() => setDialog(null)} /></ConsolePortal> : null}
+    {dialog === "share" ? <ConsolePortal><ShareDialog tabs={shownTabs} onClose={() => setDialog(null)} /></ConsolePortal> : null}
+    </>
   );
 }
 

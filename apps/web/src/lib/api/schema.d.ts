@@ -6972,6 +6972,17 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** City */
+        City: {
+            /** Lat */
+            lat: number;
+            /** Lon */
+            lon: number;
+            /** Name */
+            name: string;
+            /** State */
+            state: string;
+        };
         /** CodeIn */
         CodeIn: {
             /** Code */
@@ -11685,6 +11696,11 @@ export interface components {
         OperationsOut: {
             /** Activity */
             activity: components["schemas"]["Activity"][];
+            /**
+             * Cities
+             * @description Large US cities, to label the live map
+             */
+            cities: components["schemas"]["City"][];
             /** Dwell */
             dwell: components["schemas"]["Dwell"][];
             /** Dwell Days */

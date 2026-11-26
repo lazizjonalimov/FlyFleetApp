@@ -96,9 +96,9 @@ function Sparkline({ points, tone }: { points: (number | null)[]; tone: string }
 }
 
 /** Six cards: each says what it counts, how it changed, and opens the exact list behind its number. */
-export function KpiCards({ kpis, loading }: { kpis: Kpi[]; loading: boolean }) {
+export function KpiCards({ kpis, loading, onOpen }: { kpis: Kpi[]; loading: boolean; onOpen?: (kpi: Kpi) => void }) {
   const { set } = useConsole();
-  const open = (kpi: Kpi) => set({ ...goTo(kpi.target.screen), lpreset: { screen: kpi.target.screen, label: kpi.target.label, params: kpi.target.params } });
+  const open = (kpi: Kpi) => (onOpen ? onOpen(kpi) : set({ ...goTo(kpi.target.screen), lpreset: { screen: kpi.target.screen, label: kpi.target.label, params: kpi.target.params } }));
   if (loading && !kpis.length) {
     return <div className="kpis" style={{ margin: "0 24px", gridTemplateColumns: "repeat(6,minmax(0,1fr))", minHeight: "126px" }} aria-busy="true"></div>;
   }
@@ -106,7 +106,7 @@ export function KpiCards({ kpis, loading }: { kpis: Kpi[]; loading: boolean }) {
     <div className="kpis" style={{ margin: "0 24px", gridTemplateColumns: `repeat(${Math.max(1, kpis.length)},minmax(0,1fr))` }}>
       {kpis.map((k) => (
         <button key={k.key} type="button" className="kpi" onClick={() => open(k)} title={k.definition}
-          aria-label={`${k.label}: ${formatNumber(k.value)}${typeof k.total === "number" ? ` of ${formatNumber(k.total)}` : ""}. ${k.sub}. ${k.change.text}. Open the list.`}>
+          aria-label={`${k.label}: ${formatNumber(k.value)}${typeof k.total === "number" ? ` of ${formatNumber(k.total)}` : ""}. ${k.sub}. ${k.change.text}. ${onOpen ? "Open details" : "Open the list"}.`}>
           <span className="kl">
             <span className="dot" data-k={k.tone}></span>
             <span className="ell"><span>{k.label}</span></span>

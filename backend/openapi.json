@@ -3494,6 +3494,34 @@
         "title": "ChecklistItem",
         "type": "object"
       },
+      "City": {
+        "properties": {
+          "lat": {
+            "title": "Lat",
+            "type": "number"
+          },
+          "lon": {
+            "title": "Lon",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "state",
+          "lat",
+          "lon"
+        ],
+        "title": "City",
+        "type": "object"
+      },
       "CodeIn": {
         "properties": {
           "code": {
@@ -18285,6 +18313,14 @@
             "title": "Activity",
             "type": "array"
           },
+          "cities": {
+            "description": "Large US cities, to label the live map",
+            "items": {
+              "$ref": "#/components/schemas/City"
+            },
+            "title": "Cities",
+            "type": "array"
+          },
           "dwell": {
             "items": {
               "$ref": "#/components/schemas/Dwell"
@@ -18323,6 +18359,7 @@
           }
         },
         "required": [
+          "cities",
           "tiles",
           "activity",
           "on_time",
