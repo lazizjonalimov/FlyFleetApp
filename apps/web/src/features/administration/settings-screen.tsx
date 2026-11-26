@@ -104,9 +104,58 @@ function OrganizationForm({ organization, fields }: { organization: Organization
   );
 }
 
+const COSTS = [
+  { k: "driver_pay_per_mile", l: "Driver pay per mile", hint: "Dollars a mile" },
+  { k: "mpg", l: "Miles per gallon", hint: "The fleet’s average" },
+  { k: "fuel_price", l: "Fuel price per gallon", hint: "Dollars" },
+  { k: "overhead_per_mile", l: "Overhead per mile", hint: "Insurance, equipment, office" },
+] as const;
+
+/** What a mile costs the company, which every load's margin estimate uses. Finance roles only. */
+function LoadCostsCard() {
+  const { me, can } = useConsole();
+  const act = useAction();
+  const costs = useQuery({ queryKey: [me.organization.id, "load-costs"], queryFn: () => unwrap(api.GET("/api/v1/load-costs")), staleTime: 300_000 });
+  const [values, setValues] = useState<Record<string, string> | null>(null);
+  if (!costs.data) return null;
+  const start = Object.fromEntries(COSTS.map((c) => [c.k, String(Number(costs.data[c.k]))]));
+  const cur = values ?? start;
+  const changed = COSTS.some((c) => cur[c.k] !== start[c.k]);
+  const editable = can("organization.manage");
+  const save = async () => {
+    const done = await act(() => unwrap(api.PUT("/api/v1/load-costs", { body: { driver_pay_per_mile: cur.driver_pay_per_mile!, mpg: cur.mpg!, fuel_price: cur.fuel_price!, overhead_per_mile: cur.overhead_per_mile! } })), "Cost rates saved · margins use them now");
+    if (done) setValues(null);
+  };
+  return (
+    <section className="card oh" style={{ maxWidth: "860px", marginTop: "16px" }} aria-label="Load cost rates">
+      <div className="ch"><h2 className="h2">Load cost rates</h2><span className="fs12 mu">Used for the margin on every load</span></div>
+      <div className="cb">
+        <div className="sgrid" style={{ padding: 0 }}>
+          {COSTS.map((c) => (
+            <div key={c.k} className="fld" style={{ gridColumn: "span 3" }}>
+              <label htmlFor={`cost-${c.k}`}>{c.l}</label>
+              <input id={`cost-${c.k}`} className="inp mono" inputMode="decimal" value={cur[c.k] ?? ""} disabled={!editable} onChange={(e) => setValues({ ...cur, [c.k]: e.target.value })} />
+              <span className="hint">{c.hint}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {editable ? (
+        <div className="savebar">
+          <span className="dot" data-k={changed ? "warn" : "ok"}></span>
+          <span className="fs13">{changed ? <b>Unsaved changes</b> : "Saved"}</span>
+          <span className="sp"></span>
+          <button className="btn" onClick={() => setValues(null)} disabled={!changed}>Discard</button>
+          <button className="btn pri" onClick={() => void save()} disabled={!changed}>Save</button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 /** Settings: the company, and how FlyFleet works for it. */
 export function SettingsScreen() {
-  const { me, state, screen } = useConsole();
+  const { me, state, screen, can } = useConsole();
   const org = me.organization.id;
   const page: Page = screen === "policy" ? "policy" : typeof state.setpage === "string" && state.setpage in SUB && state.setpage !== "policy" ? (state.setpage as Page) : "integrations";
   const organization = useQuery({ queryKey: [org, "organization"], queryFn: () => unwrap(api.GET("/api/v1/organization")), staleTime: 300_000 });
@@ -124,6 +173,7 @@ export function SettingsScreen() {
           <Skeleton />
         )
       ) : null}
+      {page === "numbering" && can("loads.rates.read") ? <LoadCostsCard /> : null}
       {page === "integrations" ? <IntegrationsPage /> : null}
       {page === "policy" ? policy.body : null}
       {page === "retention" ? <EmptyState icon={I.history} title="Everything is kept" text="Records, documents and the audit log are kept for as long as the company exists. Retention rules aren’t configurable yet." /> : null}

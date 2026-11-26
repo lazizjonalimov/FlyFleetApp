@@ -287,7 +287,9 @@ def create_load(db: Session, p: Principal, body: s.LoadCreate) -> Load:
     check_stop_order(body.stops)
     if body.status == "planned":
         check_route(body.stops)
-    open_money = (MONEY_FIELDS - {"customer_rate"}) & body.model_fields_set
+    # A role without rates may send the money terms only as their defaults.
+    open_money = {f for f in (MONEY_FIELDS - {"customer_rate"}) & body.model_fields_set
+                  if getattr(body, f) != s.LoadFields.model_fields[f].default}
     if not p.can("loads.rates.read") and (body.charges or open_money):
         raise Forbidden("Your role does not allow setting rates or charges")
     recurrence = _recurrence(body.recurrence)
@@ -679,6 +681,7 @@ def _item(row, p: Principal, now: datetime) -> dict:
         destination_state=load.destination_state, pickup_at=load.pickup_at, delivery_at=load.delivery_at,
         delivered_at=load.delivered_at, miles=load.miles, weight_lbs=load.weight_lbs, bol_number=load.bol_number,
         pickup_number=load.pickup_number, delivery_number=load.delivery_number,
+        repeat_days=list(load.recurrence_days) if load.recurrence_days else None,
         revenue=(load.customer_rate + load.charges_total) if rates else None, currency=load.currency,
         assignment=assignment, risks=risks(load, now), created_at=load.created_at, updated_at=load.updated_at)
 

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { day, open, qualify, signUp, type Account, viaApp } from "./helpers";
+import { textPdf } from "./pdf";
 
 /** A customer, a driver, a truck and a trailer: what a load needs to be booked and dispatched. */
 async function fleet(page: Page) {
@@ -31,9 +32,15 @@ async function book(page: Page, account: Account) {
   await page.locator("#nl-a1").fill("09:00");
   await page.getByRole("button", { name: /Continue to/ }).click();
   await page.locator("#nl-rate").fill("1650");
-  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: /Continue to/ }).click();
+  await page.getByRole("button", { name: /Continue to/ }).click();
+  // Booked once the rate confirmation is attached; without it the load stays a draft.
+  await page.locator("label", { hasText: "Choose a file" }).locator('input[type="file"]').setInputFiles({ name: "rate-con.pdf", mimeType: "application/pdf", buffer: textPdf([[[72, 700, "Rate confirmation PO-2468"]]]) });
+  await page.getByRole("button", { name: /Continue to/ }).click();
   await page.getByRole("button", { name: "Book load" }).click();
-  await expect(page).toHaveURL(new RegExp(`/${account.slug}/loads/[0-9a-f-]{36}$`));
+  // The new load opens in the drawer on the list; its full page is one click away.
+  await expect(page).toHaveURL(new RegExp(`/${account.slug}/loads\\?drawer=[0-9a-f-]{36}$`));
+  await expect(page.locator(".toastw")).toContainText("booked with its rate confirmation");
+  await page.getByRole("complementary", { name: "Load details" }).getByRole("button", { name: "Open full page" }).first().click();
   await expect(page.getByRole("heading", { name: "Joliet, IL → Columbus, OH", level: 1 })).toBeVisible();
 }
 

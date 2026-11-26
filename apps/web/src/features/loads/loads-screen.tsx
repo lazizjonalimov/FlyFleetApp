@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { clsx } from "clsx";
 import { cell } from "@/components/data-table/cell";
@@ -10,21 +9,24 @@ import { Icon } from "@/components/ui/icon";
 import { useConsole } from "@/features/console/console-provider";
 import { addOf, goTo } from "@/features/console/shell";
 import { LOAD_TABS } from "@/features/lists/tabs";
-import { BulkBar, ColumnsButton, ExportButton, FilterChips, PageSize, Pager } from "@/features/lists/list-screen";
+import { BulkBar, ColumnsButton, ExportButton, PageSize, Pager } from "@/features/lists/list-screen";
 import { cellText, useList, type ListQuery } from "@/features/lists/use-list";
 import type { Cell } from "@/features/console/view";
 import { LoadDrawer } from "@/features/loads/load-drawer";
 import { api, unwrap } from "@/lib/api/client";
 import { formatDate, formatStamp, timeZoneLabel, todayIn } from "@/lib/format/dates";
 import { formatWholeMoney, toCents } from "@/lib/format/money";
-import { place, plural } from "@/lib/format/text";
+import { formatNumber, place, plural } from "@/lib/format/text";
 import type { LoadListItem } from "./load-data";
 import { BulkStatus } from "./bulk-status";
+import { LoadFilters } from "./load-filters";
+import { LoadsBoard } from "./loads-board";
+import { useRowActions, weekdayOf } from "./row-actions";
+import { WEEKDAYS } from "./load-money";
+import { equipmentLabel } from "./load-view";
 import { statusOf } from "./load-view";
 import { SaveViewDialog, useSavedViews, type ViewParams } from "./saved-views";
-import { loadLabel } from "@/features/fleet/labels";
 
-const STATUSES = ["draft", "planned", "assigned", "dispatched", "at_pickup", "in_transit", "at_delivery", "delivered", "pod_review", "completed", "on_hold", "cancelled"] as const;
 
 /** "1h 40m", "35m". */
 const span = (minutes: number) => (minutes >= 60 ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ""}` : `${Math.max(0, minutes)}m`);
@@ -33,28 +35,29 @@ const monday = (day: string) => addDays(day, -((new Date(`${day}T12:00:00Z`).get
 const short = (day: string) => formatDate(day).replace(/, \d{4}$/, "");
 
 /**
- * What to know about a load at a glance, in the order it matters: late or at risk, then how its ETA compares
- * with the appointment, why it is held, or the paper a draft is missing.
+ * What to know about a load at a glance: the risk's short label, with the reason in plain words under it; else how
+ * its ETA compares with the appointment, why it is held, or the paper a draft is missing.
  */
 function riskCell(l: LoadListItem): Cell {
-  const code = l.risks[0]?.code;
-  if (code === "UNASSIGNED_SOON" && l.pickup_at) return cell.risk(`No driver · pickup in ${span(Math.round((Date.parse(l.pickup_at) - Date.now()) / 60_000))}`, "warn");
-  if (code === "MISSING_POD") return cell.risk("POD missing", "bad");
-  if (code === "LATE_PICKUP") return cell.risk("Late pickup", "bad");
-  if (code === "LATE_DELIVERY") return cell.risk(l.eta && l.late_by_minutes > 0 ? `ETA +${span(l.late_by_minutes)}` : "Late delivery", "bad");
-  if (l.eta) return l.late_by_minutes > 0 ? cell.risk(`ETA +${span(l.late_by_minutes)}`, l.late_by_minutes >= 60 ? "bad" : "late") : cell.risk("On time", "ok");
+  const r = l.risks[0];
+  if (r) {
+    const tone = r.code === "UNASSIGNED_SOON" ? "warn" : r.code === "LATE_DELIVERY" && l.late_by_minutes > 0 && l.late_by_minutes < 60 ? "late" : "bad";
+    return { ...cell.risk(r.label || r.message, tone), s: r.reason || undefined };
+  }
+  if (l.eta) return l.late_by_minutes > 0 ? { ...cell.risk(`ETA +${span(l.late_by_minutes)}`, l.late_by_minutes >= 60 ? "bad" : "late"), s: "Past the delivery appointment" } : cell.risk("On time", "ok");
   if (l.status === "on_hold") return cell.risk(l.hold_reason || "On hold", "warn");
-  if (l.status === "draft" && !l.papers.rate_confirmation) return cell.risk("No rate confirmation", "warn");
+  if (l.status === "draft" && !l.papers.rate_confirmation) return { ...cell.risk("No rate confirmation", "warn"), s: "Stays a draft until it is attached" };
   return cell.maybe(null);
 }
 
 /** Loads list with views, search, selection and the detail drawer. */
 export function LoadsScreen() {
   const { me, can, fin, noFin, I, state, set, notify } = useConsole();
+  const actions = useRowActions();
+  const layout = state.llayout === "board" ? "board" : "table";
   const zone = me.organization.timezone;
   const create = can("loads.create") ? () => set(goTo("newload")) : null;
   const open = (load: LoadListItem) => set({ screen: "loads", drawer: load.id, overlay: "none", modal: "none" });
-  const customers = useQuery({ queryKey: [me.organization.id, "customers", "filter"], queryFn: () => unwrap(api.GET("/api/v1/customers", { params: { query: { sort: "name", limit: 100 } } })), enabled: can("customers.read"), staleTime: 60_000 });
   const drawer = typeof state.drawer === "string" ? state.drawer : null;
   // Pickup dates the filter offers, on the company's calendar.
   const today = todayIn(zone);
@@ -76,12 +79,33 @@ export function LoadsScreen() {
   const applyView = (params: Partial<ViewParams>) => set({ ltab: Math.max(0, LOAD_TABS.findIndex((t) => t.label === params.tab)), lf: params.filters ?? {}, lq: params.q ?? "", lsort: params.sort ?? "", lpage: [], lsel: [] });
   const plain = tabIndex === 0 && !current.q && !current.sort && !Object.keys(picked).length;
 
+  const MULTI_FILTERS = [
+    { key: "status", label: "Status", options: [], params: (v: string) => ({ status: v.split(",") }) },
+    { key: "customer", label: "Customer", options: [], params: (v: string) => ({ customer_ids: v.split(",") }) },
+    { key: "risk", label: "Risk", options: [], params: (v: string) => ({ risks: v.split(",") }) },
+    { key: "equipment", label: "Equipment", options: [], params: (v: string) => ({ equipment_types: v.split(",") }) },
+    { key: "driver", label: "Driver", options: [], params: (v: string) => ({ driver_ids: v.split(",") }) },
+  ];
+  /** A row's ⋯ menu. */
+  const rowMenu = (l: LoadListItem) => {
+    const items: [string, () => void, string?][] = [
+      ["Open load", () => open(l)],
+      ["Open full page", () => set({ screen: "load", loadId: l.id, drawer: null })],
+    ];
+    if (can("loads.create")) items.push(["Duplicate as a draft", () => void actions.duplicate(l)]);
+    if (can("loads.update") && l.status !== "cancelled") items.push([l.repeat_days?.length ? `Stop repeating (every ${l.repeat_days.map((d) => WEEKDAYS[d]).join(", ")})` : `Repeat every ${l.pickup_at ? WEEKDAYS[weekdayOf(l.pickup_at, zone)] : "week"}`, () => void actions.repeat(l, !!l.repeat_days?.length)]);
+    if (can("loads.update") && !["draft", "cancelled"].includes(l.status)) items.push(["Copy tracking link", () => void actions.copyLink(l)]);
+    if (can("loads.cancel") && ["draft", "planned", "assigned", "dispatched", "on_hold"].includes(l.status)) items.push(["Cancel load", () => void actions.cancel(l), "bad"]);
+    return cell.menu(items);
+  };
+
   const list = useList<LoadListItem>({
     key: "loads",
     group: "Operations",
     title: "Loads",
     sub: (total) => `${total === null ? "" : `${plural(total, "load")} · `}${pickupRange ? `${short(pickupRange[1])}${pickupRange[2] !== pickupRange[1] ? ` – ${short(pickupRange[2])}` : ""} · ` : ""}times in ${timeZoneLabel(zone)}`,
-    placeholder: "Load #, reference, customer, city",
+    placeholder: "Load #, PO, BOL, pickup or delivery #, customer, city, driver",
+    sizes: [10, 25, 50],
     fetch: (query: ListQuery) => unwrap(api.GET("/api/v1/loads", { params: { query: query as never } })),
     defaultSort: "-pickup_at",
     tabs: LOAD_TABS,
@@ -98,6 +122,23 @@ export function LoadsScreen() {
           }]
         : []),
       ...(can("loads.update", "loads.cancel") ? [{ label: "Change status", go: (chosen: LoadListItem[]) => setDialog({ kind: "status", loads: chosen }) }] : []),
+      ...(can("loads.update", "loads.close")
+        ? [{
+            label: "Request PODs",
+            go: async (chosen: LoadListItem[]) => {
+              const waiting = chosen.filter((l) => l.status === "delivered");
+              if (!waiting.length) return notify("None of these loads is waiting for its proof of delivery", true);
+              let sent = 0;
+              for (const l of waiting) {
+                try {
+                  const out = await unwrap(api.POST("/api/v1/loads/{load_id}/pod-request", { params: { path: { load_id: l.id } } }));
+                  if (out.sent) sent++;
+                } catch { /* counted below */ }
+              }
+              notify(`POD requested for ${plural(sent, "load")}${sent < waiting.length ? ` · ${waiting.length - sent} couldn’t reach the driver` : ""}`, sent < waiting.length);
+            },
+          }]
+        : []),
       // Bills of lading as a PDF, one page per load, in a new tab to print.
       { label: "Print BOLs", go: (chosen: LoadListItem[]) => window.open(`/api/v1/loads/bols.pdf?${chosen.map((l) => `ids=${encodeURIComponent(l.id)}`).join("&")}`, "_blank", "noopener") },
       "export" as const,
@@ -105,31 +146,42 @@ export function LoadsScreen() {
     noun: "loads",
     filters: [
       { key: "pickup", label: "Pickup", options: Object.entries(ranges).map(([value, [label]]) => ({ value, label })), params: (value) => (ranges[value] ? { pickup_from: ranges[value][1], pickup_to: ranges[value][2] } : {}) },
-      { key: "status", label: "Status", options: STATUSES.map((v) => ({ value: v, label: loadLabel(v) })) },
-      { key: "customer_id", label: "Customer", options: (customers.data?.items ?? []).map((c) => ({ value: c.id, label: c.name })) },
-      { key: "risk", label: "Risk", options: [["at_risk", "At risk"], ["unassigned", "Unassigned"], ["missing_pod", "Missing POD"]].map(([value, label]) => ({ value: value!, label: label! })), params: (value) => ({ view: value }) },
+      ...MULTI_FILTERS,
     ],
+    // The server makes the file, so rates and margin are left out for roles that can't see them.
+    exportFile: () => {
+      const q = new URLSearchParams();
+      for (const [k, v] of Object.entries(list.params)) for (const x of Array.isArray(v) ? v : v === undefined ? [] : [v]) q.append(k, String(x));
+      q.set("sort", list.sort);
+      window.open(`/api/v1/loads/export.csv?${q}`, "_blank", "noopener");
+      notify("Loads exported as CSV");
+    },
     open,
     rowClass: (load) => (load.id === drawer ? "sel" : load.status === "cancelled" ? "dim" : ""),
     columns: [
-      { label: "Load", width: "148px", cell: (l) => cell.id(l.load_number, () => open(l), l.customer.name) },
-      { label: "Status", width: "112px", cell: (l) => cell.badge(statusOf(l).label, statusOf(l).tone) },
-      { label: "Risk", width: "150px", cell: riskCell, csv: (l) => cellText(riskCell(l)) },
-      { label: "Pickup", width: "minmax(0,1fr)", cell: (l) => cell.text(place(l.origin_city, l.origin_state), l.pickup_at ? formatStamp(l.pickup_at, zone) : "", "", "num") },
-      { label: "Delivery", width: "minmax(0,1fr)", cell: (l) => cell.text(place(l.destination_city, l.destination_state), l.delivery_at ? formatStamp(l.delivery_at, zone) : "", "", "num") },
+      { label: "Load", width: "148px", sort: "load_number", cell: (l) => cell.id(l.load_number, () => open(l), `${l.customer.name}${l.repeat_days?.length ? ` · repeats ${l.repeat_days.map((d) => WEEKDAYS[d]).join(", ")}` : ""}`) },
+      { label: "Status", width: "112px", sort: "status", cell: (l) => cell.badge(statusOf(l).label, statusOf(l).tone) },
+      { label: "Risk", width: "172px", cell: riskCell, csv: (l) => cellText(riskCell(l)) },
+      { label: "References", width: "minmax(0,1fr)", hidden: true, cell: (l) => cell.text(l.reference || "—", [l.pickup_number && `PU ${l.pickup_number}`, l.delivery_number && `DL ${l.delivery_number}`, l.bol_number && `BOL ${l.bol_number}`].filter(Boolean).join(" · "), "mono fs12", "mono") },
+      { label: "Pickup", width: "minmax(0,1fr)", sort: "pickup_at", cell: (l) => cell.text(place(l.origin_city, l.origin_state), l.pickup_at ? formatStamp(l.pickup_at, zone) : "", "", "num") },
+      { label: "Delivery", width: "minmax(0,1fr)", sort: "delivery_at", cell: (l) => cell.text(place(l.destination_city, l.destination_state), l.delivery_at ? formatStamp(l.delivery_at, zone) : "", "", "num") },
       {
         label: "Driver · equipment",
         width: "minmax(0,1fr)",
+        sort: "driver",
         cell: (l) => (l.assignment ? cell.text(l.assignment.driver.name, [l.assignment.vehicle.name, l.assignment.trailer?.name].filter(Boolean).join(" · ")) : l.status === "cancelled" ? cell.maybe(null) : cell.risk("Unassigned", "warn", I.user)),
       },
-      ...(fin ? [{ label: "Rate", width: "96px", right: true, cell: (l: LoadListItem) => cell.money(formatWholeMoney(l.revenue, l.currency), l.miles && l.revenue ? `$${((toCents(l.revenue) ?? 0) / 100 / l.miles).toFixed(2)}/mi` : "") }] : []),
+      { label: "Equipment", width: "92px", hidden: true, sort: "equipment", cell: (l: LoadListItem) => cell.text(equipmentLabel(l.equipment_type), "", "fs12") },
+      { label: "Miles", width: "72px", hidden: true, right: true, sort: "miles", cell: (l: LoadListItem) => cell.text(l.miles ? formatNumber(l.miles) : "—", "", "num") },
+      ...(fin ? [{ label: "Margin", width: "96px", hidden: true, right: true, sort: "margin", cell: (l: LoadListItem) => (l.margin === null || l.margin === undefined || l.status === "cancelled" ? cell.maybe(null) : { ...cell.money(formatWholeMoney(l.margin, l.currency), l.margin_pct === null || l.margin_pct === undefined ? "" : `${l.margin_pct}%`), ...(l.margin_pct !== null && l.margin_pct !== undefined && l.margin_pct < 25 ? { cls: "warn" } : {}) }) }] : []),
+      ...(fin ? [{ label: "Rate", width: "96px", right: true, sort: "revenue", cell: (l: LoadListItem) => cell.money(formatWholeMoney(l.revenue, l.currency), l.miles && l.revenue ? `$${((toCents(l.revenue) ?? 0) / 100 / l.miles).toFixed(2)}/mi` : "") }] : []),
       {
         label: "Docs",
         width: "72px",
         cell: (l: LoadListItem) => cell.docs([l.papers.rate_confirmation, l.papers.bol, l.papers.pod].filter(Boolean).length, l.status === "delivered" && !l.papers.pod),
         csv: (l: LoadListItem) => (["Rate confirmation", "BOL", "POD"] as const).filter((_, i) => [l.papers.rate_confirmation, l.papers.bol, l.papers.pod][i]).join(", "),
       },
-      { label: "", width: "28px", cell: () => cell.more() },
+      { label: "", width: "28px", cell: (l: LoadListItem) => rowMenu(l) },
     ],
     actions: [],
     empty: {
@@ -202,36 +254,50 @@ export function LoadsScreen() {
             Save view
           </button>
         </div>
-        <div className="fb">
+        <div className="fb" style={{ flexWrap: "wrap", rowGap: "8px" }}>
           <label className="search">
             <Icon className="s14" d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35" />
             <input placeholder={L.ph} aria-label="Search loads" value={L.qv} onChange={L.setQ} />
           </label>
-          <FilterChips L={L} />
-          <button className="lnk" style={{ color: "var(--mu)", padding: "0 4px" }} onClick={list.clearFilters}>Clear all</button>
+          <LoadFilters params={list.params} single={{ key: "pickup", label: "Pickup", options: Object.entries(ranges).map(([value, [label]]) => ({ value, label })) }} clearAll={list.clearFilters} preset={L.chips.find((c) => c.l.startsWith("From dashboard"))} />
           <span className="sp"></span>
+          <div className="seg sm" role="group" aria-label="Loads layout">
+            {(["table", "board"] as const).map((k) => (
+              <button key={k} className={clsx(layout === k && "on")} aria-pressed={layout === k} onClick={() => set({ llayout: k })}>{k === "table" ? "Table" : "Board"}</button>
+            ))}
+          </div>
           {noFin ? (
             <span className="fs12 mu r g6">
               <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
               Rates hidden for your role
             </span>
           ) : null}
-          <ColumnsButton L={L} />
-          <button className="btn sm" onClick={() => set({ lsort: byPickup ? "-pickup_at" : "pickup_at", lpage: [], lsel: [] })} aria-label={`Sort by pickup date, ${byPickup ? "earliest" : "latest"} first`}>
-            <Icon className="s14" d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4" />
-            Pickup date
-          </button>
+          {layout === "table" ? <ColumnsButton L={L} /> : null}
+          {layout === "table" ? (
+            <button className="btn sm" onClick={() => set({ lsort: byPickup ? "-pickup_at" : "pickup_at", lpage: [], lsel: [] })} aria-label={`Sort by pickup date, ${byPickup ? "earliest" : "latest"} first`}>
+              <Icon className="s14" d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4" />
+              Pickup date
+            </button>
+          ) : null}
         </div>
-        <div className="card oh c" style={{ flex: "1", minHeight: "0", margin: "0 24px 24px" }}>
+        {layout === "board" ? <LoadsBoard params={list.params} open={(id) => set({ drawer: id, overlay: "none", modal: "none" })} /> : null}
+        <div className="card oh c" style={{ flex: "1", minHeight: "0", margin: "0 24px 24px" }} hidden={layout === "board"}>
           <div className="thead" style={{ gridTemplateColumns: cols }}>
             <button className={clsx("chk", L.allOn)} onClick={L.toggleAll} aria-label={L.allAria}>
               {L.allOn ? (
                 <span style={{ width: "8px", height: "2px", borderRadius: "1px", background: "#fff" }}></span>
               ) : null}
             </button>
-            {L.head.map((h, i) => (
-              <span key={i} className={h.al}><span>{h.l}</span></span>
-            ))}
+            {L.head.map((h, i) =>
+              h.srt ? (
+                <button key={i} className={clsx("thb", h.al, h.son)} onClick={h.go} aria-label={h.aria}>
+                  <span>{h.l}</span>
+                  <Icon d={h.sic} />
+                </button>
+              ) : (
+                <span key={i} className={h.al}><span>{h.l}</span></span>
+              ),
+            )}
           </div>
           {status === "ready" ? (
             <div className="tbody">

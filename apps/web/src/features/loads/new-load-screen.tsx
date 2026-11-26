@@ -17,15 +17,18 @@ import { US_STATES } from "@/lib/reference/states";
 import { ACCEPT, checkFile, uploadDocument } from "@/lib/upload";
 import { FacilityField } from "./facility-field";
 import { CHARGES } from "./load-view";
+import { estimate, FUEL_CHOICES, nextDates, WEEKDAYS, type Costs } from "./load-money";
 
-type Kind = "pickup" | "delivery";
+type Kind = "pickup" | "delivery" | "fuel_scale";
+type Handling = "live" | "drop" | "hook";
 type Timing = "window" | "appointment" | "fcfs";
-type StopForm = { type: Kind; name: string; address: string; city: string; state: string; postal: string; timing: Timing; date: string; from: string; to: string; reference: string; instructions: string; facility: "" | "saved" | "recent" };
+type StopForm = { type: Kind; name: string; address: string; city: string; state: string; postal: string; timing: Timing; date: string; from: string; to: string; reference: string; instructions: string; facility: "" | "saved" | "recent"; handling: Handling };
 type ChargeForm = { type: string; description: string; quantity: string; rate: string; billable: boolean; driverPayable: boolean };
 type Values = {
   customer: string;
   reference: string;
   bol: string;
+  seal: string;
   equipment: string;
   commodity: string;
   weight: string;
@@ -35,16 +38,29 @@ type Values = {
   rate: string;
   charges: ChargeForm[];
   instructions: string;
+  fuel: number;
+  freeHours: string;
+  detentionRate: string;
+  repeat: number[];
+  repeatUntil: "dec31" | "jan31" | "none";
 };
 
-const blankStop = (type: Kind): StopForm => ({ type, name: "", address: "", city: "", state: "", postal: "", timing: "window", date: "", from: "", to: "", reference: "", instructions: "", facility: "" });
+const blankStop = (type: Kind): StopForm => ({ type, name: "", address: "", city: "", state: "", postal: "", timing: "window", date: "", from: "", to: "", reference: "", instructions: "", facility: "", handling: "live" });
 /** A state's two-letter code from a code or a name. */
 const stateCode = (text: string | null | undefined): string => {
   const value = (text ?? "").trim();
   if (/^[A-Za-z]{2}$/.test(value)) return value.toUpperCase();
   return US_STATES.find(([, name]) => name.toLowerCase() === value.toLowerCase())?.[0] ?? "";
 };
-const EMPTY: Values = { customer: "", reference: "", bol: "", equipment: "dry_van", commodity: "", weight: "", miles: "", terminal: "", stops: [blankStop("pickup"), blankStop("delivery")], rate: "", charges: [], instructions: "" };
+const EMPTY: Values = { customer: "", reference: "", bol: "", seal: "", equipment: "dry_van", commodity: "", weight: "", miles: "", terminal: "", stops: [blankStop("pickup"), blankStop("delivery")], rate: "", charges: [], instructions: "", fuel: 12, freeHours: "2", detentionRate: "75", repeat: [], repeatUntil: "dec31" };
+const KIND_LABEL: Record<Kind, string> = { pickup: "Pickup", delivery: "Delivery", fuel_scale: "Fuel / scale" };
+/** The last day a repeat runs: the end of this year, the end of next January, or no end. */
+const untilOf = (choice: Values["repeatUntil"], today: string): string | null => {
+  const year = Number(today.slice(0, 4));
+  if (choice === "none") return null;
+  if (choice === "dec31") return `${year}-12-31`;
+  return `${today.slice(5) > "01-31" ? year + 1 : year}-01-31`;
+};
 
 const STEPS = ["Customer & references", "Load basics", "Stops & appointments", "Rate & charges", "Documents & notes", "Review"];
 const MONEY = /^\d{1,10}(\.\d{1,2})?$/;
@@ -59,6 +75,8 @@ function check(values: Values, planned: boolean): Errors {
   if (!values.customer) errors.customer = "Choose the customer";
   if (values.weight && !WHOLE.test(values.weight)) errors.weight = "Enter a whole number of pounds";
   if (values.miles && !WHOLE.test(values.miles)) errors.miles = "Enter a whole number of miles";
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(values.freeHours)) errors.freeHours = "Enter the free hours, like 2";
+  if (!MONEY.test(values.detentionRate)) errors.detentionRate = "Enter the hourly rate, like 75";
   values.stops.forEach((stop, i) => {
     const used = planned || stop.city || stop.name || stop.date;
     if (used && !stop.city.trim()) errors[`stops.${i}.city`] = "Enter the city";
@@ -68,7 +86,7 @@ function check(values: Values, planned: boolean): Errors {
   });
   if (planned) {
     const kinds = values.stops.map((stop) => stop.type);
-    if (kinds.length < 2 || kinds[0] !== "pickup" || kinds[kinds.length - 1] !== "delivery") errors.route = "A load needs at least one pickup, and must end with a delivery.";
+    if (kinds.length < 2 || kinds[0] !== "pickup" || kinds[kinds.length - 1] !== "delivery") errors.route = "Start with a pickup and end with a delivery.";
     if (!MONEY.test(values.rate)) errors.rate = "Enter the line haul, like 2500 or 2500.00";
   } else if (values.rate && !MONEY.test(values.rate)) errors.rate = "Enter an amount like 2500 or 2500.00";
   values.charges.forEach((charge, i) => {
@@ -79,7 +97,7 @@ function check(values: Values, planned: boolean): Errors {
 }
 
 /** The step each error belongs to, so the form can take the person there. */
-const stepOf = (field: string): number => (["customer", "reference", "bol"].includes(field) ? 0 : ["equipment", "commodity", "weight", "miles", "terminal"].includes(field) ? 1 : field.startsWith("stops") || field === "route" ? 2 : field === "rate" || field.startsWith("charges") ? 3 : 4);
+const stepOf = (field: string): number => (["customer", "reference", "bol", "seal"].includes(field) ? 0 : ["equipment", "commodity", "weight", "miles", "terminal"].includes(field) ? 1 : field.startsWith("stops") || field === "route" ? 2 : ["rate", "freeHours", "detentionRate"].includes(field) || field.startsWith("charges") ? 3 : 4);
 
 /** Guided new-load form: six steps, a running summary, and the checks a load must pass before it is saved. */
 export function NewLoadScreen() {
@@ -103,6 +121,14 @@ export function NewLoadScreen() {
   const customers = useQuery({ queryKey: [org.id, "customers", "options"], queryFn: () => unwrap(api.GET("/api/v1/customers", { params: { query: { status: "active", sort: "name", limit: 100 } } })), staleTime: 60_000 });
   const terminals = useQuery({ queryKey: [org.id, "terminals", "options"], queryFn: () => unwrap(api.GET("/api/v1/terminals", { params: { query: { status: "active", sort: "name", limit: 100 } } })), staleTime: 60_000 });
   const customer = customers.data?.items.find((each) => each.id === values.customer);
+  const costs = useQuery({ queryKey: [org.id, "load-costs"], queryFn: () => unwrap(api.GET("/api/v1/load-costs")), enabled: fin, staleTime: 300_000 });
+  // Loads to start from: the customer's latest, or the company's when no customer is chosen yet.
+  const recent = useQuery({
+    queryKey: [org.id, "loads", "copy-from", values.customer],
+    queryFn: () => unwrap(api.GET("/api/v1/loads", { params: { query: { ...(values.customer ? { customer_ids: [values.customer] } : {}), sort: "-created_at", limit: 10 } } })),
+    staleTime: 60_000,
+  });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: zone });
   // The route's miles, estimated from the stops' cities as they are typed.
   const points = values.stops.map((stop) => ({ city: stop.city.trim(), state: stop.state.trim() || null }));
   const routed = points.filter((point) => point.city).length >= 1;
@@ -144,6 +170,32 @@ export function NewLoadScreen() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  /** Fill the form from an earlier load: the route, freight and terms, without its dates. */
+  async function copyFrom(id: string) {
+    if (!id) return;
+    try {
+      const src = await unwrap(api.GET("/api/v1/loads/{load_id}", { params: { path: { load_id: id } } }));
+      setValues({
+        ...EMPTY,
+        customer: src.customer.id,
+        equipment: src.equipment_type,
+        commodity: src.commodity ?? "",
+        weight: src.weight_lbs ? String(src.weight_lbs) : "",
+        miles: src.miles ? String(src.miles) : "",
+        terminal: src.terminal_id ?? "",
+        instructions: src.instructions ?? "",
+        rate: fin && src.customer_rate ? src.customer_rate : "",
+        fuel: fin && src.fuel_surcharge_pct !== null && src.fuel_surcharge_pct !== undefined ? Number(src.fuel_surcharge_pct) : 12,
+        freeHours: String(Number(src.detention_free_hours ?? 2)),
+        detentionRate: fin && src.detention_rate ? String(Number(src.detention_rate)) : "75",
+        stops: src.stops.map((s) => ({ ...blankStop(s.type as Kind), name: s.name ?? "", address: s.address ?? "", city: s.city, state: s.state ?? "", postal: s.postal_code ?? "", instructions: s.instructions ?? "", handling: (s.handling ?? "live") as Handling })),
+      });
+      notify(`Copied from ${src.load_number} · set the dates for each stop`);
+    } catch (error) {
+      notify(errorMessage(error), true);
+    }
+  }
+
   const put = <K extends keyof Values>(field: K, value: Values[K]) => setValues((previous) => ({ ...previous, [field]: value }));
   const putStop = (index: number, patch: Partial<StopForm>) => put("stops", values.stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)));
   const putCharge = (index: number, patch: Partial<ChargeForm>) => put("charges", values.charges.map((charge, i) => (i === index ? { ...charge, ...patch } : charge)));
@@ -171,7 +223,7 @@ export function NewLoadScreen() {
     const start = stop.date ? fromLocalInput(`${stop.date}T${stop.from || "00:00"}`, zone) : null;
     const end = stop.date && stop.timing === "window" && stop.to ? fromLocalInput(`${stop.date}T${stop.to}`, zone) : null;
     const blank = (text: string) => text.trim() || null;
-    return { type: stop.type, name: blank(stop.name), address: blank(stop.address), city: stop.city.trim(), state: blank(stop.state.toUpperCase()), postal_code: blank(stop.postal), appt_start: start, appt_end: end, reference: blank(stop.reference), instructions: blank(stop.instructions) };
+    return { type: stop.type, handling: stop.handling, name: blank(stop.name), address: blank(stop.address), city: stop.city.trim(), state: blank(stop.state.toUpperCase()), postal_code: blank(stop.postal), appt_start: start, appt_end: end, reference: blank(stop.reference), instructions: blank(stop.instructions) };
   };
 
   async function save(status: "draft" | "planned") {
@@ -193,10 +245,17 @@ export function NewLoadScreen() {
           params: { header: { "idempotency-key": key } },
           body: {
             customer_id: values.customer,
-            status,
+            // Saved as a draft; it is marked ready once its rate confirmation is attached.
+            status: "draft",
             terminal_id: values.terminal || null,
             reference: values.reference.trim() || null,
             bol_number: values.bol.trim() || null,
+            seal_number: values.seal.trim() || null,
+            pickup_number: values.stops.find((s) => s.type === "pickup")?.reference.trim() || null,
+            delivery_number: [...values.stops].reverse().find((s) => s.type === "delivery")?.reference.trim() || null,
+            // Without rates, the money terms go as the API's defaults and someone with rates sets them.
+            ...(fin ? { fuel_surcharge_pct: String(values.fuel), detention_free_hours: values.freeHours, detention_rate: values.detentionRate } : { fuel_surcharge_pct: "0", detention_free_hours: "2", detention_rate: "75" }),
+            ...(values.repeat.length ? { recurrence: { days: values.repeat, until: untilOf(values.repeatUntil, today) } } : {}),
             commodity: values.commodity.trim() || null,
             equipment_type: values.equipment as "dry_van",
             weight_lbs: whole(values.weight),
@@ -204,24 +263,29 @@ export function NewLoadScreen() {
             instructions: values.instructions.trim() || null,
             customer_rate: values.rate || "0",
             stops: stops.map(stopToApi),
-            charges: values.charges.map((charge) => ({ type: charge.type as "other", description: charge.description.trim() || null, quantity: charge.quantity, rate: charge.rate, billable: charge.billable, driver_payable: charge.driverPayable })),
+            charges: values.charges.map((charge) => ({ type: charge.type as "other", description: charge.description.trim() || null, quantity: charge.quantity, rate: charge.rate, billable: charge.billable, driver_payable: charge.driverPayable, status: "approved" as const })),
           },
         }),
       );
-      let attached = "";
+      let said = `Draft ${load.load_number} saved`;
+      let bad = false;
       if (rateConfirmation) {
         try {
           await uploadDocument({ file: rateConfirmation, type: "rate_confirmation", entityType: "load", entityId: load.id });
-          attached = " with its rate confirmation";
+          if (status === "planned") {
+            await unwrap(api.POST("/api/v1/loads/{load_id}/transitions", { params: { path: { load_id: load.id } }, body: { action: "mark_ready", version: load.version } }));
+            said = `Load ${load.load_number} booked with its rate confirmation`;
+          } else said += " with its rate confirmation";
         } catch (error) {
-          attached = ` — the rate confirmation wasn’t attached (${errorMessage(error)}); add it from the load`;
+          said += ` — the rate confirmation wasn’t attached (${errorMessage(error)}); add it from the load`;
+          bad = true;
         }
-      }
+      } else if (status === "planned") said += " · it stays a draft until a rate confirmation is attached";
       await client.invalidateQueries({ queryKey: [org.id] });
       setValues(EMPTY);
       setRateConfirmation(null);
-      notify(`${status === "draft" ? `Draft ${load.load_number} saved` : `Load ${load.load_number} booked`}${attached}`, attached.startsWith(" —"));
-      set({ screen: "load", loadId: load.id, overlay: "none", modal: "none" });
+      notify(said, bad);
+      set({ screen: "loads", drawer: load.id, overlay: "none", modal: "none" });
     } catch (error) {
       const fields = error instanceof ApiError ? error.fieldErrors : {};
       const mapped: Errors = {};
@@ -253,7 +317,8 @@ export function NewLoadScreen() {
   );
 
   const charges = values.charges.filter((charge) => charge.billable).map((charge) => multiplyMoney(charge.quantity, charge.rate) ?? "0");
-  const total = sumMoney([values.rate || "0", ...charges]);
+  const fuelLine = fin && MONEY.test(values.rate) ? (((toCents(values.rate) ?? 0) * values.fuel) / 10000).toFixed(2) : "0";
+  const total = sumMoney([values.rate || "0", fuelLine, ...charges]);
   const miles = Number(values.miles) || 0;
   const perMile = miles && toCents(total) ? `$${((toCents(total) ?? 0) / 100 / miles).toFixed(2)}` : "—";
   const stopsDone = values.stops.filter((stop) => stop.city.trim()).length;
@@ -283,7 +348,7 @@ export function NewLoadScreen() {
       ? [duplicate ? { ok: false, warn: true, text: `Reference ${reference} is already on ${duplicate.load_number}` } : { ok: true, text: `Reference ${reference} is unique for ${customer.name}` }]
       : []),
     ...(fin ? [{ ok: MONEY.test(values.rate), text: MONEY.test(values.rate) ? "Line haul entered" : "Enter the line haul" }] : []),
-    { ok: !!rateConfirmation, warn: true, text: rateConfirmation ? "Rate confirmation will be attached" : "Rate confirmation not attached yet — it can be added after saving" },
+    { ok: !!rateConfirmation, warn: true, text: rateConfirmation ? "Rate confirmation will be attached, so the load is booked ready to dispatch" : "No rate confirmation yet — the load stays a draft until one is attached" },
   ];
   const blocking = checks.filter((each) => !each.ok && !each.warn).length;
   const cancel = () => set(goTo("loads"));
@@ -364,7 +429,27 @@ export function NewLoadScreen() {
                   customer ? `${customer.payment_terms_days ? `Net ${customer.payment_terms_days}` : "Due on receipt"}${customer.billing_email ? ` · bills go to ${customer.billing_email}` : ""}` : undefined,
                 )}
                 {field("nl-ref", "Customer’s reference", text("nl-ref", values.reference, (v) => put("reference", v), err("reference"), { className: "mono", placeholder: "PO or order number" }), 3, err("reference"))}
-                {field("nl-bol", "BOL number", text("nl-bol", values.bol, (v) => put("bol", v), err("bol"), { className: "mono" }), 3, err("bol"))}
+                {field("nl-bol", "BOL number", text("nl-bol", values.bol, (v) => put("bol", v), err("bol"), { className: "mono" }), 2, err("bol"))}
+                {field("nl-seal", "Seal number", text("nl-seal", values.seal, (v) => put("seal", v), err("seal"), { className: "mono" }), 1, err("seal"))}
+              </div>
+            </section>
+          ) : null}
+          {step === 0 ? (
+            <section className="card stopc" style={{ marginTop: "12px" }}>
+              <div className="sgrid">
+                {field(
+                  "nl-copy",
+                  "Start from an earlier load",
+                  <select id="nl-copy" className="inp" value="" onChange={(event) => void copyFrom(event.target.value)}>
+                    <option value="">{recent.isPending ? "Loading loads…" : recent.data?.items.length ? "Blank load · or choose one to copy" : "No loads to copy yet"}</option>
+                    {recent.data?.items.map((each) => (
+                      <option key={each.id} value={each.id}>{`${each.load_number} · ${each.customer.name} · ${[each.origin_city, each.destination_city].filter(Boolean).join(" → ") || "no route yet"}`}</option>
+                    ))}
+                  </select>,
+                  6,
+                  undefined,
+                  "Copies the customer, route, freight and terms. Dates and references are left for you.",
+                )}
               </div>
             </section>
           ) : null}
@@ -422,11 +507,18 @@ export function NewLoadScreen() {
                         <Icon className="s14" d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01" />
                       </button>
                       <span className="smk" data-k="brand">{i + 1}</span>
-                      <div className="seg sm">
-                        {(["pickup", "delivery"] as const).map((kind) => (
-                          <button key={kind} className={clsx(stop.type === kind && "on")} onClick={() => putStop(i, { type: kind })}>{kind === "pickup" ? "Pickup" : "Delivery"}</button>
+                      <div className="seg sm" role="group" aria-label={`Stop ${i + 1} type`}>
+                        {(["pickup", "delivery", "fuel_scale"] as const).map((kind) => (
+                          <button key={kind} className={clsx(stop.type === kind && "on")} onClick={() => putStop(i, { type: kind })} aria-pressed={stop.type === kind}>{KIND_LABEL[kind]}</button>
                         ))}
                       </div>
+                      {stop.type !== "fuel_scale" ? (
+                        <div className="seg sm" role="group" aria-label={`Stop ${i + 1} handling`}>
+                          {(["live", "drop", "hook"] as const).map((h) => (
+                            <button key={h} className={clsx(stop.handling === h && "on")} onClick={() => putStop(i, { handling: h })} aria-pressed={stop.handling === h} title={{ live: "Live load or unload: the driver waits", drop: "Drop the trailer and leave", hook: "Hook a loaded trailer" }[h]}>{{ live: "Live", drop: "Drop", hook: "Hook" }[h]}</button>
+                          ))}
+                        </div>
+                      ) : null}
                       {count ? <span className="tag" data-k="bad" style={{ marginLeft: "4px" }}>{count === 1 ? "1 error" : `${count} errors`}</span> : null}
                       <span className="sp"></span>
                       <button className="btn ghost xs icon" aria-expanded={!shut} aria-label={shut ? `Show stop ${i + 1}` : `Fold stop ${i + 1}`} onClick={() => setFolded(shut ? folded.filter((j) => j !== i) : [...folded, i])}>
@@ -467,7 +559,7 @@ export function NewLoadScreen() {
                           </p>
                         </div>
                       ) : null}
-                      {field(`nl-r${i}`, stop.type === "pickup" ? "Pickup number" : "Delivery number", text(`nl-r${i}`, stop.reference, (v) => putStop(i, { reference: v }), err(`${prefix}.reference`), { className: "mono" }), 2, err(`${prefix}.reference`))}
+                      {field(`nl-r${i}`, stop.type === "pickup" ? "Pickup number" : stop.type === "delivery" ? "Delivery number" : "Reference", text(`nl-r${i}`, stop.reference, (v) => putStop(i, { reference: v }), err(`${prefix}.reference`), { className: "mono" }), 2, err(`${prefix}.reference`))}
                       {field(`nl-i${i}`, "Driver instructions", text(`nl-i${i}`, stop.instructions, (v) => putStop(i, { instructions: v }), err(`${prefix}.instructions`), { placeholder: "Dock, lumper, contact on arrival…" }), 4, err(`${prefix}.instructions`))}
                     </div>
                   </section>
@@ -476,7 +568,7 @@ export function NewLoadScreen() {
               <button className="addstop" onClick={() => put("stops", [...values.stops, blankStop("delivery")])}>
                 <Icon className="s14 b" d="M12 5v14M5 12h14" />
                 Add stop
-                <span className="fs12 mu" style={{ fontWeight: "400" }}>Pickup or delivery</span>
+                <span className="fs12 mu" style={{ fontWeight: "400" }}>Pickup, delivery or fuel / scale</span>
               </button>
             </div>
           ) : null}
@@ -485,7 +577,19 @@ export function NewLoadScreen() {
             <div className="c g12">
               {fin ? (
                 <section className="card stopc">
-                  <div className="sgrid">{field("nl-rate", `Line haul (${org.base_currency})`, text("nl-rate", values.rate, (v) => put("rate", v), err("rate"), { className: "mono", inputMode: "decimal", placeholder: "2500.00" }), 2, err("rate"))}</div>
+                  <div className="sgrid">
+                    {field("nl-rate", `Line haul (${org.base_currency})`, text("nl-rate", values.rate, (v) => put("rate", v), err("rate"), { className: "mono", inputMode: "decimal", placeholder: "2500.00" }), 2, err("rate"))}
+                    <div className="fld" style={{ gridColumn: "span 2" }}>
+                      <span className="lbl">Fuel surcharge</span>
+                      <div className="seg" role="group" aria-label="Fuel surcharge percent">
+                        {FUEL_CHOICES.map((pct) => (
+                          <button key={pct} className={clsx(values.fuel === pct && "on")} aria-pressed={values.fuel === pct} onClick={() => put("fuel", pct)}>{`${pct}%`}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {field("nl-free", "Detention free hours", text("nl-free", values.freeHours, (v) => put("freeHours", v), err("freeHours"), { className: "mono", inputMode: "decimal" }), 1, err("freeHours"))}
+                    {field("nl-det", "Detention $/h", text("nl-det", values.detentionRate, (v) => put("detentionRate", v), err("detentionRate"), { className: "mono", inputMode: "decimal" }), 1, err("detentionRate"))}
+                  </div>
                 </section>
               ) : (
                 <div className="note">
@@ -533,8 +637,40 @@ export function NewLoadScreen() {
             </div>
           ) : null}
 
+          {step === 3 && fin && costs.data ? <MarginPreview values={values} costs={costs.data} currency={org.base_currency} /> : null}
+
           {step === 4 ? (
             <div className="c g12">
+              <section className="card stopc">
+                <div className="r g8 stoph"><span className="h3">Repeat weekly</span><span className="fs12 mu">Optional</span></div>
+                <div className="sgrid">
+                  <div className="fld" style={{ gridColumn: "span 4" }}>
+                    <span className="lbl">Pickup days</span>
+                    <div className="seg" role="group" aria-label="Repeat on">
+                      {WEEKDAYS.map((label, d) => (
+                        <button key={label} className={clsx(values.repeat.includes(d) && "on")} aria-pressed={values.repeat.includes(d)} onClick={() => put("repeat", values.repeat.includes(d) ? values.repeat.filter((x) => x !== d) : [...values.repeat, d].sort())}>{label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="fld" style={{ gridColumn: "span 2" }}>
+                    <span className="lbl">Until</span>
+                    <div className="seg" role="group" aria-label="Repeat until">
+                      {([["dec31", "Dec 31"], ["jan31", "Jan 31"], ["none", "No end"]] as const).map(([v, l]) => (
+                        <button key={v} className={clsx(values.repeatUntil === v && "on")} aria-pressed={values.repeatUntil === v} onClick={() => put("repeatUntil", v)} disabled={!values.repeat.length}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="fs12 mu" style={{ gridColumn: "span 6" }}>
+                    {values.repeat.length
+                      ? (() => {
+                          const first = values.stops[0]?.date || today;
+                          const next = nextDates(values.repeat, first, untilOf(values.repeatUntil, today));
+                          return next.length ? `Next: ${next.map((d) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })).join(" · ")}. Each is made as a draft two weeks ahead, without a driver or a rate.` : "No dates left before the end.";
+                        })()
+                      : "Choose days to book this load again every week. Each repeat is a draft to confirm."}
+                  </p>
+                </div>
+              </section>
               <section className="card stopc">
                 <div className="sgrid">
                   <div className="fld" style={{ gridColumn: "span 6" }}>
@@ -626,6 +762,8 @@ export function NewLoadScreen() {
                   <dl className="kv">
                     <dt>Line haul</dt>
                     <dd className="mono">{MONEY.test(values.rate) ? formatMoney(values.rate, org.base_currency) : "—"}</dd>
+                    <dt>{`Fuel ${values.fuel}%`}</dt>
+                    <dd className="mono">{fuelLine !== "0" ? formatMoney(fuelLine, org.base_currency) : "—"}</dd>
                     <dt>Charges</dt>
                     <dd className="mono">{charges.length ? formatMoney(sumMoney(charges), org.base_currency) : "—"}</dd>
                     <dt>Rate / mile</dt>
@@ -676,5 +814,44 @@ export function NewLoadScreen() {
         )}
       </div>
     </div>
+  );
+}
+
+/** What the load earns and an estimate of what it costs, as it is typed: the same sums the load page shows. */
+function MarginPreview({ values, costs, currency }: { values: Values; costs: Costs; currency: string }) {
+  const charges = values.charges.filter((c) => c.billable).map((c) => multiplyMoney(c.quantity, c.rate) ?? "0");
+  const miles = Number(values.miles) || 0;
+  const m = estimate(values.rate || "0", values.fuel, charges, miles, costs);
+  const money = (cents: number) => formatMoney(cents / 100, currency);
+  const line = (label: string, value: string, strong = false) => (
+    <div className="r g8 fs13" style={{ padding: "3px 0" }}>
+      <span className={strong ? "w6" : "t2"}>{label}</span>
+      <span className="sp"></span>
+      <span className={clsx("num", strong && "w6")}>{value}</span>
+    </div>
+  );
+  return (
+    <section className="card stopc" aria-label="Margin estimate" style={{ marginTop: "12px" }}>
+      <div className="r g8 stoph">
+        <span className="h3">Margin estimate</span>
+        <span className="sp"></span>
+        {m.pct !== null ? <span className="tag" data-k={m.warn ? "warn" : "ok"}>{`${m.pct}% margin`}</span> : null}
+      </div>
+      <div style={{ padding: "0 16px 12px" }}>
+        {line("Line haul", money(m.haul))}
+        {line(`Fuel surcharge ${values.fuel}%`, money(m.fuel))}
+        {m.extra ? line("Charges billed", money(m.extra)) : null}
+        {line("Total", money(m.total), true)}
+        {line(`Driver pay · $${Number(costs.driver_pay_per_mile).toFixed(2)}/mi`, `−${money(m.pay)}`)}
+        {line(`Fuel · ${Number(costs.mpg)} mpg at $${Number(costs.fuel_price).toFixed(2)}`, `−${money(m.fuelCost)}`)}
+        {line(`Overhead · $${Number(costs.overhead_per_mile).toFixed(2)}/mi`, `−${money(m.overhead)}`)}
+        {line("Margin", money(m.margin), true)}
+        <p className="fs12 mu" style={{ marginTop: "6px" }}>
+          {!miles ? "Add the miles on Load basics to estimate costs. " : ""}
+          {m.warn ? "Below 25%: check the rate before booking. " : ""}
+          {m.perMile ? `$${m.perMile.toFixed(2)}/mi. ` : ""}Detention is added from the stop times once the truck is there. Cost rates are set under Settings.
+        </p>
+      </div>
+    </section>
   );
 }

@@ -11,10 +11,11 @@ import { place } from "@/lib/format/text";
 import { US_STATES } from "@/lib/reference/states";
 import type { LoadDetail, Stop } from "./load-data";
 
+const LABEL = { pickup: "Pickup", delivery: "Delivery", fuel_scale: "Fuel / scale" } as const;
 const keep = (stop: Stop) => ({
   type: stop.type, name: stop.name, address: stop.address, city: stop.city, state: stop.state, postal_code: stop.postal_code,
   contact_name: stop.contact_name, contact_phone: stop.contact_phone, reference: stop.reference, instructions: stop.instructions,
-  appt_start: stop.appt_start, appt_end: stop.appt_end,
+  appt_start: stop.appt_start, appt_end: stop.appt_end, handling: stop.handling,
 });
 
 /**
@@ -26,7 +27,7 @@ export function AddStop({ load, onClose }: { load: LoadDetail; onClose: () => vo
   const act = useAction();
   const zone = me.organization.timezone;
   const last = load.stops.length;
-  const [type, setType] = useState<"pickup" | "delivery">("delivery");
+  const [type, setType] = useState<"pickup" | "delivery" | "fuel_scale">("delivery");
   const [at, setAt] = useState(Math.max(0, last - 1));
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
@@ -45,8 +46,8 @@ export function AddStop({ load, onClose }: { load: LoadDetail; onClose: () => vo
     setPending(true);
     setProblem(null);
     const stops = load.stops.map(keep);
-    stops.splice(at, 0, { type, name: name.trim() || null, address: address.trim() || null, city: city.trim(), state: state || null, postal_code: null, contact_name: null, contact_phone: null, reference: null, instructions: null, appt_start: appt, appt_end: until });
-    const done = await act(() => unwrap(api.PUT("/api/v1/loads/{load_id}/stops", { params: { path: { load_id: load.id } }, body: { version: load.version, stops } })), `${type === "pickup" ? "Pickup" : "Delivery"} added to ${load.load_number}`);
+    stops.splice(at, 0, { type, name: name.trim() || null, address: address.trim() || null, city: city.trim(), state: state || null, postal_code: null, contact_name: null, contact_phone: null, reference: null, instructions: null, appt_start: appt, appt_end: until, handling: "live" });
+    const done = await act(() => unwrap(api.PUT("/api/v1/loads/{load_id}/stops", { params: { path: { load_id: load.id } }, body: { version: load.version, stops } })), `${LABEL[type]} added to ${load.load_number}${load.miles && load.stops.length >= 2 ? " · about 35 mi more" : ""}`);
     setPending(false);
     if (done) onClose();
   };
@@ -63,8 +64,8 @@ export function AddStop({ load, onClose }: { load: LoadDetail; onClose: () => vo
       <Problem message={problem} />
       <div className="r g8">
         <div className="seg" role="radiogroup" aria-label="Kind of stop">
-          {(["pickup", "delivery"] as const).map((each) => (
-            <button key={each} role="radio" aria-checked={type === each} className={type === each ? "on" : ""} onClick={() => setType(each)}>{each === "pickup" ? "Pickup" : "Delivery"}</button>
+          {(["pickup", "delivery", "fuel_scale"] as const).map((each) => (
+            <button key={each} role="radio" aria-checked={type === each} className={type === each ? "on" : ""} onClick={() => setType(each)}>{LABEL[each]}</button>
           ))}
         </div>
         <label className="c g4 f1">

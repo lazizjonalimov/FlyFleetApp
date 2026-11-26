@@ -26,7 +26,7 @@ export type ListPage<Item> = { items: Item[]; page: PageInfo; by_company?: { org
 /** The list a dashboard card counted: its screen, a name for the chip, and the API parameters. */
 export type Preset = { screen: string; label: string; params: Record<string, string | string[]> };
 type Owned = { organization?: { id: string; code: string; name: string; slug: string; color: string; logo_url?: string | null } };
-export type ListQuery = Record<string, string | number | boolean | undefined>;
+export type ListQuery = Record<string, string | string[] | number | boolean | undefined>;
 
 export type Column<Item> = {
   label: string;
@@ -96,13 +96,15 @@ export type ListSpec<Item extends { id: string }> = {
   pinned?: Row[];
   /** What one record is called in messages ("truck"); defaults to the title. */
   noun?: string;
+  /** Page sizes offered, the first the default (otherwise 25, 50, 100). */
+  sizes?: number[];
   /** The line under the table, in place of "Showing 1–25 of 80". */
   foot?: (shown: number, total: number | null) => string;
 };
 
 export type ListStatus = "loading" | "error" | "empty" | "filtered" | "ready";
 
-export type ListResult = {
+export type ListResult<Item = unknown> = {
   L: ListView;
   status: ListStatus;
   error: unknown;
@@ -110,6 +112,12 @@ export type ListResult = {
   empty: EmptyState;
   clearFilters: () => void;
   pager: { page: number; previous: (() => void) | null; next: (() => void) | null };
+  /** The API parameters the list is showing now (tab, filters and search), and its sort. */
+  params: ListQuery;
+  sort: string;
+  /** The page of records shown. */
+  items: Item[];
+  refetch: () => void;
 };
 
 // Hidden columns are remembered per list on this device. Read through useSyncExternalStore so the first render
@@ -192,7 +200,7 @@ function withCompanies<Item extends { id: string }>(spec: ListSpec<Item>, inAll:
  * Tab, search text, filters, sort and selection are interface state, so they survive opening a record and
  * coming back.
  */
-export function useList<Item extends { id: string }>(source: ListSpec<Item>): ListResult {
+export function useList<Item extends { id: string }>(source: ListSpec<Item>): ListResult<Item> {
   const { me, state, set, notify } = useConsole();
   const inAll = me.organization.slug === "all";
   const spec = useMemo(() => withCompanies(source, inAll, me.memberships.filter((m) => m.status === "active")), [source, inAll, me.memberships]);
@@ -203,7 +211,8 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
   const q = useDebounced(text.trim(), 250);
   const sort = typeof state.lsort === "string" && state.lsort ? state.lsort : spec.defaultSort;
   const trail = Array.isArray(state.lpage) ? (state.lpage as string[]) : [];
-  const size = typeof state.lsize === "number" && PAGE_SIZES.includes(state.lsize) ? state.lsize : PAGE_SIZE;
+  const sizes = spec.sizes ?? PAGE_SIZES;
+  const size = typeof state.lsize === "number" && sizes.includes(state.lsize) ? state.lsize : spec.sizes ? sizes[0]! : PAGE_SIZE;
   const cursor = trail.at(-1);
   const selected = Array.isArray(state.lsel) ? (state.lsel as string[]) : [];
   const picked = (state.lf && typeof state.lf === "object" ? state.lf : {}) as Record<string, string>;
@@ -440,7 +449,7 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
     range: spec.foot ? undefined : range,
     of: matching === null ? undefined : formatNumber(matching),
     size,
-    sizes: PAGE_SIZES.map((n) => ({ n, on: n === size, go: () => { closeMenus(); set({ lsize: n, ...restart }); } })),
+    sizes: sizes.map((n) => ({ n, on: n === size, go: () => { closeMenus(); set({ lsize: n, ...restart }); } })),
     sizeOpen: menu === "size",
     toggleSize: () => (menu === "size" ? closeMenus() : setMenu("size")),
   };
@@ -456,6 +465,10 @@ export function useList<Item extends { id: string }>(source: ListSpec<Item>): Li
     retry: () => void query.refetch(),
     empty: spec.empty,
     clearFilters: () => set({ lq: "", ltab: 0, lf: {}, lpreset: null, ...restart }),
+    params: filters,
+    sort,
+    items,
+    refetch: () => void query.refetch(),
     pager: {
       page: trail.length + 1,
       previous: trail.length ? () => set({ lpage: trail.slice(0, -1), lsel: [] }) : null,

@@ -16137,6 +16137,21 @@
             ],
             "title": "Reference"
           },
+          "repeat_days": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weekdays it repeats on, Monday 0",
+            "title": "Repeat Days"
+          },
           "revenue": {
             "anyOf": [
               {
@@ -16571,6 +16586,21 @@
               }
             ],
             "title": "Reference"
+          },
+          "repeat_days": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Weekdays it repeats on, Monday 0",
+            "title": "Repeat Days"
           },
           "revenue": {
             "anyOf": [
