@@ -977,6 +977,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard Calendar
+         * @description Pickups, deliveries, maintenance, expirations, invoices due and driver pay, day by day.
+         */
+        get: operations["dashboard_calendar_api_v1_dashboard_calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard Day */
+        get: operations["dashboard_day_api_v1_dashboard_day_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/exceptions": {
         parameters: {
             query?: never;
@@ -989,6 +1026,47 @@ export interface paths {
          * @description Work that needs attention, most urgent first, limited to what the caller's role can act on or see.
          */
         get: operations["dashboard_exceptions_api_v1_dashboard_exceptions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/financial": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard Financial
+         * @description Money: the month's figures, revenue and cost by week, the month's goal, receivables, cash and lanes.
+         */
+        get: operations["dashboard_financial_api_v1_dashboard_financial_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/fleet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard Fleet
+         * @description The fleet and its drivers: fuel, idling, safety, what each truck is doing, the drivers' standing, papers
+         *     running out, service due and the safety trend.
+         */
+        get: operations["dashboard_fleet_api_v1_dashboard_fleet_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1010,6 +1088,26 @@ export interface paths {
          *     comparison against the period before and seven points for a sparkline.
          */
         get: operations["dashboard_kpis_api_v1_dashboard_kpis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard Operations
+         * @description Live status, the day's events, on-time delivery, when pickups happen and where trucks wait longest.
+         */
+        get: operations["dashboard_operations_api_v1_dashboard_operations_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1040,6 +1138,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Share Dashboard
+         * @description Save when the dashboard is emailed and to whom; with `now`, send it at once. Each person gets only the tabs
+         *     their own role opens.
+         */
+        post: operations["share_dashboard_api_v1_dashboard_share_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/summary": {
         parameters: {
             query?: never;
@@ -1049,6 +1168,26 @@ export interface paths {
         };
         /** Dashboard Summary */
         get: operations["dashboard_summary_api_v1_dashboard_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboard/trucks/{vehicle_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Dashboard Truck
+         * @description A truck's speed hour by hour over the last seven hours, from the positions it sent.
+         */
+        get: operations["dashboard_truck_api_v1_dashboard_trucks__vehicle_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5741,6 +5880,22 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Activity */
+        Activity: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Load Id */
+            load_id?: string | null;
+            /** Load Number */
+            load_number?: string | null;
+            /** Text */
+            text: string;
+            /** Tone */
+            tone: string;
+        };
         /** AddressCreate */
         AddressCreate: {
             /** Address */
@@ -6472,6 +6627,17 @@ export interface components {
              */
             file: string;
         };
+        /** Bucket */
+        Bucket: {
+            /** Amount */
+            amount: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Share */
+            share: number | null;
+        };
         /** BulkFailure */
         BulkFailure: {
             /**
@@ -6542,6 +6708,63 @@ export interface components {
             /** Sent */
             sent: boolean;
         };
+        /** CalendarEvent */
+        CalendarEvent: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "pickup" | "delivery" | "maintenance" | "expiration" | "billing";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Id */
+            id: string;
+            /** Lane */
+            lane: string | null;
+            /** Past */
+            past: boolean;
+            /** Reference */
+            reference: string | null;
+            target: components["schemas"]["EventTarget"];
+            /** Time */
+            time: string | null;
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /** Who */
+            who: string | null;
+        };
+        /** CalendarOut */
+        CalendarOut: {
+            /**
+             * Categories
+             * @description The categories this role sees, with their names
+             */
+            categories: {
+                [key: string]: string;
+            };
+            /**
+             * Date From
+             * Format: date
+             */
+            date_from: string;
+            /**
+             * Date To
+             * Format: date
+             */
+            date_to: string;
+            /** Events */
+            events: components["schemas"]["CalendarEvent"][];
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+        };
         /** Candidate */
         Candidate: {
             current_load: components["schemas"]["OtherLoad"] | null;
@@ -6566,6 +6789,20 @@ export interface components {
             strengths: string[];
             /** Terminal Id */
             terminal_id: string | null;
+        };
+        /** CashWeek */
+        CashWeek: {
+            /** Cash In */
+            cash_in: string;
+            /** Cash Out */
+            cash_out: string;
+            /** Net */
+            net: string;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
         };
         /** CategoryTotal */
         CategoryTotal: {
@@ -7647,6 +7884,37 @@ export interface components {
             /** Done */
             done: number;
         };
+        /** DayOut */
+        DayOut: {
+            /** Definition */
+            definition: string;
+            delivered: components["schemas"]["Progress"];
+            /** Late */
+            late: number;
+            /** Missing Pod */
+            missing_pod: number;
+            on_time: components["schemas"]["Progress"];
+            /** @description Delivered revenue today against last month's daily average; empty for roles that can't see rates */
+            revenue: components["schemas"]["Progress"] | null;
+            /**
+             * Score
+             * @description Operations score, 0-100; empty when nothing is on the road
+             */
+            score: number | null;
+            /** Score Parts */
+            score_parts: components["schemas"]["ScorePart"][];
+            /** Summary */
+            summary: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Unassigned */
+            unassigned: number;
+        };
         /** DefectIn */
         DefectIn: {
             /** Against */
@@ -8082,6 +8350,30 @@ export interface components {
             /** Samples */
             samples: components["schemas"]["DriverSampleIn"][];
         };
+        /** DriverRank */
+        DriverRank: {
+            /**
+             * Driver Id
+             * Format: uuid
+             */
+            driver_id: string;
+            /** Incidents */
+            incidents: number;
+            /** Loads */
+            loads: number;
+            /** Miles */
+            miles: number;
+            /** Name */
+            name: string;
+            /** On Time Pct */
+            on_time_pct: number | null;
+            /** Recent */
+            recent: components["schemas"]["RecentLoad"][];
+            /** Score */
+            score: number | null;
+            /** Weeks */
+            weeks: components["schemas"]["DriverWeek"][];
+        };
         /** DriverRead */
         DriverRead: {
             /** Cdl Class */
@@ -8301,6 +8593,27 @@ export interface components {
             /** User Id */
             user_id?: string | null;
         };
+        /** DriverWeek */
+        DriverWeek: {
+            /** Score */
+            score: number | null;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+        };
+        /** Dwell */
+        Dwell: {
+            /** Avg Minutes */
+            avg_minutes: number;
+            /** Facility */
+            facility: string;
+            /** Longest Minutes */
+            longest_minutes: number;
+            /** Visits */
+            visits: number;
+        };
         /**
          * Editable
          * @description What the caller may change right now, given the load's state and their role.
@@ -8389,6 +8702,15 @@ export interface components {
          */
         ErrorResponse: {
             error: components["schemas"]["ErrorBody"];
+        };
+        /** EventTarget */
+        EventTarget: {
+            /** Id */
+            id?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Screen */
+            screen: string;
         };
         /**
          * Exception_
@@ -8688,6 +9010,22 @@ export interface components {
             /** Terminal Id */
             terminal_id: string | null;
         };
+        /** Expiring */
+        Expiring: {
+            /** Days Left */
+            days_left: number;
+            /**
+             * Expires
+             * Format: date
+             */
+            expires: string;
+            /** Holder */
+            holder: string;
+            /** Item */
+            item: string;
+            /** Kind */
+            kind: string;
+        };
         /** ExpiringDocument */
         ExpiringDocument: {
             /** Days Left */
@@ -8923,6 +9261,37 @@ export interface components {
             /** Reviewed By Name */
             reviewed_by_name?: string | null;
         };
+        /** FinancialOut */
+        FinancialOut: {
+            /** Aging */
+            aging: components["schemas"]["Bucket"][];
+            /** Aging Total */
+            aging_total: string;
+            /** Cash */
+            cash: components["schemas"]["CashWeek"][];
+            /** Definitions */
+            definitions: {
+                [key: string]: string;
+            };
+            goal: components["schemas"]["Goal"];
+            /** Lane Days */
+            lane_days: number;
+            /** Lanes */
+            lanes: components["schemas"]["Lane"][];
+            /** Tiles */
+            tiles: components["schemas"]["MoneyTile"][];
+            /**
+             * Today
+             * Format: date
+             */
+            today: string;
+            /** Totals */
+            totals: {
+                [key: string]: string;
+            };
+            /** Weeks */
+            weeks: components["schemas"]["WeekMoney"][];
+        };
         /** Fleet */
         Fleet: {
             /** Drivers Active */
@@ -8945,12 +9314,56 @@ export interface components {
             /** Load Number */
             load_number: string | null;
         };
+        /** FleetOut */
+        FleetOut: {
+            /** By Type */
+            by_type: components["schemas"]["TypeCount"][];
+            /** Definitions */
+            definitions: {
+                [key: string]: string;
+            };
+            /** Drivers */
+            drivers: components["schemas"]["DriverRank"][];
+            /** Expiring */
+            expiring: components["schemas"]["Expiring"][];
+            /** Expiring Counts */
+            expiring_counts: {
+                [key: string]: number;
+            };
+            /** Maintenance */
+            maintenance: components["schemas"]["Service"][];
+            /** Pm Interval Mi */
+            pm_interval_mi: number;
+            /** Safety */
+            safety: components["schemas"]["SafetyWeek"][];
+            /** Stats */
+            stats: components["schemas"]["FleetStat"][];
+            /** Status */
+            status: components["schemas"]["StatusSlice"][];
+            /** Working Pct */
+            working_pct: number | null;
+        };
         /** FleetPerson */
         FleetPerson: {
             /** Id */
             id: string | null;
             /** Name */
             name: string | null;
+        };
+        /** FleetStat */
+        FleetStat: {
+            /** Definition */
+            definition: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Sub */
+            sub: string;
+            /** Unit */
+            unit: string;
+            /** Value */
+            value: string | null;
         };
         /** FleetUnit */
         FleetUnit: {
@@ -9049,6 +9462,21 @@ export interface components {
              * Format: uuid
              */
             vehicle_id: string;
+        };
+        /** Goal */
+        Goal: {
+            /** Basis */
+            basis: string;
+            /** Days Left */
+            days_left: number;
+            /** Goal */
+            goal: string | null;
+            /** Pct */
+            pct: number | null;
+            /** Projected */
+            projected: string | null;
+            /** So Far */
+            so_far: string;
         };
         /** HistoryItem */
         HistoryItem: {
@@ -9869,6 +10297,43 @@ export interface components {
              * Format: date
              */
             today: string;
+        };
+        /** Lane */
+        Lane: {
+            /** Cost */
+            cost: string;
+            /** Customers */
+            customers: components["schemas"]["LaneCustomer"][];
+            /** Destination */
+            destination: string;
+            /** Key */
+            key: string;
+            /** Loads */
+            loads: number;
+            /** Margin Pct */
+            margin_pct: number | null;
+            /** Miles */
+            miles: number;
+            /** Origin */
+            origin: string;
+            /** Profit */
+            profit: string;
+            /** Revenue */
+            revenue: string;
+            /**
+             * Weeks
+             * @description Revenue per week, last 8 weeks, oldest first
+             */
+            weeks: string[];
+        };
+        /** LaneCustomer */
+        LaneCustomer: {
+            /** Loads */
+            loads: number;
+            /** Name */
+            name: string;
+            /** Revenue */
+            revenue: string;
         };
         /** LinkIn */
         LinkIn: {
@@ -10880,6 +11345,44 @@ export interface components {
              */
             vehicle_id: string;
         };
+        /** MoneyTile */
+        MoneyTile: {
+            /**
+             * Change
+             * @description Against the same stretch of last month
+             */
+            change: string | null;
+            /** Change Text */
+            change_text: string;
+            /** Definition */
+            definition: string;
+            /**
+             * Good
+             * @enum {string}
+             */
+            good: "up" | "down";
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Series
+             * @description Seven months, oldest first, this month so far last
+             */
+            series: (string | null)[];
+            /**
+             * Tone
+             * @enum {string}
+             */
+            tone: "good" | "bad" | "neutral";
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "money" | "percent" | "per_mile" | "days";
+            /** Value */
+            value: string | null;
+        };
         /** MonthOut */
         MonthOut: {
             /** By Unit */
@@ -11069,6 +11572,22 @@ export interface components {
             /** Unit */
             unit: string;
         };
+        /** OnTime */
+        OnTime: {
+            /** Deliveries */
+            deliveries: number;
+            /** Pct */
+            pct: number | null;
+            /** Target Pct */
+            target_pct: number;
+            /** Week Starts */
+            week_starts: string[];
+            /**
+             * Weeks
+             * @description On-time % per week, oldest first
+             */
+            weeks: (number | null)[];
+        };
         /** OnTimeCustomer */
         OnTimeCustomer: {
             /** Avg Late Minutes */
@@ -11161,6 +11680,25 @@ export interface components {
              * @description The Monday the week starts on, in the company's time zone
              */
             week_start: string;
+        };
+        /** OperationsOut */
+        OperationsOut: {
+            /** Activity */
+            activity: components["schemas"]["Activity"][];
+            /** Dwell */
+            dwell: components["schemas"]["Dwell"][];
+            /** Dwell Days */
+            dwell_days: number;
+            /**
+             * Heatmap
+             * @description Pickups by weekday (Monday first) and two-hour block, last 8 weeks
+             */
+            heatmap: number[][];
+            /** Heatmap Weeks */
+            heatmap_weeks: number;
+            on_time: components["schemas"]["OnTime"];
+            /** Tiles */
+            tiles: components["schemas"]["Tile"][];
         };
         /**
          * OrgRef
@@ -13045,6 +13583,17 @@ export interface components {
             /** Timezone */
             timezone?: string | "" | null;
         };
+        /** Progress */
+        Progress: {
+            /** Done */
+            done: number;
+            /** Of */
+            of: number | null;
+            /** Pct */
+            pct: number | null;
+            /** Text */
+            text: string;
+        };
         /** Purchase */
         Purchase: {
             /** Amount */
@@ -13413,6 +13962,22 @@ export interface components {
             received_amount: string | null;
             /** Received Count */
             received_count: number | null;
+        };
+        /** RecentLoad */
+        RecentLoad: {
+            /** Delivered On */
+            delivered_on: string | null;
+            /** Lane */
+            lane: string;
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Load Number */
+            load_number: string;
+            /** On Time */
+            on_time: boolean | null;
         };
         /** Recipient */
         Recipient: {
@@ -13990,6 +14555,18 @@ export interface components {
             /** Units Blocked */
             units_blocked: number;
         };
+        /** SafetyWeek */
+        SafetyWeek: {
+            /** Incidents */
+            incidents: number;
+            /** Score */
+            score: number | null;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+        };
         /** SampleIn */
         SampleIn: {
             /** Accuracy M */
@@ -14103,6 +14680,15 @@ export interface components {
              * @enum {string}
              */
             state: "done" | "on_time" | "no_driver" | "late";
+        };
+        /** ScorePart */
+        ScorePart: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: number | null;
+            /** Weight */
+            weight: number;
         };
         /** SearchResult */
         SearchResult: {
@@ -14251,6 +14837,22 @@ export interface components {
         SendIn: {
             /** Body */
             body: string;
+        };
+        /** Service */
+        Service: {
+            /** Last Service */
+            last_service: string | null;
+            /** Miles Since */
+            miles_since: number | null;
+            /** Pct Used */
+            pct_used: number | null;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
         };
         /**
          * SessionInfo
@@ -14579,6 +15181,39 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** ShareIn */
+        ShareIn: {
+            /**
+             * Frequency
+             * @enum {string}
+             */
+            frequency: "daily" | "weekly" | "monthly";
+            /**
+             * Now
+             * @description Send it now as well as saving the schedule
+             * @default false
+             */
+            now: boolean;
+            /**
+             * Recipients
+             * @enum {string}
+             */
+            recipients: "me" | "ops" | "everyone";
+            /**
+             * Send At
+             * @enum {string}
+             */
+            send_at: "06:30" | "07:00" | "07:30" | "08:00" | "08:30" | "09:00";
+            /** Tabs */
+            tabs: ("overview" | "operations" | "financial" | "fleet" | "calendar")[];
+        };
+        /** ShareOut */
+        ShareOut: {
+            /** Saved */
+            saved: boolean;
+            /** Sent To */
+            sent_to: string[];
+        };
         /** ShipmentMilestone */
         ShipmentMilestone: {
             /**
@@ -14715,6 +15350,18 @@ export interface components {
             /** Vehicle Id */
             vehicle_id: string | null;
         };
+        /** SpeedHour */
+        SpeedHour: {
+            /** Avg Mph */
+            avg_mph: number | null;
+            /**
+             * Hour
+             * Format: date-time
+             */
+            hour: string;
+            /** Max Mph */
+            max_mph: number | null;
+        };
         /** StateMiles */
         StateMiles: {
             /** Jurisdiction */
@@ -14788,6 +15435,18 @@ export interface components {
             source: "web" | "driver app" | "system";
             /** To Status */
             to_status: string;
+        };
+        /** StatusSlice */
+        StatusSlice: {
+            /** Count */
+            count: number;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "driving" | "at_dock" | "available" | "in_shop";
+            /** Label */
+            label: string;
         };
         /** Step */
         Step: {
@@ -15748,6 +16407,26 @@ export interface components {
             /** Name */
             name: string | null;
         };
+        /** Tile */
+        Tile: {
+            /** Count */
+            count: number;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Params
+             * @description The Loads list parameters that show these loads
+             */
+            params: {
+                [key: string]: string | string[];
+            };
+            /** Sub */
+            sub: string;
+            /** Tone */
+            tone: string;
+        };
         /** Trace */
         Trace: {
             /**
@@ -16397,6 +17076,23 @@ export interface components {
              */
             vehicle_id: string;
         };
+        /** TruckOut */
+        TruckOut: {
+            /**
+             * Hours
+             * @description The last seven hours, oldest first
+             */
+            hours: components["schemas"]["SpeedHour"][];
+            /** Miles Today */
+            miles_today: number | null;
+            /** Unit Number */
+            unit_number: string;
+            /**
+             * Vehicle Id
+             * Format: uuid
+             */
+            vehicle_id: string;
+        };
         /** TruckSummary */
         TruckSummary: {
             /** Active */
@@ -16457,6 +17153,15 @@ export interface components {
             required: boolean;
             /** Setup Pending */
             setup_pending: boolean;
+        };
+        /** TypeCount */
+        TypeCount: {
+            /** Count */
+            count: number;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
         };
         /** UnitDriver */
         UnitDriver: {
@@ -17020,6 +17725,24 @@ export interface components {
             mpg: string | null;
             /** Price Per Gallon */
             price_per_gallon: string | null;
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+        };
+        /** WeekMoney */
+        WeekMoney: {
+            /** Cost */
+            cost: string;
+            /** Margin */
+            margin: string;
+            /** Prior Cost */
+            prior_cost: string;
+            /** Prior Revenue */
+            prior_revenue: string;
+            /** Revenue */
+            revenue: string;
             /**
              * Week Start
              * Format: date
@@ -21825,6 +22548,139 @@ export interface operations {
             };
         };
     };
+    dashboard_calendar_api_v1_dashboard_calendar_get: {
+        parameters: {
+            query: {
+                date_from: string;
+                date_to: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_day_api_v1_dashboard_day_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DayOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     dashboard_exceptions_api_v1_dashboard_exceptions_get: {
         parameters: {
             query?: never;
@@ -21841,6 +22697,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Exception_"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_financial_api_v1_dashboard_financial_get: {
+        parameters: {
+            query?: {
+                /** @description 4, 12 or 26 */
+                weeks?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinancialOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_fleet_api_v1_dashboard_fleet_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FleetOut"];
                 };
             };
             /** @description Unauthorized */
@@ -21957,6 +22946,71 @@ export interface operations {
             };
         };
     };
+    dashboard_operations_api_v1_dashboard_operations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationsOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     dashboard_schedule_api_v1_dashboard_schedule_get: {
         parameters: {
             query?: never;
@@ -21973,6 +23027,75 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScheduleOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    share_dashboard_api_v1_dashboard_share_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareOut"];
                 };
             };
             /** @description Unauthorized */
@@ -22040,6 +23163,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DashboardSummary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    dashboard_truck_api_v1_dashboard_trucks__vehicle_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                vehicle_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TruckOut"];
                 };
             };
             /** @description Unauthorized */

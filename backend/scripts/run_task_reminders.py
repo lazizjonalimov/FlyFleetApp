@@ -1,5 +1,6 @@
-"""Send the task reminders that are due, for every active company: each person's morning summary at the time
-they chose under My tasks › Reminders, and a note 30 minutes before a task is due.
+"""Send the task reminders and dashboard emails that are due, for every active company: each person's morning
+summary at the time they chose under My tasks › Reminders, a note 30 minutes before a task is due, and the dashboard
+summaries scheduled under Dashboard › Share.
 
     python scripts/run_task_reminders.py
 
@@ -17,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.db import new_session  # noqa: E402
 from app.core.deps import Principal  # noqa: E402
+from app.modules.reports import command  # noqa: E402
 from app.modules.tasks import service  # noqa: E402
 
 # Reminders are sent by FlyFleet itself, not by a person.
@@ -31,9 +33,10 @@ def main() -> int:
         try:
             with new_session(org_id=org_id) as db:
                 name = db.scalar(text("SELECT name FROM organizations WHERE id = :id"), {"id": org_id}) or ""
-                sent += service.send_reminders(db, Principal(user_id=SYSTEM, org_id=org_id, role="owner",
-                                                             full_name="FlyFleet", email="", timezone=zone or "UTC",
-                                                             org_name=name))
+                system = Principal(user_id=SYSTEM, org_id=org_id, role="owner", full_name="FlyFleet", email="",
+                                   timezone=zone or "UTC", org_name=name)
+                sent += service.send_reminders(db, system)
+                sent += command.send_scheduled(db, system)
                 db.commit()
         except Exception as error:  # one company's problem must not stop the others' reminders
             failed += 1
