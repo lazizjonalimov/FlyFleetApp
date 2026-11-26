@@ -190,6 +190,53 @@
         "title": "ActionIn",
         "type": "object"
       },
+      "Activity": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "load_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Id"
+          },
+          "load_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Load Number"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "tone",
+          "text"
+        ],
+        "title": "Activity",
+        "type": "object"
+      },
       "AddressCreate": {
         "properties": {
           "address": {
@@ -2462,6 +2509,41 @@
         "title": "Body_upload_photo_api_v1_auth_me_photo_put",
         "type": "object"
       },
+      "Bucket": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "share": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "amount",
+          "share"
+        ],
+        "title": "Bucket",
+        "type": "object"
+      },
       "BulkFailure": {
         "properties": {
           "id": {
@@ -2673,6 +2755,147 @@
         "title": "BulkRequestRow",
         "type": "object"
       },
+      "CalendarEvent": {
+        "properties": {
+          "category": {
+            "enum": [
+              "pickup",
+              "delivery",
+              "maintenance",
+              "expiration",
+              "billing"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lane": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lane"
+          },
+          "past": {
+            "title": "Past",
+            "type": "boolean"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "target": {
+            "$ref": "#/components/schemas/EventTarget"
+          },
+          "time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "who": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Who"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "time",
+          "category",
+          "type",
+          "title",
+          "who",
+          "lane",
+          "reference",
+          "past",
+          "target"
+        ],
+        "title": "CalendarEvent",
+        "type": "object"
+      },
+      "CalendarOut": {
+        "properties": {
+          "categories": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The categories this role sees, with their names",
+            "title": "Categories",
+            "type": "object"
+          },
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "today",
+          "categories",
+          "events"
+        ],
+        "title": "CalendarOut",
+        "type": "object"
+      },
       "Candidate": {
         "properties": {
           "current_load": {
@@ -2757,6 +2980,35 @@
           "current_load"
         ],
         "title": "Candidate",
+        "type": "object"
+      },
+      "CashWeek": {
+        "properties": {
+          "cash_in": {
+            "title": "Cash In",
+            "type": "string"
+          },
+          "cash_out": {
+            "title": "Cash Out",
+            "type": "string"
+          },
+          "net": {
+            "title": "Net",
+            "type": "string"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "cash_in",
+          "cash_out",
+          "net"
+        ],
+        "title": "CashWeek",
         "type": "object"
       },
       "CategoryTotal": {
@@ -6119,6 +6371,91 @@
         "title": "DayDone",
         "type": "object"
       },
+      "DayOut": {
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "delivered": {
+            "$ref": "#/components/schemas/Progress"
+          },
+          "late": {
+            "title": "Late",
+            "type": "integer"
+          },
+          "missing_pod": {
+            "title": "Missing Pod",
+            "type": "integer"
+          },
+          "on_time": {
+            "$ref": "#/components/schemas/Progress"
+          },
+          "revenue": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Progress"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Delivered revenue today against last month's daily average; empty for roles that can't see rates"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Operations score, 0-100; empty when nothing is on the road",
+            "title": "Score"
+          },
+          "score_parts": {
+            "items": {
+              "$ref": "#/components/schemas/ScorePart"
+            },
+            "title": "Score Parts",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "unassigned": {
+            "title": "Unassigned",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "today",
+          "timezone",
+          "summary",
+          "unassigned",
+          "late",
+          "missing_pod",
+          "delivered",
+          "revenue",
+          "on_time",
+          "score",
+          "score_parts",
+          "definition"
+        ],
+        "title": "DayOut",
+        "type": "object"
+      },
       "DefectIn": {
         "properties": {
           "against": {
@@ -7500,6 +7837,80 @@
         "title": "DriverPositionsIn",
         "type": "object"
       },
+      "DriverRank": {
+        "properties": {
+          "driver_id": {
+            "format": "uuid",
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "incidents": {
+            "title": "Incidents",
+            "type": "integer"
+          },
+          "loads": {
+            "title": "Loads",
+            "type": "integer"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "on_time_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Pct"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/RecentLoad"
+            },
+            "title": "Recent",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/DriverWeek"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "driver_id",
+          "name",
+          "score",
+          "miles",
+          "loads",
+          "on_time_pct",
+          "incidents",
+          "weeks",
+          "recent"
+        ],
+        "title": "DriverRank",
+        "type": "object"
+      },
       "DriverRead": {
         "properties": {
           "cdl_class": {
@@ -8422,6 +8833,60 @@
         "title": "DriverUpdate",
         "type": "object"
       },
+      "DriverWeek": {
+        "properties": {
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "score"
+        ],
+        "title": "DriverWeek",
+        "type": "object"
+      },
+      "Dwell": {
+        "properties": {
+          "avg_minutes": {
+            "title": "Avg Minutes",
+            "type": "integer"
+          },
+          "facility": {
+            "title": "Facility",
+            "type": "string"
+          },
+          "longest_minutes": {
+            "title": "Longest Minutes",
+            "type": "integer"
+          },
+          "visits": {
+            "title": "Visits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "facility",
+          "visits",
+          "avg_minutes",
+          "longest_minutes"
+        ],
+        "title": "Dwell",
+        "type": "object"
+      },
       "Editable": {
         "description": "What the caller may change right now, given the load's state and their role.",
         "properties": {
@@ -8604,6 +9069,42 @@
           "error"
         ],
         "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EventTarget": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "screen": {
+            "title": "Screen",
+            "type": "string"
+          }
+        },
+        "required": [
+          "screen"
+        ],
+        "title": "EventTarget",
         "type": "object"
       },
       "Exception_": {
@@ -9691,6 +10192,40 @@
         "title": "Expiration",
         "type": "object"
       },
+      "Expiring": {
+        "properties": {
+          "days_left": {
+            "title": "Days Left",
+            "type": "integer"
+          },
+          "expires": {
+            "format": "date",
+            "title": "Expires",
+            "type": "string"
+          },
+          "holder": {
+            "title": "Holder",
+            "type": "string"
+          },
+          "item": {
+            "title": "Item",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "holder",
+          "kind",
+          "item",
+          "expires",
+          "days_left"
+        ],
+        "title": "Expiring",
+        "type": "object"
+      },
       "ExpiringDocument": {
         "properties": {
           "days_left": {
@@ -10358,6 +10893,90 @@
         "title": "FiledDocument",
         "type": "object"
       },
+      "FinancialOut": {
+        "properties": {
+          "aging": {
+            "items": {
+              "$ref": "#/components/schemas/Bucket"
+            },
+            "title": "Aging",
+            "type": "array"
+          },
+          "aging_total": {
+            "title": "Aging Total",
+            "type": "string"
+          },
+          "cash": {
+            "items": {
+              "$ref": "#/components/schemas/CashWeek"
+            },
+            "title": "Cash",
+            "type": "array"
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Definitions",
+            "type": "object"
+          },
+          "goal": {
+            "$ref": "#/components/schemas/Goal"
+          },
+          "lane_days": {
+            "title": "Lane Days",
+            "type": "integer"
+          },
+          "lanes": {
+            "items": {
+              "$ref": "#/components/schemas/Lane"
+            },
+            "title": "Lanes",
+            "type": "array"
+          },
+          "tiles": {
+            "items": {
+              "$ref": "#/components/schemas/MoneyTile"
+            },
+            "title": "Tiles",
+            "type": "array"
+          },
+          "today": {
+            "format": "date",
+            "title": "Today",
+            "type": "string"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Totals",
+            "type": "object"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/WeekMoney"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "today",
+          "tiles",
+          "weeks",
+          "totals",
+          "goal",
+          "aging",
+          "aging_total",
+          "cash",
+          "lanes",
+          "lane_days",
+          "definitions"
+        ],
+        "title": "FinancialOut",
+        "type": "object"
+      },
       "Fleet": {
         "properties": {
           "drivers_active": {
@@ -10429,6 +11048,103 @@
         "title": "FleetLoad",
         "type": "object"
       },
+      "FleetOut": {
+        "properties": {
+          "by_type": {
+            "items": {
+              "$ref": "#/components/schemas/TypeCount"
+            },
+            "title": "By Type",
+            "type": "array"
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Definitions",
+            "type": "object"
+          },
+          "drivers": {
+            "items": {
+              "$ref": "#/components/schemas/DriverRank"
+            },
+            "title": "Drivers",
+            "type": "array"
+          },
+          "expiring": {
+            "items": {
+              "$ref": "#/components/schemas/Expiring"
+            },
+            "title": "Expiring",
+            "type": "array"
+          },
+          "expiring_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Expiring Counts",
+            "type": "object"
+          },
+          "maintenance": {
+            "items": {
+              "$ref": "#/components/schemas/Service"
+            },
+            "title": "Maintenance",
+            "type": "array"
+          },
+          "pm_interval_mi": {
+            "title": "Pm Interval Mi",
+            "type": "integer"
+          },
+          "safety": {
+            "items": {
+              "$ref": "#/components/schemas/SafetyWeek"
+            },
+            "title": "Safety",
+            "type": "array"
+          },
+          "stats": {
+            "items": {
+              "$ref": "#/components/schemas/FleetStat"
+            },
+            "title": "Stats",
+            "type": "array"
+          },
+          "status": {
+            "items": {
+              "$ref": "#/components/schemas/StatusSlice"
+            },
+            "title": "Status",
+            "type": "array"
+          },
+          "working_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Working Pct"
+          }
+        },
+        "required": [
+          "stats",
+          "status",
+          "working_pct",
+          "drivers",
+          "expiring_counts",
+          "expiring",
+          "maintenance",
+          "pm_interval_mi",
+          "safety",
+          "by_type",
+          "definitions"
+        ],
+        "title": "FleetOut",
+        "type": "object"
+      },
       "FleetPerson": {
         "properties": {
           "id": {
@@ -10460,6 +11176,51 @@
           "name"
         ],
         "title": "FleetPerson",
+        "type": "object"
+      },
+      "FleetStat": {
+        "properties": {
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "sub": {
+            "title": "Sub",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "value",
+          "unit",
+          "sub",
+          "definition"
+        ],
+        "title": "FleetStat",
         "type": "object"
       },
       "FleetUnit": {
@@ -10761,6 +11522,65 @@
           "detail"
         ],
         "title": "Gap",
+        "type": "object"
+      },
+      "Goal": {
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "days_left": {
+            "title": "Days Left",
+            "type": "integer"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct"
+          },
+          "projected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Projected"
+          },
+          "so_far": {
+            "title": "So Far",
+            "type": "string"
+          }
+        },
+        "required": [
+          "goal",
+          "so_far",
+          "pct",
+          "projected",
+          "days_left",
+          "basis"
+        ],
+        "title": "Goal",
         "type": "object"
       },
       "HistoryItem": {
@@ -13282,6 +14102,106 @@
           "kpis"
         ],
         "title": "KpisOut",
+        "type": "object"
+      },
+      "Lane": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "string"
+          },
+          "customers": {
+            "items": {
+              "$ref": "#/components/schemas/LaneCustomer"
+            },
+            "title": "Customers",
+            "type": "array"
+          },
+          "destination": {
+            "title": "Destination",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "loads": {
+            "title": "Loads",
+            "type": "integer"
+          },
+          "margin_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Pct"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "integer"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "profit": {
+            "title": "Profit",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          },
+          "weeks": {
+            "description": "Revenue per week, last 8 weeks, oldest first",
+            "items": {
+              "type": "string"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "origin",
+          "destination",
+          "loads",
+          "miles",
+          "revenue",
+          "cost",
+          "profit",
+          "margin_pct",
+          "weeks",
+          "customers"
+        ],
+        "title": "Lane",
+        "type": "object"
+      },
+      "LaneCustomer": {
+        "properties": {
+          "loads": {
+            "title": "Loads",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "revenue",
+          "loads"
+        ],
+        "title": "LaneCustomer",
         "type": "object"
       },
       "LinkIn": {
@@ -16443,6 +17363,105 @@
         "title": "MileageRow",
         "type": "object"
       },
+      "MoneyTile": {
+        "properties": {
+          "change": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Against the same stretch of last month",
+            "title": "Change"
+          },
+          "change_text": {
+            "title": "Change Text",
+            "type": "string"
+          },
+          "definition": {
+            "title": "Definition",
+            "type": "string"
+          },
+          "good": {
+            "enum": [
+              "up",
+              "down"
+            ],
+            "title": "Good",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "series": {
+            "description": "Seven months, oldest first, this month so far last",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "tone": {
+            "enum": [
+              "good",
+              "bad",
+              "neutral"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "money",
+              "percent",
+              "per_mile",
+              "days"
+            ],
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "value",
+          "unit",
+          "good",
+          "change",
+          "change_text",
+          "tone",
+          "series",
+          "definition"
+        ],
+        "title": "MoneyTile",
+        "type": "object"
+      },
       "MonthOut": {
         "properties": {
           "by_unit": {
@@ -16953,6 +17972,61 @@
         "title": "OffRoad",
         "type": "object"
       },
+      "OnTime": {
+        "properties": {
+          "deliveries": {
+            "title": "Deliveries",
+            "type": "integer"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct"
+          },
+          "target_pct": {
+            "title": "Target Pct",
+            "type": "integer"
+          },
+          "week_starts": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Week Starts",
+            "type": "array"
+          },
+          "weeks": {
+            "description": "On-time % per week, oldest first",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pct",
+          "target_pct",
+          "deliveries",
+          "weeks",
+          "week_starts"
+        ],
+        "title": "OnTime",
+        "type": "object"
+      },
       "OnTimeCustomer": {
         "properties": {
           "avg_late_minutes": {
@@ -17200,6 +18274,64 @@
           "pct"
         ],
         "title": "OnTimeWeek",
+        "type": "object"
+      },
+      "OperationsOut": {
+        "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/Activity"
+            },
+            "title": "Activity",
+            "type": "array"
+          },
+          "dwell": {
+            "items": {
+              "$ref": "#/components/schemas/Dwell"
+            },
+            "title": "Dwell",
+            "type": "array"
+          },
+          "dwell_days": {
+            "title": "Dwell Days",
+            "type": "integer"
+          },
+          "heatmap": {
+            "description": "Pickups by weekday (Monday first) and two-hour block, last 8 weeks",
+            "items": {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            "title": "Heatmap",
+            "type": "array"
+          },
+          "heatmap_weeks": {
+            "title": "Heatmap Weeks",
+            "type": "integer"
+          },
+          "on_time": {
+            "$ref": "#/components/schemas/OnTime"
+          },
+          "tiles": {
+            "items": {
+              "$ref": "#/components/schemas/Tile"
+            },
+            "title": "Tiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tiles",
+          "activity",
+          "on_time",
+          "heatmap",
+          "heatmap_weeks",
+          "dwell",
+          "dwell_days"
+        ],
+        "title": "OperationsOut",
         "type": "object"
       },
       "OrgRef": {
@@ -23267,6 +24399,48 @@
         "title": "ProfileIn",
         "type": "object"
       },
+      "Progress": {
+        "properties": {
+          "done": {
+            "title": "Done",
+            "type": "number"
+          },
+          "of": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Of"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "done",
+          "of",
+          "pct",
+          "text"
+        ],
+        "title": "Progress",
+        "type": "object"
+      },
       "Purchase": {
         "properties": {
           "amount": {
@@ -24379,6 +25553,55 @@
           "received_count"
         ],
         "title": "Receivables",
+        "type": "object"
+      },
+      "RecentLoad": {
+        "properties": {
+          "delivered_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivered On"
+          },
+          "lane": {
+            "title": "Lane",
+            "type": "string"
+          },
+          "load_id": {
+            "format": "uuid",
+            "title": "Load Id",
+            "type": "string"
+          },
+          "load_number": {
+            "title": "Load Number",
+            "type": "string"
+          },
+          "on_time": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time"
+          }
+        },
+        "required": [
+          "load_id",
+          "load_number",
+          "lane",
+          "delivered_on",
+          "on_time"
+        ],
+        "title": "RecentLoad",
         "type": "object"
       },
       "Recipient": {
@@ -26071,6 +27294,37 @@
         "title": "SafetySummary",
         "type": "object"
       },
+      "SafetyWeek": {
+        "properties": {
+          "incidents": {
+            "title": "Incidents",
+            "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "incidents",
+          "score"
+        ],
+        "title": "SafetyWeek",
+        "type": "object"
+      },
       "SampleIn": {
         "properties": {
           "accuracy_m": {
@@ -26334,6 +27588,36 @@
           "state"
         ],
         "title": "ScheduleStop",
+        "type": "object"
+      },
+      "ScorePart": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "value",
+          "weight"
+        ],
+        "title": "ScorePart",
         "type": "object"
       },
       "SearchResult": {
@@ -26773,6 +28057,62 @@
           "body"
         ],
         "title": "SendIn",
+        "type": "object"
+      },
+      "Service": {
+        "properties": {
+          "last_service": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Service"
+          },
+          "miles_since": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Miles Since"
+          },
+          "pct_used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct Used"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          },
+          "vehicle_id": {
+            "format": "uuid",
+            "title": "Vehicle Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vehicle_id",
+          "unit_number",
+          "miles_since",
+          "pct_used",
+          "last_service"
+        ],
+        "title": "Service",
         "type": "object"
       },
       "SessionInfo": {
@@ -27607,6 +28947,90 @@
         "title": "SettlementVoidIn",
         "type": "object"
       },
+      "ShareIn": {
+        "properties": {
+          "frequency": {
+            "enum": [
+              "daily",
+              "weekly",
+              "monthly"
+            ],
+            "title": "Frequency",
+            "type": "string"
+          },
+          "now": {
+            "default": false,
+            "description": "Send it now as well as saving the schedule",
+            "title": "Now",
+            "type": "boolean"
+          },
+          "recipients": {
+            "enum": [
+              "me",
+              "ops",
+              "everyone"
+            ],
+            "title": "Recipients",
+            "type": "string"
+          },
+          "send_at": {
+            "enum": [
+              "06:30",
+              "07:00",
+              "07:30",
+              "08:00",
+              "08:30",
+              "09:00"
+            ],
+            "title": "Send At",
+            "type": "string"
+          },
+          "tabs": {
+            "items": {
+              "enum": [
+                "overview",
+                "operations",
+                "financial",
+                "fleet",
+                "calendar"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Tabs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "frequency",
+          "send_at",
+          "recipients",
+          "tabs"
+        ],
+        "title": "ShareIn",
+        "type": "object"
+      },
+      "ShareOut": {
+        "properties": {
+          "saved": {
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "sent_to": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sent To",
+            "type": "array"
+          }
+        },
+        "required": [
+          "saved",
+          "sent_to"
+        ],
+        "title": "ShareOut",
+        "type": "object"
+      },
       "ShipmentMilestone": {
         "properties": {
           "at": {
@@ -27980,6 +29404,44 @@
         "title": "Source",
         "type": "object"
       },
+      "SpeedHour": {
+        "properties": {
+          "avg_mph": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Mph"
+          },
+          "hour": {
+            "format": "date-time",
+            "title": "Hour",
+            "type": "string"
+          },
+          "max_mph": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Mph"
+          }
+        },
+        "required": [
+          "hour",
+          "avg_mph",
+          "max_mph"
+        ],
+        "title": "SpeedHour",
+        "type": "object"
+      },
       "StateMiles": {
         "properties": {
           "jurisdiction": {
@@ -28163,6 +29625,35 @@
           "created_at"
         ],
         "title": "StatusEventOut",
+        "type": "object"
+      },
+      "StatusSlice": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "enum": [
+              "driving",
+              "at_dock",
+              "available",
+              "in_shop"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count"
+        ],
+        "title": "StatusSlice",
         "type": "object"
       },
       "Step": {
@@ -31570,6 +33061,58 @@
         "title": "ThreadMember",
         "type": "object"
       },
+      "Tile": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              ]
+            },
+            "description": "The Loads list parameters that show these loads",
+            "title": "Params",
+            "type": "object"
+          },
+          "sub": {
+            "title": "Sub",
+            "type": "string"
+          },
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "count",
+          "sub",
+          "tone",
+          "params"
+        ],
+        "title": "Tile",
+        "type": "object"
+      },
       "Trace": {
         "properties": {
           "end": {
@@ -33642,6 +35185,46 @@
         "title": "TruckMpg",
         "type": "object"
       },
+      "TruckOut": {
+        "properties": {
+          "hours": {
+            "description": "The last seven hours, oldest first",
+            "items": {
+              "$ref": "#/components/schemas/SpeedHour"
+            },
+            "title": "Hours",
+            "type": "array"
+          },
+          "miles_today": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Miles Today"
+          },
+          "unit_number": {
+            "title": "Unit Number",
+            "type": "string"
+          },
+          "vehicle_id": {
+            "format": "uuid",
+            "title": "Vehicle Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "vehicle_id",
+          "unit_number",
+          "hours",
+          "miles_today"
+        ],
+        "title": "TruckOut",
+        "type": "object"
+      },
       "TruckSummary": {
         "properties": {
           "active": {
@@ -33830,6 +35413,29 @@
           "backup_codes_total"
         ],
         "title": "TwoFactorState",
+        "type": "object"
+      },
+      "TypeCount": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "count"
+        ],
+        "title": "TypeCount",
         "type": "object"
       },
       "UnitDriver": {
@@ -35914,6 +37520,45 @@
           "mpg"
         ],
         "title": "Week",
+        "type": "object"
+      },
+      "WeekMoney": {
+        "properties": {
+          "cost": {
+            "title": "Cost",
+            "type": "string"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "string"
+          },
+          "prior_cost": {
+            "title": "Prior Cost",
+            "type": "string"
+          },
+          "prior_revenue": {
+            "title": "Prior Revenue",
+            "type": "string"
+          },
+          "revenue": {
+            "title": "Revenue",
+            "type": "string"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "revenue",
+          "cost",
+          "margin",
+          "prior_revenue",
+          "prior_cost"
+        ],
+        "title": "WeekMoney",
         "type": "object"
       },
       "WeekOnTime": {
@@ -42822,6 +44467,181 @@
         ]
       }
     },
+    "/api/v1/dashboard/calendar": {
+      "get": {
+        "description": "Pickups, deliveries, maintenance, expirations, invoices due and driver pay, day by day.",
+        "operationId": "dashboard_calendar_api_v1_dashboard_calendar_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "date_from",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date_to",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Date To",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Calendar",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/day": {
+      "get": {
+        "operationId": "dashboard_day_api_v1_dashboard_day_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DayOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Day",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/dashboard/exceptions": {
       "get": {
         "description": "Work that needs attention, most urgent first, limited to what the caller's role can act on or see.",
@@ -42898,6 +44718,174 @@
           }
         ],
         "summary": "Dashboard Exceptions",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/financial": {
+      "get": {
+        "description": "Money: the month's figures, revenue and cost by week, the month's goal, receivables, cash and lanes.",
+        "operationId": "dashboard_financial_api_v1_dashboard_financial_get",
+        "parameters": [
+          {
+            "description": "4, 12 or 26",
+            "in": "query",
+            "name": "weeks",
+            "required": false,
+            "schema": {
+              "default": 12,
+              "description": "4, 12 or 26",
+              "title": "Weeks",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Financial",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/fleet": {
+      "get": {
+        "description": "The fleet and its drivers: fuel, idling, safety, what each truck is doing, the drivers' standing, papers\nrunning out, service due and the safety trend.",
+        "operationId": "dashboard_fleet_api_v1_dashboard_fleet_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FleetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Fleet",
         "tags": [
           "dashboard"
         ]
@@ -42997,6 +44985,83 @@
         ]
       }
     },
+    "/api/v1/dashboard/operations": {
+      "get": {
+        "description": "Live status, the day's events, on-time delivery, when pickups happen and where trucks wait longest.",
+        "operationId": "dashboard_operations_api_v1_dashboard_operations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Operations",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
     "/api/v1/dashboard/schedule": {
       "get": {
         "description": "Every pickup and delivery with an appointment today, on the loads the caller can see (a dispatch team's\ndispatcher, the team's loads only). Done when the truck has arrived; late when the appointment has passed or an\nalert says it will be missed; no driver when nobody is assigned.",
@@ -43069,6 +45134,93 @@
           }
         ],
         "summary": "Today's pickups and deliveries, by appointment time, for those who dispatch",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/share": {
+      "post": {
+        "description": "Save when the dashboard is emailed and to whom; with `now`, send it at once. Each person gets only the tabs\ntheir own role opens.",
+        "operationId": "share_dashboard_api_v1_dashboard_share_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShareIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Share Dashboard",
         "tags": [
           "dashboard"
         ]
@@ -43164,6 +45316,95 @@
           }
         ],
         "summary": "Dashboard Summary",
+        "tags": [
+          "dashboard"
+        ]
+      }
+    },
+    "/api/v1/dashboard/trucks/{vehicle_id}": {
+      "get": {
+        "description": "A truck's speed hour by hour over the last seven hours, from the positions it sent.",
+        "operationId": "dashboard_truck_api_v1_dashboard_trucks__vehicle_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "vehicle_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Vehicle Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dashboard Truck",
         "tags": [
           "dashboard"
         ]
