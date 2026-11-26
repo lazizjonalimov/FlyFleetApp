@@ -181,6 +181,8 @@ class LoadCharge(Base, IdMixin, TenantScoped, TimestampMixin):
     driver_payable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     # A charge someone adds waits for approval; pending charges hold up the invoice.
     status: Mapped[str] = mapped_column(String(10), default="approved", server_default="approved")
+    # The fuel surcharge line FlyFleet keeps in step with the rate and the load's fuel percent.
+    managed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     __table_args__ = (
         CheckConstraint("status IN ('pending','approved','rejected')", name="status_valid"),
         ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
