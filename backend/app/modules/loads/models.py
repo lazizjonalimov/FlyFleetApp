@@ -1,21 +1,25 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    Date,
     DateTime,
     ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
     func,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
 
@@ -26,7 +30,10 @@ from app.modules.equipment.models import EQUIPMENT_SQL
 STATUSES = ("draft", "planned", "assigned", "dispatched", "at_pickup", "in_transit", "at_delivery", "delivered",
             "pod_review", "completed", "on_hold", "cancelled")
 BILLING = ("unbilled", "invoiced", "paid")
-CHARGE_TYPES = ("detention", "layover", "lumper", "fuel_surcharge", "tarp", "extra_stop", "tonu", "other")
+CHARGE_TYPES = ("detention", "layover", "lumper", "fuel_surcharge", "tarp", "extra_stop", "tonu", "driver_assist", "other")
+CHARGE_STATUSES = ("pending", "approved", "rejected")
+STOP_TYPES = ("pickup", "delivery", "fuel_scale")
+HANDLING = ("live", "drop", "hook")
 
 
 class Load(Base, IdMixin, TenantScoped, TimestampMixin):
@@ -67,6 +74,20 @@ class Load(Base, IdMixin, TenantScoped, TimestampMixin):
     created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # The dispatch team an unassigned load is tagged for: set when a team's dispatcher books it.
     dispatch_team_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # More reference numbers: the PO is `reference`, the BOL `bol_number`.
+    pickup_number: Mapped[str | None] = mapped_column(String(80))
+    delivery_number: Mapped[str | None] = mapped_column(String(80))
+    seal_number: Mapped[str | None] = mapped_column(String(80))
+    # Billed on top of the line haul, as a share of it; and what waiting past the free time costs the customer.
+    fuel_surcharge_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=Decimal("12"), server_default="12")
+    detention_free_hours: Mapped[Decimal] = mapped_column(Numeric(4, 2), default=Decimal("2"), server_default="2")
+    detention_rate: Mapped[Decimal] = mapped_column(Numeric(8, 2), default=Decimal("75"), server_default="75")
+    # A repeating load: weekdays (0 = Monday), until when, and the load each copy came from.
+    recurrence_days: Mapped[list[int] | None] = mapped_column(ARRAY(SmallInteger))
+    recurrence_until: Mapped[date | None] = mapped_column(Date)
+    recurrence_parent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    checkcall_reminder_hours: Mapped[int | None] = mapped_column(SmallInteger)
+    reefer_set_point_f: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("organization_id", "load_number"),
@@ -91,6 +112,13 @@ class Load(Base, IdMixin, TenantScoped, TimestampMixin):
         CheckConstraint("customer_rate >= 0", name="rate_nonneg"),
         CheckConstraint("currency ~ '^[A-Z]{3}$'", name="currency_code"),
         CheckConstraint("miles IS NULL OR miles >= 0", name="miles_nonneg"),
+        CheckConstraint("fuel_surcharge_pct >= 0 AND fuel_surcharge_pct <= 100", name="fuel_pct_range"),
+        CheckConstraint("detention_free_hours >= 0 AND detention_rate >= 0", name="detention_nonneg"),
+        CheckConstraint("checkcall_reminder_hours IS NULL OR checkcall_reminder_hours IN (2, 4, 6)", name="reminder_valid"),
+        Index("ix_loads_org_recurring", "organization_id", postgresql_where=text("recurrence_days IS NOT NULL")),
+        Index("ix_loads_org_parent", "organization_id", "recurrence_parent_id",
+              postgresql_where=text("recurrence_parent_id IS NOT NULL")),
+        Index("ix_loads_org_number", "organization_id", "load_number"),
     )
 
 
@@ -112,12 +140,15 @@ class LoadStop(Base, IdMixin, TenantScoped):
     appt_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     arrived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     departed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Live load or unload, drop the trailer, or hook a waiting one.
+    handling: Mapped[str] = mapped_column(String(10), default="live", server_default="live")
     __table_args__ = (
         UniqueConstraint("organization_id", "id"),
         UniqueConstraint("load_id", "seq"),
         ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
                              name="fk_load_stops_load", ondelete="CASCADE"),
-        CheckConstraint("type IN ('pickup','delivery')", name="type_valid"),
+        CheckConstraint("type IN ('pickup','delivery','fuel_scale')", name="type_valid"),
+        CheckConstraint("handling IN ('live','drop','hook')", name="handling_valid"),
         CheckConstraint("appt_end IS NULL OR appt_start IS NULL OR appt_end >= appt_start", name="appt_order"),
     )
 
@@ -148,7 +179,10 @@ class LoadCharge(Base, IdMixin, TenantScoped, TimestampMixin):
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     billable: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     driver_payable: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # A charge someone adds waits for approval; pending charges hold up the invoice.
+    status: Mapped[str] = mapped_column(String(10), default="approved", server_default="approved")
     __table_args__ = (
+        CheckConstraint("status IN ('pending','approved','rejected')", name="status_valid"),
         ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
                              name="fk_load_charges_load", ondelete="CASCADE"),
         Index("ix_load_charges_org_load", "organization_id", "load_id"),
@@ -201,6 +235,9 @@ class TrackingEvent(Base, IdMixin, TenantScoped):
     state: Mapped[str | None] = mapped_column(String(40))
     note: Mapped[str | None] = mapped_column(String(500))
     source: Mapped[str] = mapped_column(String(20), default="dispatcher", server_default="dispatcher")
+    # How the check call came in (phone, driver app, text, ELD) and the ETA given with it.
+    via: Mapped[str | None] = mapped_column(String(20))
+    eta: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
@@ -210,3 +247,55 @@ class TrackingEvent(Base, IdMixin, TenantScoped):
         CheckConstraint("kind IN ('check_call','exception')", name="kind_valid"),
         CheckConstraint("source IN ('dispatcher','driver','integration')", name="source_valid"),
     )
+
+
+class LoadTrackingLink(Base, IdMixin, TenantScoped):
+    """A link a customer opens without signing in to follow one load: an unguessable token, what it shows, and when
+    it stops working (seven days after delivery, or when turned off)."""
+    __tablename__ = "load_tracking_links"
+    load_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    token: Mapped[str] = mapped_column(String(64), unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    show_eta: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    show_location: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    show_pod: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    show_driver: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    sent_to: Mapped[str | None] = mapped_column(String(254))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
+                             name="fk_tracking_links_load", ondelete="CASCADE"),
+        UniqueConstraint("organization_id", "load_id"),
+    )
+
+
+class LoadActivity(Base, IdMixin, TenantScoped):
+    """What happened to a load, who did it and when. Only ever added to."""
+    __tablename__ = "load_activity"
+    load_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    kind: Mapped[str] = mapped_column(String(30))
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default=text("'{}'::jsonb"))
+    text: Mapped[str] = mapped_column(String(500))
+    tone: Mapped[str] = mapped_column(String(8), default="info", server_default="info")
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    actor_name: Mapped[str | None] = mapped_column(String(120))
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        ForeignKeyConstraint(["organization_id", "load_id"], ["loads.organization_id", "loads.id"],
+                             name="fk_load_activity_load", ondelete="CASCADE"),
+        Index("ix_load_activity_load", "organization_id", "load_id", "at"),
+    )
+
+
+class ReeferReading(Base, IdMixin, TenantScoped):
+    """A temperature from a reefer unit, sent by telematics, kept against the load it was hauling."""
+    __tablename__ = "reefer_readings"
+    load_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    trailer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    vehicle_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    temp_f: Mapped[Decimal] = mapped_column(Numeric(5, 1))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (Index("ix_reefer_readings_load", "organization_id", "load_id", "recorded_at"),)

@@ -13,11 +13,14 @@ from app.modules.ifta.models import IftaRate, IftaReturn, IftaTrip, IftaTripMile
 from app.modules.intake.models import DocumentRead, Import  # noqa: F401
 from app.modules.loads.models import (  # noqa: F401
     Load,
+    LoadActivity,
     LoadCharge,
     LoadItem,
     LoadNote,
     LoadStatusEvent,
     LoadStop,
+    LoadTrackingLink,
+    ReeferReading,
     TrackingEvent,
 )
 from app.modules.maintenance.models import Inspection, InspectionDefect, WorkOrder, WorkOrderLine  # noqa: F401
