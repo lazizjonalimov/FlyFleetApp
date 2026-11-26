@@ -15,8 +15,11 @@ import { formatNumber, place } from "@/lib/format/text";
 import type { DocumentType } from "@/lib/upload";
 import { StatusMenu, useLoadActions } from "./load-actions";
 import { useLoad, useLoadDocuments } from "./load-data";
-import { activity, alertOf, appointment, equipmentLabel, financials, paperwork, riskOf, statusOf, stopStates, type LoadAlert } from "./load-view";
+import { alertOf, appointment, equipmentLabel, financials, paperwork, riskOf, statusOf, stopStates, type LoadAlert } from "./load-view";
 import { usePodRequest } from "./use-pod-request";
+import { ActivityFeed, CheckCalls, DriverThread, InvoiceChecklist, MoneyCard, ReeferCard, RepeatCard, StopsEditor, TrackingLinkCard } from "./load-sections";
+
+type Tab = "overview" | "stops" | "money" | "tracking" | "documents" | "messages" | "activity";
 
 /** "2 min ago", "3 h ago", "Nov 12". */
 export function sinceNow(iso: string): string {
@@ -43,6 +46,7 @@ export function LoadDrawer() {
   const message = useOpenConversation();
   const requestPod = usePodRequest();
   const [menu, setMenu] = useState(false);
+  const [tab, setTab] = useState<Tab>("overview");
   const id = typeof state.drawer === "string" ? state.drawer : null;
   const query = useLoad(id);
   const documents = useLoadDocuments(id);
@@ -141,23 +145,26 @@ export function LoadDrawer() {
               {alert.button ? <button className="btn sm" onClick={act(alert)}>{alert.button}</button> : null}
             </div>
           ) : null}
-          <div className="r g20" style={{ marginTop: "12px" }}>
-            <button className="dtab on">Overview</button>
-            <button className="dtab" onClick={full}>Stops</button>
-            <button className="dtab" onClick={full}>
-              Documents
-              <span className="mono fs11 tc" data-k={papers.tone}>{`${papers.have}/${papers.need}`}</span>
-            </button>
-            <button className="dtab" onClick={full}>
-              Financials
-              {noFin ? (
-                <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
-              ) : null}
-            </button>
-            <button className="dtab" onClick={full}>Activity</button>
+          <div className="r g16" role="tablist" aria-label="Load sections" style={{ marginTop: "12px", overflowX: "auto" }}>
+            {([["overview", "Overview"], ["stops", "Stops"], ["money", "Money"], ["tracking", "Tracking"], ["documents", "Documents"], ["messages", "Messages"], ["activity", "Activity"]] as const).map(([k, l]) => (
+              <button key={k} className={clsx("dtab", tab === k && "on")} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
+                {l}
+                {k === "documents" ? <span className="mono fs11 tc" data-k={papers.tone}>{`${papers.have}/${papers.need}`}</span> : null}
+                {k === "money" && noFin ? <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" /> : null}
+              </button>
+            ))}
           </div>
         </div>
         <div className="c g20" style={{ flex: "1", minHeight: "0", overflow: "auto", padding: "18px 20px 20px" }}>
+          {tab === "stops" ? <StopsEditor load={load} /> : null}
+          {tab === "money" && fin ? <MoneyCard load={load} /> : null}
+          {tab === "money" && fin ? <InvoiceChecklist load={load} start={actions.start} /> : null}
+          {tab === "tracking" ? <TrackingLinkCard load={load} /> : null}
+          {tab === "tracking" ? <CheckCalls load={load} /> : null}
+          {tab === "tracking" ? <ReeferCard load={load} /> : null}
+          {tab === "messages" ? <DriverThread load={load} /> : null}
+          {tab === "activity" ? <ActivityFeed load={load} /> : null}
+          {tab === "overview" ? (
           <div>
             <div className="over" style={{ marginBottom: "10px" }}>Stops</div>
             {stops.map((s, i) => (
@@ -183,6 +190,8 @@ export function LoadDrawer() {
               </div>
             ))}
           </div>
+          ) : null}
+          {tab === "overview" ? (
           <div>
             <div className="over" style={{ marginBottom: "10px" }}>Assignment</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "8px" }}>
@@ -199,7 +208,10 @@ export function LoadDrawer() {
               ))}
             </div>
           </div>
-          <div>
+          ) : null}
+          {tab === "overview" && fin ? <InvoiceChecklist load={load} start={actions.start} /> : null}
+          {tab === "overview" || tab === "money" ? (
+          <div hidden={tab === "money" && fin}>
             <div className="over r g6" style={{ marginBottom: "10px" }}>
               Financials
               {noFin ? (
@@ -234,6 +246,8 @@ export function LoadDrawer() {
               </div>
             ) : null}
           </div>
+          ) : null}
+          {tab === "overview" || tab === "documents" ? (
           <div>
             <div className="over" style={{ marginBottom: "10px" }}>Documents</div>
             <div className="card oh" style={{ boxShadow: "none" }}>
@@ -256,20 +270,9 @@ export function LoadDrawer() {
               ))}
             </div>
           </div>
-          <div>
-            <div className="over" style={{ marginBottom: "10px" }}>Activity</div>
-            {activity(load, zone).slice(0, 5).map((ac, i) => (
-              <div key={i} className="act">
-                <span className="dot" data-k={ac.k} style={{ marginTop: "6px" }}></span>
-                <div className="fs13 t2">
-                  <span className="w5 tx"><span>{ac.who}</span></span>
-                  {" "}<span>{ac.what}</span>
-                  {ac.src ? <span className="src"><span>{ac.src}</span></span> : null}
-                </div>
-                <span className="fs12 mu num nw"><span>{ac.when}</span></span>
-              </div>
-            ))}
-          </div>
+          ) : null}
+          {tab === "overview" ? <RepeatCard load={load} /> : null}
+          {tab === "overview" ? <ActivityFeed load={load} limit={5} /> : null}
         </div>
         <div className="dfoot">
           <span className="fs12 mu" title={formatStamp(load.updated_at, zone)}>{`Updated ${sinceNow(load.updated_at)} · v${load.version}`}</span>

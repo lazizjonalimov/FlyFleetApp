@@ -20,8 +20,9 @@ import { AddStop } from "./add-stop";
 import { StatusMenu, useLoadActions } from "./load-actions";
 import { useLoad, useLoadDocuments } from "./load-data";
 import { sinceNow } from "./load-drawer";
-import { activity, alertOf, describe, equipmentLabel, financials, lifecycle, paperwork, riskOf, statusOf, stopStates, type LoadAlert } from "./load-view";
+import { alertOf, describe, equipmentLabel, financials, lifecycle, paperwork, riskOf, statusOf, stopStates, type LoadAlert } from "./load-view";
 import { usePodRequest } from "./use-pod-request";
+import { ActivityFeed, CheckCalls, DriverThread, InvoiceChecklist, MoneyCard, ReeferCard, RepeatCard, StopsEditor, TrackingLinkCard } from "./load-sections";
 
 
 const head = (labels: [string, boolean?][]) => labels.map(([l, right]) => ({ l, al: right ? "rt" : "" }));
@@ -31,6 +32,8 @@ const noop = () => {};
 export function LoadScreen() {
   const { me, state, can, fin, noFin, set, notify } = useConsole();
   const [adding, setAdding] = useState(false);
+  const [tab, setTab] = useState<"overview" | "stops" | "tracking" | "documents" | "financials" | "messages" | "activity">("overview");
+  const show = (k: string) => tab === "overview" || tab === k;
   const message = useOpenConversation();
   const requestPod = usePodRequest();
   const upload = useUpload();
@@ -76,7 +79,6 @@ export function LoadScreen() {
   const assignment = load.assignment;
   const assigned = load.assignments.find((each) => each.id === assignment?.id);
   const dispatched = load.events.find((event) => event.action === "dispatch");
-  const history = activity(load, zone);
   const first = stops[0];
   const last = stops[stops.length - 1];
   const operations = customer.data?.contacts.find((contact) => contact.kind === "operations") ?? customer.data?.contacts.find((contact) => contact.is_primary);
@@ -230,28 +232,14 @@ export function LoadScreen() {
           </div>
         ) : null}
       </div>
-      <div className="tabs" style={{ marginTop: "4px" }}>
-        <button className="tab on">Overview</button>
-        <button className="tab">
-          Stops
-          <span className="tcnt">{load.stops.length}</span>
-        </button>
-        <button className="tab">Tracking</button>
-        <button className="tab">
-          Documents
-          <span className="tcnt">{`${papers.have}/${papers.need}`}</span>
-        </button>
-        <button className="tab">
-          Financials
-          {noFin ? (
-            <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" />
-          ) : null}
-        </button>
-        <button className="tab">Messages</button>
-        <button className="tab">
-          Activity
-          <span className="tcnt">{history.length}</span>
-        </button>
+      <div className="tabs" role="tablist" aria-label="Load sections" style={{ marginTop: "4px" }}>
+        {([["overview", "Overview", ""], ["stops", "Stops", String(load.stops.length)], ["tracking", "Tracking", ""], ["documents", "Documents", `${papers.have}/${papers.need}`], ["financials", "Financials", ""], ["messages", "Messages", ""], ["activity", "Activity", String(load.activity?.length ?? 0)]] as const).map(([k, l, n]) => (
+          <button key={k} className={clsx("tab", tab === k && "on")} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
+            {l}
+            {n ? <span className="tcnt">{n}</span> : null}
+            {k === "financials" && noFin ? <Icon className="s12" d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4" /> : null}
+          </button>
+        ))}
       </div>
       <div className="lpg">
         <div className="c g16">
@@ -270,6 +258,7 @@ export function LoadScreen() {
               ) : null}
             </div>
           ) : null}
+          {show("tracking") ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">{"Route & tracking"}</h2>
@@ -320,6 +309,8 @@ export function LoadScreen() {
               ))}
             </div>
           </section>
+          ) : null}
+          {show("stops") ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Stops</h2>
@@ -347,6 +338,8 @@ export function LoadScreen() {
               </Fragment>
             ))}
           </section>
+          ) : null}
+          {show("documents") ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Documents</h2>
@@ -374,8 +367,18 @@ export function LoadScreen() {
               </Fragment>
             ))}
           </section>
+          ) : null}
+          {tab === "stops" ? <section className="card"><div className="cb"><StopsEditor load={load} /></div></section> : null}
+          {tab === "financials" && fin ? <section className="card"><div className="cb"><MoneyCard load={load} /></div></section> : null}
+          {show("tracking") ? <section className="card"><div className="cb c g20"><TrackingLinkCard load={load} /><CheckCalls load={load} /><ReeferCard load={load} /></div></section> : null}
+          {tab === "messages" ? <section className="card"><div className="cb"><DriverThread load={load} /></div></section> : null}
+          {tab === "activity" ? <section className="card"><div className="cb"><ActivityFeed load={load} /></div></section> : null}
         </div>
-        <div className="c g16">
+        <div className="c g16" hidden={!["overview", "financials"].includes(tab)}>
+          {fin && (tab === "overview" || tab === "financials") ? <section className="card"><div className="cb"><InvoiceChecklist load={load} start={actions.start} /></div></section> : null}
+          {tab === "overview" ? <section className="card"><div className="cb"><RepeatCard load={load} /></div></section> : null}
+          {tab === "overview" ? <section className="card"><div className="cb"><ActivityFeed load={load} limit={8} /></div></section> : null}
+          {tab === "overview" ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Assignment</h2>
@@ -413,6 +416,8 @@ export function LoadScreen() {
               </dl>
             </div>
           </section>
+          ) : null}
+          {(tab === "overview" || (tab === "financials" && noFin)) ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Financials</h2>
@@ -451,6 +456,8 @@ export function LoadScreen() {
               <div className="cb fs13 mu">Rates, pay and margins aren’t available to your role.</div>
             ) : null}
           </section>
+          ) : null}
+          {tab === "overview" ? (
           <section className="card oh">
             <div className="ch">
               <h2 className="h2">Customer</h2>
@@ -474,25 +481,7 @@ export function LoadScreen() {
               {customer.data && !operations && !billing ? <div className="fs12 mu">No contacts on file</div> : null}
             </div>
           </section>
-          <section className="card oh">
-            <div className="ch">
-              <h2 className="h2">Activity</h2>
-              <span className="fs12 mu">Immutable · newest first</span>
-            </div>
-            <div className="cb" style={{ paddingTop: "8px" }}>
-              {history.map((ac, i) => (
-                <div key={i} className="act">
-                  <span className="dot" data-k={ac.k} style={{ marginTop: "6px" }}></span>
-                  <div className="fs13 t2">
-                    <span className="w5 tx"><span>{ac.who}</span></span>
-                    {" "}<span>{ac.what}</span>
-                    {ac.src ? <span className="src"><span>{ac.src}</span></span> : null}
-                  </div>
-                  <span className="fs12 mu num nw"><span>{ac.when}</span></span>
-                </div>
-              ))}
-            </div>
-          </section>
+          ) : null}
         </div>
       </div>
       {actions.dialog}

@@ -1313,3 +1313,19 @@ position:relative;overflow:hidden;font:400 14px/20px var(--ui);color:var(--tx);b
 .ff .dbcal-cell.out{opacity:.7}
 .ff .dbcal-scale{display:inline-flex;height:10px;width:70px;border-radius:5px;border:1px solid var(--bd);background:linear-gradient(90deg,var(--sf),color-mix(in srgb,var(--pri) 30%,var(--sf)))}
 .ff .dbcal-it{touch-action:none}.ff .dbcal-it.dragging{opacity:.5}
+/* Loads board: five columns of cards, dragged between them */
+.ff .ldb{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:10px;flex:1;min-height:0;overflow-x:auto}
+.ff .ldb-col{display:flex;flex-direction:column;min-height:0;background:var(--sf3);border:1px solid var(--bd);border-radius:8px}
+.ff .ldb-col.over{border-color:var(--pri);box-shadow:0 0 0 3px var(--prit)}
+.ff .ldb-h{padding:10px 12px 6px}
+.ff .ldb-cards{padding:0 8px 8px;overflow-y:auto;min-height:60px}
+.ff .ldb-card{display:flex;flex-direction:column;gap:3px;text-align:left;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--sf);font:inherit;color:var(--tx);cursor:grab;touch-action:none;min-width:0}
+.ff .ldb-card:hover{border-color:#8DA9FB}
+.ff .ldb-card:focus-visible{outline:2px solid var(--pri)}
+.ff .ldb-card.dragging{opacity:.45}
+.ff .ldb-card.busy{opacity:.6;pointer-events:none}
+.ff .ldb-card .tag{align-self:flex-start}
+@media (max-width:720px){.ff .ldb{grid-template-columns:repeat(5,82vw)}}
+/* The customer's tracking page */
+.ff .trk{min-height:100vh;display:flex;justify-content:center;padding:32px 16px;background:var(--bg)}
+.ff .trk-card{width:100%;max-width:560px;align-self:flex-start}

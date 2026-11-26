@@ -21,7 +21,7 @@ test("loads list: each row's papers and risk, status changed in bulk, a saved vi
   await expect(row(planned)).toContainText("$1,850");
   await expect(row(planned)).toContainText("$7.71/mi");
   await expect(page.locator(".tfoot")).toContainText("Showing 1–2 of 2");
-  await expect(page.getByRole("button", { name: "Rows per page: 25" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Rows per page: 10" })).toBeVisible();
 
   // Mark ready in bulk: only the draft can be, and the result says why the other wasn't.
   await row(draft).locator(".chk").click();

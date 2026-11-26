@@ -2990,6 +2990,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/load-costs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The company's cost rates for margin estimates */
+        get: operations["get_costs_api_v1_load_costs_get"];
+        /** Change the company's cost rates */
+        put: operations["set_costs_api_v1_load_costs_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loads": {
         parameters: {
             query?: never;
@@ -3028,6 +3046,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loads/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The filtered list as CSV
+         * @description Every load the filters match, up to 10,000. Rates and margin only for roles that may see them.
+         */
+        get: operations["export_loads_api_v1_loads_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How many loads each filter value would show */
+        get: operations["load_facets_api_v1_loads_facets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loads/{load_id}": {
         parameters: {
             query?: never;
@@ -3044,6 +3099,74 @@ export interface paths {
         head?: never;
         /** Update Load */
         patch: operations["update_load_api_v1_loads__load_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/board-move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Drop a load in a board column; refused with the reason when the move isn't possible */
+        post: operations["board_move_api_v1_loads__load_id__board_move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/charges/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject extra charges */
+        post: operations["review_charges_api_v1_loads__load_id__charges_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy a load as a new draft */
+        post: operations["duplicate_load_api_v1_loads__load_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make a draft invoice for this load once it is ready */
+        post: operations["invoice_load_api_v1_loads__load_id__invoice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/loads/{load_id}/notes": {
@@ -3143,6 +3266,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/loads/{load_id}/tracking-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Turn the customer's tracking link on or off, and choose what it shows */
+        put: operations["set_tracking_link_api_v1_loads__load_id__tracking_link_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/tracking-link/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email the tracking link to the customer */
+        post: operations["send_tracking_link_api_v1_loads__load_id__tracking_link_send_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/loads/{load_id}/transitions": {
         parameters: {
             query?: never;
@@ -3157,6 +3314,23 @@ export interface paths {
          * @description Move a load through its lifecycle. The action decides which permission is needed.
          */
         post: operations["transition_api_v1_loads__load_id__transitions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/loads/{load_id}/undo-cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Put back a just-cancelled load */
+        post: operations["undo_cancel_api_v1_loads__load_id__undo_cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4697,6 +4871,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/tracking/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A load as its tracking link shows it */
+        get: operations["public_tracking_api_v1_public_tracking__token__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/tracking/{token}/pod": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The proof of delivery, when shared */
+        get: operations["public_pod_api_v1_public_tracking__token__pod_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reefer/readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Trailer temperatures from reefer units or telematics */
+        post: operations["ingest_reefer_api_v1_reefer_readings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/ar-aging": {
         parameters: {
             query?: never;
@@ -5979,6 +6204,27 @@ export interface components {
             /** Tone */
             tone: string;
         };
+        /** ActivityOut */
+        ActivityOut: {
+            /** Actor Name */
+            actor_name: string | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Text */
+            text: string;
+            /** Tone */
+            tone: string;
+        };
         /** AddressCreate */
         AddressCreate: {
             /** Address */
@@ -6678,6 +6924,16 @@ export interface components {
             /** Message */
             message: string;
         };
+        /** BoardMoveIn */
+        BoardMoveIn: {
+            /**
+             * Column
+             * @enum {string}
+             */
+            column: "unassigned" | "assigned" | "in_transit" | "delivered" | "completed";
+            /** Version */
+            version: number;
+        };
         /**
          * BoardSummary
          * @description Counts behind the dispatch board's summary strip. Each matches the view of the same name.
@@ -6975,6 +7231,7 @@ export interface components {
         ChargeIn: {
             /**
              * Billable
+             * @description Bill it to the customer
              * @default true
              */
             billable: boolean;
@@ -6996,10 +7253,17 @@ export interface components {
              */
             rate: number | string;
             /**
+             * Status
+             * @description A charge added after booking waits for approval
+             * @default approved
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+            /**
              * Type
              * @enum {string}
              */
-            type: "detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "other";
+            type: "detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "driver_assist" | "other";
         };
         /** ChargeOut */
         ChargeOut: {
@@ -7007,6 +7271,7 @@ export interface components {
             amount: string;
             /**
              * Billable
+             * @description Bill it to the customer
              * @default true
              */
             billable: boolean;
@@ -7022,15 +7287,28 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Managed
+             * @description The fuel surcharge line FlyFleet keeps in step with the rate
+             * @default false
+             */
+            managed: boolean;
             /** Quantity */
             quantity: string;
             /** Rate */
             rate: string;
             /**
+             * Status
+             * @description A charge added after booking waits for approval
+             * @default approved
+             * @enum {string}
+             */
+            status: "pending" | "approved" | "rejected";
+            /**
              * Type
              * @enum {string}
              */
-            type: "detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "other";
+            type: "detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "driver_assist" | "other";
         };
         /** ChargePatch */
         ChargePatch: {
@@ -7044,8 +7322,23 @@ export interface components {
             quantity?: number | string | null;
             /** Rate */
             rate?: number | string | null;
+            /** Status */
+            status?: ("pending" | "approved" | "rejected") | null;
             /** Type */
-            type?: ("detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "other") | null;
+            type?: ("detention" | "layover" | "lumper" | "fuel_surcharge" | "tarp" | "extra_stop" | "tonu" | "driver_assist" | "other") | null;
+        };
+        /** ChargeReviewIn */
+        ChargeReviewIn: {
+            /**
+             * Charge Ids
+             * @description Left out: every pending one
+             */
+            charge_ids?: string[] | null;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "pending" | "approved" | "rejected";
         };
         /** Chargeback */
         Chargeback: {
@@ -7057,6 +7350,19 @@ export interface components {
             unit_number: string;
             /** Weekly */
             weekly: string;
+        };
+        /** CheckCallState */
+        CheckCallState: {
+            /** Last At */
+            last_at: string | null;
+            /** Minutes Since */
+            minutes_since: number | null;
+            /** Overdue */
+            overdue: boolean;
+            /** Reminder Hours */
+            reminder_hours: number | null;
+            /** Text */
+            text: string;
         };
         /** CheckOut */
         CheckOut: {
@@ -8116,6 +8422,19 @@ export interface components {
              * @enum {string}
              */
             status: "sent" | "delivered" | "read" | "not_sent";
+        };
+        /** DetentionLine */
+        DetentionLine: {
+            /** Amount */
+            amount: string;
+            /** Billable Minutes */
+            billable_minutes: number;
+            /** Dwell Minutes */
+            dwell_minutes: number;
+            /** Explain */
+            explain: string;
+            /** Stop */
+            stop: string;
         };
         /** DispatcherChoice */
         DispatcherChoice: {
@@ -9209,6 +9528,15 @@ export interface components {
             /** Email */
             email: string;
         };
+        /** FacetValue */
+        FacetValue: {
+            /** Count */
+            count: number;
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+        };
         /** FacilityOption */
         FacilityOption: {
             /** Address */
@@ -9842,6 +10170,11 @@ export interface components {
             /** Received */
             received: number;
         };
+        /** Ingested */
+        Ingested: {
+            /** Accepted */
+            accepted: number;
+        };
         /**
          * InspectionAction
          * @description review: a person has checked what was recorded. certify: the out-of-service repairs are certified on the
@@ -10308,6 +10641,14 @@ export interface components {
             /** Load Ids */
             load_ids: string[];
         };
+        /** InvoiceMade */
+        InvoiceMade: {
+            /**
+             * Invoice Id
+             * Format: uuid
+             */
+            invoice_id: string;
+        };
         /** InvoicePatch */
         InvoicePatch: {
             /** Due Date */
@@ -10675,6 +11016,47 @@ export interface components {
              */
             vehicle_id: string;
         };
+        /** LoadChecklistItem */
+        LoadChecklistItem: {
+            /** Action */
+            action: string;
+            /** Detail */
+            detail: string;
+            /** Done */
+            done: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * LoadCosts
+         * @description What the margin estimate takes a mile to cost. One set per company.
+         */
+        "LoadCosts-Input": {
+            /** Driver Pay Per Mile */
+            driver_pay_per_mile: number | string;
+            /** Fuel Price */
+            fuel_price: number | string;
+            /** Mpg */
+            mpg: number | string;
+            /** Overhead Per Mile */
+            overhead_per_mile: number | string;
+        };
+        /**
+         * LoadCosts
+         * @description What the margin estimate takes a mile to cost. One set per company.
+         */
+        "LoadCosts-Output": {
+            /** Driver Pay Per Mile */
+            driver_pay_per_mile: string;
+            /** Fuel Price */
+            fuel_price: string;
+            /** Mpg */
+            mpg: string;
+            /** Overhead Per Mile */
+            overhead_per_mile: string;
+        };
         /** LoadCreate */
         LoadCreate: {
             /** Bol Number */
@@ -10693,20 +11075,45 @@ export interface components {
              * @default 0
              */
             customer_rate: number | string;
+            /** Delivery Number */
+            delivery_number?: string | null;
+            /**
+             * Detention Free Hours
+             * @default 2
+             */
+            detention_free_hours: number | string;
+            /**
+             * Detention Rate
+             * @default 75
+             */
+            detention_rate: number | string;
             /**
              * Equipment Type
              * @default dry_van
              * @enum {string}
              */
             equipment_type: "dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other";
+            /**
+             * Fuel Surcharge Pct
+             * @description Added to the line haul as a fuel line. The New load screen starts at 12; left out here, none
+             * @default 0
+             */
+            fuel_surcharge_pct: number | string;
             /** Instructions */
             instructions?: string | null;
             /** Items */
             items?: components["schemas"]["ItemIn"][];
             /** Miles */
             miles?: number | null;
+            /** Pickup Number */
+            pickup_number?: string | null;
+            recurrence?: components["schemas"]["Recurrence"] | null;
+            /** Reefer Set Point F */
+            reefer_set_point_f?: number | string | null;
             /** Reference */
             reference?: string | null;
+            /** Seal Number */
+            seal_number?: string | null;
             /**
              * Status
              * @default planned
@@ -10722,6 +11129,8 @@ export interface components {
         };
         /** LoadDetail */
         LoadDetail: {
+            /** Activity */
+            activity?: components["schemas"]["ActivityOut"][];
             /** Allowed Actions */
             allowed_actions: string[];
             assignment: components["schemas"]["AssignmentBrief"] | null;
@@ -10738,6 +11147,9 @@ export interface components {
             charges: components["schemas"]["ChargeOut"][];
             /** Charges Total */
             charges_total: string | null;
+            check_calls?: components["schemas"]["CheckCallState"] | null;
+            /** Checklist */
+            checklist?: components["schemas"]["LoadChecklistItem"][];
             /** Commodity */
             commodity: string | null;
             /**
@@ -10754,10 +11166,19 @@ export interface components {
             delivered_at: string | null;
             /** Delivery At */
             delivery_at: string | null;
+            /** Delivery Number */
+            delivery_number?: string | null;
             /** Destination City */
             destination_city: string | null;
             /** Destination State */
             destination_state: string | null;
+            /** Detention Free Hours */
+            detention_free_hours?: string | null;
+            /**
+             * Detention Rate
+             * @description Finance only
+             */
+            detention_rate?: string | null;
             editable: components["schemas"]["Editable"];
             /** Equipment Type */
             equipment_type: string;
@@ -10765,6 +11186,11 @@ export interface components {
             eta?: string | null;
             /** Events */
             events: components["schemas"]["StatusEventOut"][];
+            /**
+             * Fuel Surcharge Pct
+             * @description Finance only
+             */
+            fuel_surcharge_pct?: string | null;
             /** Held From Status */
             held_from_status: string | null;
             /**
@@ -10789,8 +11215,17 @@ export interface components {
             late_by_minutes: number;
             /** Load Number */
             load_number: string;
+            /**
+             * Margin
+             * @description Estimated, after driver pay, fuel and overhead. Finance only
+             */
+            margin?: string | null;
+            /** Margin Pct */
+            margin_pct?: number | null;
             /** Miles */
             miles: number | null;
+            /** @description Finance only */
+            money?: components["schemas"]["MoneyBreakdown"] | null;
             /** Notes */
             notes: components["schemas"]["NoteOut"][];
             /** Origin City */
@@ -10800,6 +11235,8 @@ export interface components {
             papers: components["schemas"]["LoadPapers"];
             /** Pickup At */
             pickup_at: string | null;
+            /** Pickup Number */
+            pickup_number?: string | null;
             /**
              * Pod Requested At
              * @description When the driver was asked for the proof of delivery
@@ -10807,12 +11244,26 @@ export interface components {
             pod_requested_at?: string[];
             /** @description The assigned truck's latest position, while it is the one hauling the load */
             position?: components["schemas"]["LoadPosition"] | null;
+            /**
+             * Ready To Invoice
+             * @default false
+             */
+            ready_to_invoice: boolean;
+            recurrence?: components["schemas"]["RecurrenceOut"] | null;
+            reefer?: components["schemas"]["ReeferOut"] | null;
             /** Reference */
             reference: string | null;
+            /**
+             * Repeat Days
+             * @description Weekdays it repeats on, Monday 0
+             */
+            repeat_days?: number[] | null;
             /** Revenue */
             revenue: string | null;
             /** Risks */
             risks: components["schemas"]["Risk"][];
+            /** Seal Number */
+            seal_number?: string | null;
             /**
              * Status
              * @enum {string}
@@ -10824,6 +11275,7 @@ export interface components {
             terminal_id: string | null;
             /** Tracking */
             tracking: components["schemas"]["TrackingOut"][];
+            tracking_link?: components["schemas"]["TrackingLinkOut"] | null;
             /**
              * Updated At
              * Format: date-time
@@ -10834,6 +11286,22 @@ export interface components {
             /** Weight Lbs */
             weight_lbs: number | null;
         };
+        /**
+         * LoadFacets
+         * @description How many loads each filter value would show, given the other filters.
+         */
+        LoadFacets: {
+            /** Customer */
+            customer: components["schemas"]["FacetValue"][];
+            /** Driver */
+            driver: components["schemas"]["FacetValue"][];
+            /** Equipment */
+            equipment: components["schemas"]["FacetValue"][];
+            /** Risk */
+            risk: components["schemas"]["FacetValue"][];
+            /** Status */
+            status: components["schemas"]["FacetValue"][];
+        };
         /** LoadListItem */
         LoadListItem: {
             assignment: components["schemas"]["AssignmentBrief"] | null;
@@ -10842,6 +11310,8 @@ export interface components {
              * @enum {string}
              */
             billing_status: "unbilled" | "invoiced" | "paid";
+            /** Bol Number */
+            bol_number?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -10854,6 +11324,8 @@ export interface components {
             delivered_at: string | null;
             /** Delivery At */
             delivery_at: string | null;
+            /** Delivery Number */
+            delivery_number?: string | null;
             /** Destination City */
             destination_city: string | null;
             /** Destination State */
@@ -10879,6 +11351,13 @@ export interface components {
             late_by_minutes: number;
             /** Load Number */
             load_number: string;
+            /**
+             * Margin
+             * @description Estimated, after driver pay, fuel and overhead. Finance only
+             */
+            margin?: string | null;
+            /** Margin Pct */
+            margin_pct?: number | null;
             /** Miles */
             miles: number | null;
             /** Origin City */
@@ -10888,8 +11367,15 @@ export interface components {
             papers: components["schemas"]["LoadPapers"];
             /** Pickup At */
             pickup_at: string | null;
+            /** Pickup Number */
+            pickup_number?: string | null;
             /** Reference */
             reference: string | null;
+            /**
+             * Repeat Days
+             * @description Weekdays it repeats on, Monday 0
+             */
+            repeat_days?: number[] | null;
             /** Revenue */
             revenue: string | null;
             /** Risks */
@@ -11023,20 +11509,37 @@ export interface components {
         LoadUpdate: {
             /** Bol Number */
             bol_number?: string | null;
+            /** Checkcall Reminder Hours */
+            checkcall_reminder_hours?: (2 | 4 | 6) | null;
             /** Commodity */
             commodity?: string | null;
             /** Customer Id */
             customer_id?: string | null;
             /** Customer Rate */
             customer_rate?: number | string | null;
+            /** Delivery Number */
+            delivery_number?: string | null;
+            /** Detention Free Hours */
+            detention_free_hours?: number | string | null;
+            /** Detention Rate */
+            detention_rate?: number | string | null;
             /** Equipment Type */
             equipment_type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
+            /** Fuel Surcharge Pct */
+            fuel_surcharge_pct?: number | string | null;
             /** Instructions */
             instructions?: string | null;
             /** Miles */
             miles?: number | null;
+            /** Pickup Number */
+            pickup_number?: string | null;
+            recurrence?: components["schemas"]["Recurrence"] | null;
+            /** Reefer Set Point F */
+            reefer_set_point_f?: number | string | null;
             /** Reference */
             reference?: string | null;
+            /** Seal Number */
+            seal_number?: string | null;
             /** Terminal Id */
             terminal_id?: string | null;
             /**
@@ -11508,6 +12011,55 @@ export interface components {
              * Format: uuid
              */
             vehicle_id: string;
+        };
+        /**
+         * MoneyBreakdown
+         * @description What the load earns and an estimate of what it costs. Only for roles that may see rates.
+         */
+        MoneyBreakdown: {
+            /** Charges */
+            charges: string;
+            /**
+             * Costs
+             * @description The company's cost rates the estimate used
+             */
+            costs: {
+                [key: string]: string;
+            };
+            /** Detention */
+            detention: string;
+            /** Detention Free Hours */
+            detention_free_hours: string;
+            /** Detention Lines */
+            detention_lines: components["schemas"]["DetentionLine"][];
+            /** Detention Rate */
+            detention_rate: string;
+            /** Driver Pay */
+            driver_pay: string;
+            /** Fuel */
+            fuel: string;
+            /** Fuel Cost */
+            fuel_cost: string;
+            /** Fuel Pct */
+            fuel_pct: string;
+            /** Line Haul */
+            line_haul: string;
+            /** Margin */
+            margin: string;
+            /** Margin Pct */
+            margin_pct: number | null;
+            /** Miles */
+            miles: number;
+            /** Overhead */
+            overhead: string;
+            /** Pending Charges */
+            pending_charges: number;
+            /** Rate Per Mile */
+            rate_per_mile: string | null;
+            /** Total */
+            total: string;
+            /** Warning */
+            warning: boolean;
         };
         /** MoneyTile */
         MoneyTile: {
@@ -13763,6 +14315,61 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** PublicStop */
+        PublicStop: {
+            /** Appointment */
+            appointment: string | null;
+            /** Arrived At */
+            arrived_at: string | null;
+            /** City */
+            city: string;
+            /** Departed At */
+            departed_at: string | null;
+            /** State */
+            state: string | null;
+            /** Type */
+            type: string;
+        };
+        /**
+         * PublicTracking
+         * @description What a customer sees on the tracking link: only what the carrier chose to show.
+         */
+        PublicTracking: {
+            /** Company */
+            company: string;
+            /** Driver Name */
+            driver_name?: string | null;
+            /** Driver Phone */
+            driver_phone?: string | null;
+            /** Eta */
+            eta?: string | null;
+            /** Load Number */
+            load_number: string;
+            /**
+             * Pod Available
+             * @default false
+             */
+            pod_available: boolean;
+            /** Position */
+            position?: {
+                [key: string]: unknown;
+            } | null;
+            /** Reference */
+            reference: string | null;
+            /** Status */
+            status: string;
+            /** Status Label */
+            status_label: string;
+            /** Stops */
+            stops: components["schemas"]["PublicStop"][];
+            /** Timezone */
+            timezone: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** Purchase */
         Purchase: {
             /** Amount */
@@ -14166,6 +14773,79 @@ export interface components {
              */
             who: "driver" | "dispatcher_on_duty" | "safety_manager" | "fleet_manager";
         };
+        /** Recurrence */
+        Recurrence: {
+            /**
+             * Days
+             * @description 0 is Monday
+             */
+            days: number[];
+            /**
+             * Until
+             * @description Left out: no end
+             */
+            until?: string | null;
+        };
+        /** RecurrenceOut */
+        RecurrenceOut: {
+            /** Days */
+            days: number[];
+            /** Next Dates */
+            next_dates: string[];
+            /** Parent Id */
+            parent_id: string | null;
+            /** Until */
+            until: string | null;
+        };
+        /** ReeferIn */
+        ReeferIn: {
+            /** Samples */
+            samples: components["schemas"]["ReeferSample"][];
+        };
+        /** ReeferOut */
+        ReeferOut: {
+            /** Current F */
+            current_f: number | null;
+            /** High F */
+            high_f: number | null;
+            /** Low F */
+            low_f: number | null;
+            /** Readings */
+            readings: components["schemas"]["ReeferPoint"][];
+            /** Set Point F */
+            set_point_f: number | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "in_range" | "drifting" | "out_of_range" | "no_data";
+            /** Text */
+            text: string;
+        };
+        /** ReeferPoint */
+        ReeferPoint: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Temp F */
+            temp_f: number;
+        };
+        /** ReeferSample */
+        ReeferSample: {
+            /**
+             * Recorded At
+             * Format: date-time
+             */
+            recorded_at: string;
+            /** Temp F */
+            temp_f: number;
+            /** Trailer Id */
+            trailer_id?: string | null;
+            /** Vehicle Id */
+            vehicle_id?: string | null;
+        };
         /** Ref */
         Ref: {
             /**
@@ -14563,8 +15243,20 @@ export interface components {
         Risk: {
             /** Code */
             code: string;
+            /**
+             * Label
+             * @description Short: Running late, No driver, POD missing
+             * @default
+             */
+            label: string;
             /** Message */
             message: string;
+            /**
+             * Reason
+             * @description In plain words: “ETA +1h 40m, traffic stopped on I-35 at Ardmore”
+             * @default
+             */
+            reason: string;
         };
         /** RoleCreate */
         RoleCreate: {
@@ -15658,6 +16350,12 @@ export interface components {
             contact_name?: string | null;
             /** Contact Phone */
             contact_phone?: string | null;
+            /**
+             * Handling
+             * @default live
+             * @enum {string}
+             */
+            handling: "live" | "drop" | "hook";
             /** Instructions */
             instructions?: string | null;
             /** Name */
@@ -15672,7 +16370,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "pickup" | "delivery";
+            type: "pickup" | "delivery" | "fuel_scale";
         };
         /** StopOut */
         StopOut: {
@@ -15692,6 +16390,17 @@ export interface components {
             contact_phone?: string | null;
             /** Departed At */
             departed_at: string | null;
+            /**
+             * Dwell Minutes
+             * @description Time at the stop: until departure, or until now
+             */
+            dwell_minutes?: number | null;
+            /**
+             * Handling
+             * @default live
+             * @enum {string}
+             */
+            handling: "live" | "drop" | "hook";
             /**
              * Id
              * Format: uuid
@@ -15713,7 +16422,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "pickup" | "delivery";
+            type: "pickup" | "delivery" | "fuel_scale";
         };
         /**
          * StopPatch
@@ -15728,6 +16437,8 @@ export interface components {
             contact_name?: string | null;
             /** Contact Phone */
             contact_phone?: string | null;
+            /** Handling */
+            handling?: ("live" | "drop" | "hook") | null;
             /** Instructions */
             instructions?: string | null;
             /** Name */
@@ -16688,6 +17399,8 @@ export interface components {
         TrackingIn: {
             /** City */
             city?: string | null;
+            /** Eta */
+            eta?: string | null;
             /**
              * Kind
              * @default check_call
@@ -16700,6 +17413,50 @@ export interface components {
             occurred_at?: string | null;
             /** State */
             state?: string | null;
+            /** Via */
+            via?: ("phone" | "driver_app" | "text" | "eld" | "email") | null;
+        };
+        /** TrackingLinkIn */
+        TrackingLinkIn: {
+            /** Enabled */
+            enabled?: boolean | null;
+            /** Show Driver */
+            show_driver?: boolean | null;
+            /** Show Eta */
+            show_eta?: boolean | null;
+            /** Show Location */
+            show_location?: boolean | null;
+            /** Show Pod */
+            show_pod?: boolean | null;
+        };
+        /** TrackingLinkOut */
+        TrackingLinkOut: {
+            /**
+             * Contact Email
+             * @description Who it would be sent to: the customer's contact
+             */
+            contact_email: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /** Expires At */
+            expires_at: string | null;
+            /** Sent At */
+            sent_at: string | null;
+            /** Sent To */
+            sent_to: string | null;
+            /** Show Driver */
+            show_driver: boolean;
+            /** Show Eta */
+            show_eta: boolean;
+            /** Show Location */
+            show_location: boolean;
+            /** Show Pod */
+            show_pod: boolean;
+            /**
+             * Url Path
+             * @description Path on this site: /track/{token}
+             */
+            url_path: string;
         };
         /** TrackingOut */
         TrackingOut: {
@@ -16707,6 +17464,8 @@ export interface components {
             actor_name: string | null;
             /** City */
             city: string | null;
+            /** Eta */
+            eta?: string | null;
             /**
              * Id
              * Format: uuid
@@ -16725,6 +17484,18 @@ export interface components {
             source: string;
             /** State */
             state: string | null;
+            /** Via */
+            via?: string | null;
+        };
+        /** TrackingSendIn */
+        TrackingSendIn: {
+            /** Message */
+            message: string;
+            /**
+             * To
+             * @description Left out: the customer's contact
+             */
+            to?: string | null;
         };
         /** TrailerCreate */
         TrailerCreate: {
@@ -17875,6 +18646,11 @@ export interface components {
              */
             backup_codes: string[];
             state: components["schemas"]["SecurityOut"];
+        };
+        /** VersionIn */
+        VersionIn: {
+            /** Version */
+            version: number;
         };
         /** VersionOut */
         VersionOut: {
@@ -24331,6 +25107,10 @@ export interface operations {
                 /** @description Also return the total number of matching records */
                 count?: boolean;
                 status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
+                customer_ids?: string[] | null;
+                driver_ids?: string[] | null;
+                equipment_types?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other")[] | null;
+                risks?: ("at_risk" | "unassigned" | "missing_pod")[] | null;
                 billing_status?: ("unbilled" | "invoiced" | "paid") | null;
                 view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
                 customer_id?: string | null;
@@ -31568,6 +32348,140 @@ export interface operations {
             };
         };
     };
+    get_costs_api_v1_load_costs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadCosts-Output"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_costs_api_v1_load_costs_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoadCosts-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadCosts-Output"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     list_loads_api_v1_loads_get: {
         parameters: {
             query?: {
@@ -31581,6 +32495,10 @@ export interface operations {
                 /** @description Also return the total number of matching records */
                 count?: boolean;
                 status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
+                customer_ids?: string[] | null;
+                driver_ids?: string[] | null;
+                equipment_types?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other")[] | null;
+                risks?: ("at_risk" | "unassigned" | "missing_pod")[] | null;
                 billing_status?: ("unbilled" | "invoiced" | "paid") | null;
                 view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
                 customer_id?: string | null;
@@ -31796,6 +32714,194 @@ export interface operations {
             };
         };
     };
+    export_loads_api_v1_loads_export_csv_get: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page */
+                cursor?: string | null;
+                limit?: number;
+                /** @description Sort key; prefix with - for descending */
+                sort?: string | null;
+                /** @description Search text */
+                q?: string | null;
+                /** @description Also return the total number of matching records */
+                count?: boolean;
+                status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
+                customer_ids?: string[] | null;
+                driver_ids?: string[] | null;
+                equipment_types?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other")[] | null;
+                risks?: ("at_risk" | "unassigned" | "missing_pod")[] | null;
+                billing_status?: ("unbilled" | "invoiced" | "paid") | null;
+                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
+                customer_id?: string | null;
+                terminal_id?: string | null;
+                driver_id?: string | null;
+                vehicle_id?: string | null;
+                trailer_id?: string | null;
+                equipment_type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
+                pickup_from?: string | null;
+                pickup_to?: string | null;
+                delivery_from?: string | null;
+                delivery_to?: string | null;
+                origin_state?: string | null;
+                destination_state?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    load_facets_api_v1_loads_facets_get: {
+        parameters: {
+            query?: {
+                /** @description Opaque cursor from the previous page */
+                cursor?: string | null;
+                limit?: number;
+                /** @description Sort key; prefix with - for descending */
+                sort?: string | null;
+                /** @description Search text */
+                q?: string | null;
+                /** @description Also return the total number of matching records */
+                count?: boolean;
+                status?: ("draft" | "planned" | "assigned" | "dispatched" | "at_pickup" | "in_transit" | "at_delivery" | "delivered" | "pod_review" | "completed" | "on_hold" | "cancelled")[] | null;
+                customer_ids?: string[] | null;
+                driver_ids?: string[] | null;
+                equipment_types?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other")[] | null;
+                risks?: ("at_risk" | "unassigned" | "missing_pod")[] | null;
+                billing_status?: ("unbilled" | "invoiced" | "paid") | null;
+                view?: ("active" | "unassigned" | "pickups_today" | "deliveries_today" | "at_risk" | "in_transit" | "missing_pod" | "ready_to_invoice" | "unassigned_soon" | "deliveries" | "late_or_at_risk") | null;
+                customer_id?: string | null;
+                terminal_id?: string | null;
+                driver_id?: string | null;
+                vehicle_id?: string | null;
+                trailer_id?: string | null;
+                equipment_type?: ("dry_van" | "reefer" | "flatbed" | "step_deck" | "box_truck" | "tanker" | "other") | null;
+                pickup_from?: string | null;
+                pickup_to?: string | null;
+                delivery_from?: string | null;
+                delivery_to?: string | null;
+                origin_state?: string | null;
+                destination_state?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadFacets"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     get_load_api_v1_loads__load_id__get: {
         parameters: {
             query?: never;
@@ -31885,6 +32991,282 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    board_move_api_v1_loads__load_id__board_move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BoardMoveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    review_charges_api_v1_loads__load_id__charges_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChargeReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    duplicate_load_api_v1_loads__load_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    invoice_load_api_v1_loads__load_id__invoice_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceMade"];
                 };
             };
             /** @description Unauthorized */
@@ -32286,6 +33668,148 @@ export interface operations {
             };
         };
     };
+    set_tracking_link_api_v1_loads__load_id__tracking_link_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingLinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    send_tracking_link_api_v1_loads__load_id__tracking_link_send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrackingSendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     transition_api_v1_loads__load_id__transitions_post: {
         parameters: {
             query?: never;
@@ -32298,6 +33822,77 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TransitionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    undo_cancel_api_v1_loads__load_id__undo_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                load_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VersionIn"];
             };
         };
         responses: {
@@ -39311,6 +40906,210 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    public_tracking_api_v1_public_tracking__token__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicTracking"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    public_pod_api_v1_public_tracking__token__pod_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    ingest_reefer_api_v1_reefer_readings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReeferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ingested"];
+                };
             };
             /** @description Unauthorized */
             401: {

@@ -85,10 +85,13 @@ export function DataCell({ c }: { c: Cell }) {
         </span>
       ) : null}
       {c.isRisk ? (
-        <span className="risk" data-k={c.k}>
-          <Icon className="s14" d={c.ic} />
-          <span className="ell">{tx(c.v)}</span>
-        </span>
+        <div className="mw0">
+          <span className="risk" data-k={c.k}>
+            <Icon className="s14" d={c.ic} />
+            <span className="ell">{tx(c.v)}</span>
+          </span>
+          {c.s ? <div className="sub2 ell" title={c.s}>{tx(c.s)}</div> : null}
+        </div>
       ) : null}
       {c.isP ? (
         <div className="r g8">
@@ -203,10 +206,13 @@ export function BasicCell({ c }: { c: Cell }) {
         </span>
       ) : null}
       {c.isRisk ? (
-        <span className="risk" data-k={c.k}>
-          <Icon className="s14" d={c.ic} />
-          <span className="ell">{tx(c.v)}</span>
-        </span>
+        <div className="mw0">
+          <span className="risk" data-k={c.k}>
+            <Icon className="s14" d={c.ic} />
+            <span className="ell">{tx(c.v)}</span>
+          </span>
+          {c.s ? <div className="sub2 ell" title={c.s}>{tx(c.s)}</div> : null}
+        </div>
       ) : null}
       {c.isP ? (
         <div className="r g8">

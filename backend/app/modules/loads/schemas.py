@@ -279,6 +279,7 @@ class LoadListItem(BaseModel):
     revenue: MoneyOut | None
     margin: MoneyOut | None = Field(default=None, description="Estimated, after driver pay, fuel and overhead. Finance only")
     margin_pct: int | None = None
+    repeat_days: list[int] | None = Field(default=None, description="Weekdays it repeats on, Monday 0")
     currency: str
     assignment: AssignmentBrief | None
     risks: list[Risk]
