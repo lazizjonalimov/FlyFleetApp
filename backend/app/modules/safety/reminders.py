@@ -120,7 +120,9 @@ def _copy(db: Session, p: Principal, due: Due, role: str, sent: str) -> bool:
     values = {"title": f"{label} expires {_when(due.days_left)} · {due.entity_label}"[:200],
               "detail": f"Expires {fmt(due.expires_on)}. {sent}"[:300],
               "due_at": datetime.combine(due.expires_on, time(23, 59, 59), _zone(p)), "all_day": True,
-              "priority": "high" if due.days_left <= 7 else "medium"}
+              "priority": "high" if due.days_left <= 7 else "medium",
+              "why": f"A compliance reminder: {label.lower()} for {due.entity_label} runs out on {fmt(due.expires_on)}"[:300],
+              "auto_close": "Closes by itself when it’s renewed or sent for review"}
     task = db.scalar(select(Task).where(Task.source_key == key, Task.status == "open"))
     if task is None:
         target = {"driver": "driver", "vehicle": "vehicle", "trailer": "trailer"}.get(due.entity_type)
