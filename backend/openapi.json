@@ -237,6 +237,53 @@
         "title": "Activity",
         "type": "object"
       },
+      "ActivityOut": {
+        "properties": {
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "tone": {
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "text",
+          "tone",
+          "actor_name",
+          "at"
+        ],
+        "title": "ActivityOut",
+        "type": "object"
+      },
       "AddressCreate": {
         "properties": {
           "address": {
@@ -2455,6 +2502,31 @@
         "title": "Blocker",
         "type": "object"
       },
+      "BoardMoveIn": {
+        "properties": {
+          "column": {
+            "enum": [
+              "unassigned",
+              "assigned",
+              "in_transit",
+              "delivered",
+              "completed"
+            ],
+            "title": "Column",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "column"
+        ],
+        "title": "BoardMoveIn",
+        "type": "object"
+      },
       "BoardSummary": {
         "description": "Counts behind the dispatch board's summary strip. Each matches the view of the same name.",
         "properties": {
@@ -3220,6 +3292,7 @@
         "properties": {
           "billable": {
             "default": true,
+            "description": "Bill it to the customer",
             "title": "Billable",
             "type": "boolean"
           },
@@ -3265,6 +3338,17 @@
             "description": "Per unit. Negative for a deduction",
             "title": "Rate"
           },
+          "status": {
+            "default": "approved",
+            "description": "A charge added after booking waits for approval",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
           "type": {
             "enum": [
               "detention",
@@ -3274,6 +3358,7 @@
               "tarp",
               "extra_stop",
               "tonu",
+              "driver_assist",
               "other"
             ],
             "title": "Type",
@@ -3295,6 +3380,7 @@
           },
           "billable": {
             "default": true,
+            "description": "Bill it to the customer",
             "title": "Billable",
             "type": "boolean"
           },
@@ -3320,12 +3406,29 @@
             "title": "Id",
             "type": "string"
           },
+          "managed": {
+            "default": false,
+            "description": "The fuel surcharge line FlyFleet keeps in step with the rate",
+            "title": "Managed",
+            "type": "boolean"
+          },
           "quantity": {
             "title": "Quantity",
             "type": "string"
           },
           "rate": {
             "title": "Rate",
+            "type": "string"
+          },
+          "status": {
+            "default": "approved",
+            "description": "A charge added after booking waits for approval",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
             "type": "string"
           },
           "type": {
@@ -3337,6 +3440,7 @@
               "tarp",
               "extra_stop",
               "tonu",
+              "driver_assist",
               "other"
             ],
             "title": "Type",
@@ -3418,6 +3522,22 @@
             ],
             "title": "Rate"
           },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "pending",
+                  "approved",
+                  "rejected"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
           "type": {
             "anyOf": [
               {
@@ -3429,6 +3549,7 @@
                   "tarp",
                   "extra_stop",
                   "tonu",
+                  "driver_assist",
                   "other"
                 ],
                 "type": "string"
@@ -3441,6 +3562,41 @@
           }
         },
         "title": "ChargePatch",
+        "type": "object"
+      },
+      "ChargeReviewIn": {
+        "properties": {
+          "charge_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Left out: every pending one",
+            "title": "Charge Ids"
+          },
+          "verdict": {
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict"
+        ],
+        "title": "ChargeReviewIn",
         "type": "object"
       },
       "Chargeback": {
@@ -3469,6 +3625,61 @@
           "agreement_kind"
         ],
         "title": "Chargeback",
+        "type": "object"
+      },
+      "CheckCallState": {
+        "properties": {
+          "last_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last At"
+          },
+          "minutes_since": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes Since"
+          },
+          "overdue": {
+            "title": "Overdue",
+            "type": "boolean"
+          },
+          "reminder_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Hours"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reminder_hours",
+          "last_at",
+          "minutes_since",
+          "overdue",
+          "text"
+        ],
+        "title": "CheckCallState",
         "type": "object"
       },
       "CheckOut": {
@@ -6829,6 +7040,39 @@
           "status"
         ],
         "title": "Delivery",
+        "type": "object"
+      },
+      "DetentionLine": {
+        "properties": {
+          "amount": {
+            "title": "Amount",
+            "type": "string"
+          },
+          "billable_minutes": {
+            "title": "Billable Minutes",
+            "type": "integer"
+          },
+          "dwell_minutes": {
+            "title": "Dwell Minutes",
+            "type": "integer"
+          },
+          "explain": {
+            "title": "Explain",
+            "type": "string"
+          },
+          "stop": {
+            "title": "Stop",
+            "type": "string"
+          }
+        },
+        "required": [
+          "stop",
+          "dwell_minutes",
+          "billable_minutes",
+          "amount",
+          "explain"
+        ],
+        "title": "DetentionLine",
         "type": "object"
       },
       "DispatcherChoice": {
@@ -10495,6 +10739,29 @@
         "title": "ExportOut",
         "type": "object"
       },
+      "FacetValue": {
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label",
+          "count"
+        ],
+        "title": "FacetValue",
+        "type": "object"
+      },
       "FacilityOption": {
         "properties": {
           "address": {
@@ -12470,6 +12737,19 @@
         "title": "IngestOut",
         "type": "object"
       },
+      "Ingested": {
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "title": "Ingested",
+        "type": "object"
+      },
       "InspectionAction": {
         "description": "review: a person has checked what was recorded. certify: the out-of-service repairs are certified on the\nreport. dataqs: a challenge was filed with FMCSA's DataQs, under its request number.",
         "properties": {
@@ -13878,6 +14158,20 @@
         "title": "InvoiceLoads",
         "type": "object"
       },
+      "InvoiceMade": {
+        "properties": {
+          "invoice_id": {
+            "format": "uuid",
+            "title": "Invoice Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice_id"
+        ],
+        "title": "InvoiceMade",
+        "type": "object"
+      },
       "InvoicePatch": {
         "properties": {
           "due_date": {
@@ -14990,6 +15284,133 @@
         "title": "LiveVehicle",
         "type": "object"
       },
+      "LoadChecklistItem": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "done": {
+            "title": "Done",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "done",
+          "action",
+          "detail"
+        ],
+        "title": "LoadChecklistItem",
+        "type": "object"
+      },
+      "LoadCosts-Input": {
+        "description": "What the margin estimate takes a mile to cost. One set per company.",
+        "properties": {
+          "driver_pay_per_mile": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Driver Pay Per Mile"
+          },
+          "fuel_price": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Fuel Price"
+          },
+          "mpg": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 30.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Mpg"
+          },
+          "overhead_per_mile": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Overhead Per Mile"
+          }
+        },
+        "required": [
+          "driver_pay_per_mile",
+          "mpg",
+          "fuel_price",
+          "overhead_per_mile"
+        ],
+        "title": "LoadCosts",
+        "type": "object"
+      },
+      "LoadCosts-Output": {
+        "description": "What the margin estimate takes a mile to cost. One set per company.",
+        "properties": {
+          "driver_pay_per_mile": {
+            "title": "Driver Pay Per Mile",
+            "type": "string"
+          },
+          "fuel_price": {
+            "title": "Fuel Price",
+            "type": "string"
+          },
+          "mpg": {
+            "title": "Mpg",
+            "type": "string"
+          },
+          "overhead_per_mile": {
+            "title": "Overhead Per Mile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "driver_pay_per_mile",
+          "mpg",
+          "fuel_price",
+          "overhead_per_mile"
+        ],
+        "title": "LoadCosts",
+        "type": "object"
+      },
       "LoadCreate": {
         "properties": {
           "bol_number": {
@@ -15042,6 +15463,46 @@
             "default": "0",
             "title": "Customer Rate"
           },
+          "delivery_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Number"
+          },
+          "detention_free_hours": {
+            "anyOf": [
+              {
+                "maximum": 48.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "2",
+            "title": "Detention Free Hours"
+          },
+          "detention_rate": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "75",
+            "title": "Detention Rate"
+          },
           "equipment_type": {
             "default": "dry_van",
             "enum": [
@@ -15055,6 +15516,21 @@
             ],
             "title": "Equipment Type",
             "type": "string"
+          },
+          "fuel_surcharge_pct": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "description": "Added to the line haul as a fuel line. The New load screen starts at 12; left out here, none",
+            "title": "Fuel Surcharge Pct"
           },
           "instructions": {
             "anyOf": [
@@ -15089,6 +15565,44 @@
             ],
             "title": "Miles"
           },
+          "pickup_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Number"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Recurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reefer_set_point_f": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -40.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reefer Set Point F"
+          },
           "reference": {
             "anyOf": [
               {
@@ -15100,6 +15614,18 @@
               }
             ],
             "title": "Reference"
+          },
+          "seal_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seal Number"
           },
           "status": {
             "default": "planned",
@@ -15152,6 +15678,13 @@
       },
       "LoadDetail": {
         "properties": {
+          "activity": {
+            "items": {
+              "$ref": "#/components/schemas/ActivityOut"
+            },
+            "title": "Activity",
+            "type": "array"
+          },
           "allowed_actions": {
             "items": {
               "type": "string"
@@ -15214,6 +15747,23 @@
             ],
             "title": "Charges Total"
           },
+          "check_calls": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckCallState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/LoadChecklistItem"
+            },
+            "title": "Checklist",
+            "type": "array"
+          },
           "commodity": {
             "anyOf": [
               {
@@ -15272,6 +15822,17 @@
             ],
             "title": "Delivery At"
           },
+          "delivery_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Number"
+          },
           "destination_city": {
             "anyOf": [
               {
@@ -15293,6 +15854,29 @@
               }
             ],
             "title": "Destination State"
+          },
+          "detention_free_hours": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detention Free Hours"
+          },
+          "detention_rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Finance only",
+            "title": "Detention Rate"
           },
           "editable": {
             "$ref": "#/components/schemas/Editable"
@@ -15319,6 +15903,18 @@
             },
             "title": "Events",
             "type": "array"
+          },
+          "fuel_surcharge_pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Finance only",
+            "title": "Fuel Surcharge Pct"
           },
           "held_from_status": {
             "anyOf": [
@@ -15385,6 +15981,29 @@
             "title": "Load Number",
             "type": "string"
           },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated, after driver pay, fuel and overhead. Finance only",
+            "title": "Margin"
+          },
+          "margin_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Pct"
+          },
           "miles": {
             "anyOf": [
               {
@@ -15395,6 +16014,17 @@
               }
             ],
             "title": "Miles"
+          },
+          "money": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MoneyBreakdown"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Finance only"
           },
           "notes": {
             "items": {
@@ -15440,6 +16070,17 @@
             ],
             "title": "Pickup At"
           },
+          "pickup_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Number"
+          },
           "pod_requested_at": {
             "description": "When the driver was asked for the proof of delivery",
             "items": {
@@ -15459,6 +16100,31 @@
               }
             ],
             "description": "The assigned truck's latest position, while it is the one hauling the load"
+          },
+          "ready_to_invoice": {
+            "default": false,
+            "title": "Ready To Invoice",
+            "type": "boolean"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecurrenceOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reefer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReeferOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "reference": {
             "anyOf": [
@@ -15488,6 +16154,17 @@
             },
             "title": "Risks",
             "type": "array"
+          },
+          "seal_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seal Number"
           },
           "status": {
             "enum": [
@@ -15533,6 +16210,16 @@
             "title": "Tracking",
             "type": "array"
           },
+          "tracking_link": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrackingLinkOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
@@ -15563,6 +16250,7 @@
           "customer",
           "terminal_id",
           "reference",
+          "bol_number",
           "equipment_type",
           "origin_city",
           "origin_state",
@@ -15580,7 +16268,6 @@
           "papers",
           "created_at",
           "updated_at",
-          "bol_number",
           "commodity",
           "instructions",
           "customer_rate",
@@ -15598,6 +16285,55 @@
           "editable"
         ],
         "title": "LoadDetail",
+        "type": "object"
+      },
+      "LoadFacets": {
+        "description": "How many loads each filter value would show, given the other filters.",
+        "properties": {
+          "customer": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Customer",
+            "type": "array"
+          },
+          "driver": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Driver",
+            "type": "array"
+          },
+          "equipment": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Equipment",
+            "type": "array"
+          },
+          "risk": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Risk",
+            "type": "array"
+          },
+          "status": {
+            "items": {
+              "$ref": "#/components/schemas/FacetValue"
+            },
+            "title": "Status",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "customer",
+          "equipment",
+          "driver",
+          "risk"
+        ],
+        "title": "LoadFacets",
         "type": "object"
       },
       "LoadListItem": {
@@ -15620,6 +16356,17 @@
             ],
             "title": "Billing Status",
             "type": "string"
+          },
+          "bol_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bol Number"
           },
           "created_at": {
             "format": "date-time",
@@ -15656,6 +16403,17 @@
               }
             ],
             "title": "Delivery At"
+          },
+          "delivery_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Number"
           },
           "destination_city": {
             "anyOf": [
@@ -15721,6 +16479,29 @@
             "title": "Load Number",
             "type": "string"
           },
+          "margin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Estimated, after driver pay, fuel and overhead. Finance only",
+            "title": "Margin"
+          },
+          "margin_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Pct"
+          },
           "miles": {
             "anyOf": [
               {
@@ -15768,6 +16549,17 @@
               }
             ],
             "title": "Pickup At"
+          },
+          "pickup_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Number"
           },
           "reference": {
             "anyOf": [
@@ -16204,6 +16996,22 @@
             ],
             "title": "Bol Number"
           },
+          "checkcall_reminder_hours": {
+            "anyOf": [
+              {
+                "enum": [
+                  2,
+                  4,
+                  6
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkcall Reminder Hours"
+          },
           "commodity": {
             "anyOf": [
               {
@@ -16243,6 +17051,50 @@
             ],
             "title": "Customer Rate"
           },
+          "delivery_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delivery Number"
+          },
+          "detention_free_hours": {
+            "anyOf": [
+              {
+                "maximum": 48.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detention Free Hours"
+          },
+          "detention_rate": {
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detention Rate"
+          },
           "equipment_type": {
             "anyOf": [
               {
@@ -16262,6 +17114,22 @@
               }
             ],
             "title": "Equipment Type"
+          },
+          "fuel_surcharge_pct": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fuel Surcharge Pct"
           },
           "instructions": {
             "anyOf": [
@@ -16288,6 +17156,44 @@
             ],
             "title": "Miles"
           },
+          "pickup_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Number"
+          },
+          "recurrence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Recurrence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reefer_set_point_f": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -40.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reefer Set Point F"
+          },
           "reference": {
             "anyOf": [
               {
@@ -16299,6 +17205,18 @@
               }
             ],
             "title": "Reference"
+          },
+          "seal_number": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seal Number"
           },
           "terminal_id": {
             "anyOf": [
@@ -17591,6 +18509,131 @@
           "held"
         ],
         "title": "MileageRow",
+        "type": "object"
+      },
+      "MoneyBreakdown": {
+        "description": "What the load earns and an estimate of what it costs. Only for roles that may see rates.",
+        "properties": {
+          "charges": {
+            "title": "Charges",
+            "type": "string"
+          },
+          "costs": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The company's cost rates the estimate used",
+            "title": "Costs",
+            "type": "object"
+          },
+          "detention": {
+            "title": "Detention",
+            "type": "string"
+          },
+          "detention_free_hours": {
+            "title": "Detention Free Hours",
+            "type": "string"
+          },
+          "detention_lines": {
+            "items": {
+              "$ref": "#/components/schemas/DetentionLine"
+            },
+            "title": "Detention Lines",
+            "type": "array"
+          },
+          "detention_rate": {
+            "title": "Detention Rate",
+            "type": "string"
+          },
+          "driver_pay": {
+            "title": "Driver Pay",
+            "type": "string"
+          },
+          "fuel": {
+            "title": "Fuel",
+            "type": "string"
+          },
+          "fuel_cost": {
+            "title": "Fuel Cost",
+            "type": "string"
+          },
+          "fuel_pct": {
+            "title": "Fuel Pct",
+            "type": "string"
+          },
+          "line_haul": {
+            "title": "Line Haul",
+            "type": "string"
+          },
+          "margin": {
+            "title": "Margin",
+            "type": "string"
+          },
+          "margin_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margin Pct"
+          },
+          "miles": {
+            "title": "Miles",
+            "type": "integer"
+          },
+          "overhead": {
+            "title": "Overhead",
+            "type": "string"
+          },
+          "pending_charges": {
+            "title": "Pending Charges",
+            "type": "integer"
+          },
+          "rate_per_mile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Per Mile"
+          },
+          "total": {
+            "title": "Total",
+            "type": "string"
+          },
+          "warning": {
+            "title": "Warning",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "line_haul",
+          "fuel_pct",
+          "fuel",
+          "detention",
+          "detention_lines",
+          "detention_free_hours",
+          "detention_rate",
+          "charges",
+          "pending_charges",
+          "total",
+          "miles",
+          "rate_per_mile",
+          "driver_pay",
+          "fuel_cost",
+          "overhead",
+          "margin",
+          "margin_pct",
+          "warning",
+          "costs"
+        ],
+        "title": "MoneyBreakdown",
         "type": "object"
       },
       "MoneyTile": {
@@ -24680,6 +25723,186 @@
         "title": "Progress",
         "type": "object"
       },
+      "PublicStop": {
+        "properties": {
+          "appointment": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Appointment"
+          },
+          "arrived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arrived At"
+          },
+          "city": {
+            "title": "City",
+            "type": "string"
+          },
+          "departed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Departed At"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "city",
+          "state",
+          "appointment",
+          "arrived_at",
+          "departed_at"
+        ],
+        "title": "PublicStop",
+        "type": "object"
+      },
+      "PublicTracking": {
+        "description": "What a customer sees on the tracking link: only what the carrier chose to show.",
+        "properties": {
+          "company": {
+            "title": "Company",
+            "type": "string"
+          },
+          "driver_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Name"
+          },
+          "driver_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Driver Phone"
+          },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
+          },
+          "load_number": {
+            "title": "Load Number",
+            "type": "string"
+          },
+          "pod_available": {
+            "default": false,
+            "title": "Pod Available",
+            "type": "boolean"
+          },
+          "position": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "status_label": {
+            "title": "Status Label",
+            "type": "string"
+          },
+          "stops": {
+            "items": {
+              "$ref": "#/components/schemas/PublicStop"
+            },
+            "title": "Stops",
+            "type": "array"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "company",
+          "load_number",
+          "reference",
+          "status",
+          "status_label",
+          "stops",
+          "updated_at",
+          "timezone"
+        ],
+        "title": "PublicTracking",
+        "type": "object"
+      },
       "Purchase": {
         "properties": {
           "amount": {
@@ -25901,6 +27124,253 @@
         "title": "Recipient",
         "type": "object"
       },
+      "Recurrence": {
+        "properties": {
+          "days": {
+            "description": "0 is Monday",
+            "items": {
+              "maximum": 6.0,
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Days",
+            "type": "array"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Left out: no end",
+            "title": "Until"
+          }
+        },
+        "required": [
+          "days"
+        ],
+        "title": "Recurrence",
+        "type": "object"
+      },
+      "RecurrenceOut": {
+        "properties": {
+          "days": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "next_dates": {
+            "items": {
+              "format": "date",
+              "type": "string"
+            },
+            "title": "Next Dates",
+            "type": "array"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        "required": [
+          "days",
+          "until",
+          "parent_id",
+          "next_dates"
+        ],
+        "title": "RecurrenceOut",
+        "type": "object"
+      },
+      "ReeferIn": {
+        "properties": {
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/ReeferSample"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "samples"
+        ],
+        "title": "ReeferIn",
+        "type": "object"
+      },
+      "ReeferOut": {
+        "properties": {
+          "current_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current F"
+          },
+          "high_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High F"
+          },
+          "low_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low F"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/ReeferPoint"
+            },
+            "title": "Readings",
+            "type": "array"
+          },
+          "set_point_f": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Set Point F"
+          },
+          "state": {
+            "enum": [
+              "in_range",
+              "drifting",
+              "out_of_range",
+              "no_data"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "set_point_f",
+          "low_f",
+          "high_f",
+          "current_f",
+          "state",
+          "text",
+          "readings"
+        ],
+        "title": "ReeferOut",
+        "type": "object"
+      },
+      "ReeferPoint": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "temp_f": {
+            "title": "Temp F",
+            "type": "number"
+          }
+        },
+        "required": [
+          "at",
+          "temp_f"
+        ],
+        "title": "ReeferPoint",
+        "type": "object"
+      },
+      "ReeferSample": {
+        "properties": {
+          "recorded_at": {
+            "format": "date-time",
+            "title": "Recorded At",
+            "type": "string"
+          },
+          "temp_f": {
+            "maximum": 150.0,
+            "minimum": -60.0,
+            "title": "Temp F",
+            "type": "number"
+          },
+          "trailer_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Id"
+          },
+          "vehicle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Id"
+          }
+        },
+        "required": [
+          "recorded_at",
+          "temp_f"
+        ],
+        "title": "ReeferSample",
+        "type": "object"
+      },
       "Ref": {
         "properties": {
           "id": {
@@ -27049,8 +28519,20 @@
             "title": "Code",
             "type": "string"
           },
+          "label": {
+            "default": "",
+            "description": "Short: Running late, No driver, POD missing",
+            "title": "Label",
+            "type": "string"
+          },
           "message": {
             "title": "Message",
+            "type": "string"
+          },
+          "reason": {
+            "default": "",
+            "description": "In plain words: \u201cETA +1h 40m, traffic stopped on I-35 at Ardmore\u201d",
+            "title": "Reason",
             "type": "string"
           }
         },
@@ -30020,6 +31502,16 @@
             ],
             "title": "Contact Phone"
           },
+          "handling": {
+            "default": "live",
+            "enum": [
+              "live",
+              "drop",
+              "hook"
+            ],
+            "title": "Handling",
+            "type": "string"
+          },
           "instructions": {
             "anyOf": [
               {
@@ -30083,7 +31575,8 @@
           "type": {
             "enum": [
               "pickup",
-              "delivery"
+              "delivery",
+              "fuel_scale"
             ],
             "title": "Type",
             "type": "string"
@@ -30188,6 +31681,28 @@
             ],
             "title": "Departed At"
           },
+          "dwell_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Time at the stop: until departure, or until now",
+            "title": "Dwell Minutes"
+          },
+          "handling": {
+            "default": "live",
+            "enum": [
+              "live",
+              "drop",
+              "hook"
+            ],
+            "title": "Handling",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -30260,7 +31775,8 @@
           "type": {
             "enum": [
               "pickup",
-              "delivery"
+              "delivery",
+              "fuel_scale"
             ],
             "title": "Type",
             "type": "string"
@@ -30327,6 +31843,22 @@
               }
             ],
             "title": "Contact Phone"
+          },
+          "handling": {
+            "anyOf": [
+              {
+                "enum": [
+                  "live",
+                  "drop",
+                  "hook"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handling"
           },
           "instructions": {
             "anyOf": [
@@ -33566,6 +35098,18 @@
             ],
             "title": "City"
           },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
+          },
           "kind": {
             "default": "check_call",
             "enum": [
@@ -33610,9 +35154,178 @@
               }
             ],
             "title": "State"
+          },
+          "via": {
+            "anyOf": [
+              {
+                "enum": [
+                  "phone",
+                  "driver_app",
+                  "text",
+                  "eld",
+                  "email"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Via"
           }
         },
         "title": "TrackingIn",
+        "type": "object"
+      },
+      "TrackingLinkIn": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "show_driver": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Driver"
+          },
+          "show_eta": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Eta"
+          },
+          "show_location": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Location"
+          },
+          "show_pod": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Show Pod"
+          }
+        },
+        "title": "TrackingLinkIn",
+        "type": "object"
+      },
+      "TrackingLinkOut": {
+        "properties": {
+          "contact_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Who it would be sent to: the customer's contact",
+            "title": "Contact Email"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "sent_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent To"
+          },
+          "show_driver": {
+            "title": "Show Driver",
+            "type": "boolean"
+          },
+          "show_eta": {
+            "title": "Show Eta",
+            "type": "boolean"
+          },
+          "show_location": {
+            "title": "Show Location",
+            "type": "boolean"
+          },
+          "show_pod": {
+            "title": "Show Pod",
+            "type": "boolean"
+          },
+          "url_path": {
+            "description": "Path on this site: /track/{token}",
+            "title": "Url Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled",
+          "url_path",
+          "show_eta",
+          "show_location",
+          "show_pod",
+          "show_driver",
+          "sent_at",
+          "sent_to",
+          "expires_at",
+          "contact_email"
+        ],
+        "title": "TrackingLinkOut",
         "type": "object"
       },
       "TrackingOut": {
@@ -33638,6 +35351,18 @@
               }
             ],
             "title": "City"
+          },
+          "eta": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta"
           },
           "id": {
             "format": "uuid",
@@ -33678,6 +35403,17 @@
               }
             ],
             "title": "State"
+          },
+          "via": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Via"
           }
         },
         "required": [
@@ -33691,6 +35427,34 @@
           "actor_name"
         ],
         "title": "TrackingOut",
+        "type": "object"
+      },
+      "TrackingSendIn": {
+        "properties": {
+          "message": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "to": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Left out: the customer's contact",
+            "title": "To"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "TrackingSendIn",
         "type": "object"
       },
       "TrailerCreate": {
@@ -37661,6 +39425,19 @@
           "state"
         ],
         "title": "VerifiedOut",
+        "type": "object"
+      },
+      "VersionIn": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "VersionIn",
         "type": "object"
       },
       "VersionOut": {
@@ -46959,6 +48736,98 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dry_van",
+                      "reefer",
+                      "flatbed",
+                      "step_deck",
+                      "box_truck",
+                      "tanker",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "risks",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "at_risk",
+                      "unassigned",
+                      "missing_pod"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Risks"
             }
           },
           {
@@ -57987,6 +59856,166 @@
         ]
       }
     },
+    "/api/v1/load-costs": {
+      "get": {
+        "operationId": "get_costs_api_v1_load_costs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadCosts-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The company's cost rates for margin estimates",
+        "tags": [
+          "loads"
+        ]
+      },
+      "put": {
+        "operationId": "set_costs_api_v1_load_costs_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoadCosts-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadCosts-Output"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Change the company's cost rates",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
     "/api/v1/loads": {
       "get": {
         "operationId": "list_loads_api_v1_loads_get",
@@ -58101,6 +60130,98 @@
                 }
               ],
               "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dry_van",
+                      "reefer",
+                      "flatbed",
+                      "step_deck",
+                      "box_truck",
+                      "tanker",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "risks",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "at_risk",
+                      "unassigned",
+                      "missing_pod"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Risks"
             }
           },
           {
@@ -58630,6 +60751,1091 @@
         ]
       }
     },
+    "/api/v1/loads/export.csv": {
+      "get": {
+        "description": "Every load the filters match, up to 10,000. Rates and margin only for roles that may see them.",
+        "operationId": "export_loads_api_v1_loads_export_csv_get",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor from the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Sort key; prefix with - for descending",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sort key; prefix with - for descending",
+              "title": "Sort"
+            }
+          },
+          {
+            "description": "Search text",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search text",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Also return the total number of matching records",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Also return the total number of matching records",
+              "title": "Count",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "draft",
+                      "planned",
+                      "assigned",
+                      "dispatched",
+                      "at_pickup",
+                      "in_transit",
+                      "at_delivery",
+                      "delivered",
+                      "pod_review",
+                      "completed",
+                      "on_hold",
+                      "cancelled"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dry_van",
+                      "reefer",
+                      "flatbed",
+                      "step_deck",
+                      "box_truck",
+                      "tanker",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "risks",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "at_risk",
+                      "unassigned",
+                      "missing_pod"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Risks"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billing_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "unbilled",
+                    "invoiced",
+                    "paid"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Billing Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "unassigned",
+                    "pickups_today",
+                    "deliveries_today",
+                    "at_risk",
+                    "in_transit",
+                    "missing_pod",
+                    "ready_to_invoice",
+                    "unassigned_soon",
+                    "deliveries",
+                    "late_or_at_risk"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "View"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "terminal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Terminal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vehicle_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trailer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trailer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "dry_van",
+                    "reefer",
+                    "flatbed",
+                    "step_deck",
+                    "box_truck",
+                    "tanker",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pickup_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pickup From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pickup_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pickup To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delivery_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delivery_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "origin_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "The filtered list as CSV",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/facets": {
+      "get": {
+        "operationId": "load_facets_api_v1_loads_facets_get",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor from the previous page",
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Sort key; prefix with - for descending",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sort key; prefix with - for descending",
+              "title": "Sort"
+            }
+          },
+          {
+            "description": "Search text",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search text",
+              "title": "Q"
+            }
+          },
+          {
+            "description": "Also return the total number of matching records",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Also return the total number of matching records",
+              "title": "Count",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "draft",
+                      "planned",
+                      "assigned",
+                      "dispatched",
+                      "at_pickup",
+                      "in_transit",
+                      "at_delivery",
+                      "delivered",
+                      "pod_review",
+                      "completed",
+                      "on_hold",
+                      "cancelled"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_ids",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Ids"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "dry_van",
+                      "reefer",
+                      "flatbed",
+                      "step_deck",
+                      "box_truck",
+                      "tanker",
+                      "other"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Types"
+            }
+          },
+          {
+            "in": "query",
+            "name": "risks",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "at_risk",
+                      "unassigned",
+                      "missing_pod"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Risks"
+            }
+          },
+          {
+            "in": "query",
+            "name": "billing_status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "unbilled",
+                    "invoiced",
+                    "paid"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Billing Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "view",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "unassigned",
+                    "pickups_today",
+                    "deliveries_today",
+                    "at_risk",
+                    "in_transit",
+                    "missing_pod",
+                    "ready_to_invoice",
+                    "unassigned_soon",
+                    "deliveries",
+                    "late_or_at_risk"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "View"
+            }
+          },
+          {
+            "in": "query",
+            "name": "customer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Customer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "terminal_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Terminal Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "driver_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Driver Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vehicle_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Vehicle Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "trailer_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trailer Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "equipment_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "dry_van",
+                    "reefer",
+                    "flatbed",
+                    "step_deck",
+                    "box_truck",
+                    "tanker",
+                    "other"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Equipment Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pickup_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pickup From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pickup_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Pickup To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delivery_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delivery_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Delivery To"
+            }
+          },
+          {
+            "in": "query",
+            "name": "origin_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "destination_state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Destination State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadFacets"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "How many loads each filter value would show",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
     "/api/v1/loads/{load_id}": {
       "get": {
         "operationId": "get_load_api_v1_loads__load_id__get",
@@ -58809,6 +62015,378 @@
           }
         ],
         "summary": "Update Load",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/board-move": {
+      "post": {
+        "operationId": "board_move_api_v1_loads__load_id__board_move_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardMoveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Drop a load in a board column; refused with the reason when the move isn't possible",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/charges/review": {
+      "post": {
+        "operationId": "review_charges_api_v1_loads__load_id__charges_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargeReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Approve or reject extra charges",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/duplicate": {
+      "post": {
+        "operationId": "duplicate_load_api_v1_loads__load_id__duplicate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Copy a load as a new draft",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/invoice": {
+      "post": {
+        "operationId": "invoice_load_api_v1_loads__load_id__invoice_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceMade"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Make a draft invoice for this load once it is ready",
         "tags": [
           "loads"
         ]
@@ -59308,6 +62886,202 @@
         ]
       }
     },
+    "/api/v1/loads/{load_id}/tracking-link": {
+      "put": {
+        "operationId": "set_tracking_link_api_v1_loads__load_id__tracking_link_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackingLinkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Turn the customer's tracking link on or off, and choose what it shows",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/tracking-link/send": {
+      "post": {
+        "operationId": "send_tracking_link_api_v1_loads__load_id__tracking_link_send_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackingSendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Email the tracking link to the customer",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
     "/api/v1/loads/{load_id}/transitions": {
       "post": {
         "description": "Move a load through its lifecycle. The action decides which permission is needed.",
@@ -59402,6 +63176,104 @@
           }
         ],
         "summary": "Transition",
+        "tags": [
+          "loads"
+        ]
+      }
+    },
+    "/api/v1/loads/{load_id}/undo-cancel": {
+      "post": {
+        "operationId": "undo_cancel_api_v1_loads__load_id__undo_cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "load_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Load Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put back a just-cancelled load",
         "tags": [
           "loads"
         ]
@@ -69996,6 +73868,254 @@
         "summary": "Set Preference",
         "tags": [
           "preferences"
+        ]
+      }
+    },
+    "/api/v1/public/tracking/{token}": {
+      "get": {
+        "operationId": "public_tracking_api_v1_public_tracking__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicTracking"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "A load as its tracking link shows it",
+        "tags": [
+          "public tracking"
+        ]
+      }
+    },
+    "/api/v1/public/tracking/{token}/pod": {
+      "get": {
+        "operationId": "public_pod_api_v1_public_tracking__token__pod_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {},
+              "image/jpeg": {}
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "summary": "The proof of delivery, when shared",
+        "tags": [
+          "public tracking"
+        ]
+      }
+    },
+    "/api/v1/reefer/readings": {
+      "post": {
+        "operationId": "ingest_reefer_api_v1_reefer_readings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReeferIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingested"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Trailer temperatures from reefer units or telematics",
+        "tags": [
+          "loads",
+          "tracking"
         ]
       }
     },

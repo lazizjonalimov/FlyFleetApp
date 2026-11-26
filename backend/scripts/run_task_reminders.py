@@ -1,6 +1,7 @@
 """Send the task reminders and dashboard emails that are due, for every active company: each person's morning
 summary at the time they chose under My tasks › Reminders, a note 30 minutes before a task is due, and the dashboard
-summaries scheduled under Dashboard › Share.
+summaries scheduled under Dashboard › Share; and for loads, the weekly repeat drafts, the "no check call" flags and
+the reefer-out-of-range alerts.
 
     python scripts/run_task_reminders.py
 
@@ -18,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.core.db import new_session  # noqa: E402
 from app.core.deps import Principal  # noqa: E402
+from app.modules.loads import workflow as loads  # noqa: E402
 from app.modules.reports import command  # noqa: E402
 from app.modules.tasks import service  # noqa: E402
 
@@ -37,6 +39,7 @@ def main() -> int:
                                    timezone=zone or "UTC", org_name=name)
                 sent += service.send_reminders(db, system)
                 sent += command.send_scheduled(db, system)
+                sent += loads.run_jobs(db, system)
                 db.commit()
         except Exception as error:  # one company's problem must not stop the others' reminders
             failed += 1

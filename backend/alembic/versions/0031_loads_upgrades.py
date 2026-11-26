@@ -39,6 +39,8 @@ def upgrade() -> None:
     op.create_check_constraint(op.f("ck_load_stops_handling_valid"), "load_stops", "handling IN ('live','drop','hook')")
     # charges
     op.add_column("load_charges", sa.Column("status", sa.String(10), server_default="approved", nullable=False))
+    # FlyFleet's own line for the fuel surcharge, kept in step with the rate and the percent.
+    op.add_column("load_charges", sa.Column("managed", sa.Boolean(), server_default="false", nullable=False))
     op.create_check_constraint(op.f("ck_load_charges_status_valid"), "load_charges",
                                "status IN ('pending','approved','rejected')")
     op.drop_constraint(op.f("ck_load_charges_type_valid"), "load_charges", type_="check")
@@ -177,6 +179,7 @@ def downgrade() -> None:
                                "type IN ('detention', 'layover', 'lumper', 'fuel_surcharge', 'tarp', 'extra_stop', 'tonu', 'other')")
     op.drop_constraint(op.f("ck_load_charges_status_valid"), "load_charges", type_="check")
     op.drop_column("load_charges", "status")
+    op.drop_column("load_charges", "managed")
     op.drop_constraint(op.f("ck_load_stops_handling_valid"), "load_stops", type_="check")
     op.execute("DELETE FROM load_stops WHERE type = 'fuel_scale'")
     op.drop_constraint(op.f("ck_load_stops_type_valid"), "load_stops", type_="check")
