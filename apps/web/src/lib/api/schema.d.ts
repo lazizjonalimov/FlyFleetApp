@@ -1358,6 +1358,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dispatch/assignments/{assignment_id}/undo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Undo
+         * @description Take back an assignment made a moment ago: the load goes back to planned, dispatched or not, as long as the
+         *     truck hasn't reached the pickup. A driver who was told is told it was taken back.
+         */
+        post: operations["undo_api_v1_dispatch_assignments__assignment_id__undo_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch/best-match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Best Match
+         * @description Give each load, in pickup order, the nearest eligible driver with their truck and a free trailer. Loads no
+         *     one can take are reported, not assigned.
+         */
+        post: operations["best_match_api_v1_dispatch_best_match_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dispatch/board": {
         parameters: {
             query?: never;
@@ -1390,6 +1432,47 @@ export interface paths {
          * @description Drivers, trucks and trailers for a load, each with the reasons it can or can't take it.
          */
         get: operations["eligible_resources_api_v1_dispatch_eligible_resources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reschedule
+         * @description Move a load's appointments by whole days. A driver already on it is checked again for the new days.
+         */
+        post: operations["reschedule_api_v1_dispatch_reschedule_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dispatch/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Seats
+         * @description For each active driver on the board: the truck they're seated in, the trailer it last pulled, and where it
+         *     last reported from (and whether it's moving).
+         */
+        get: operations["seats_api_v1_dispatch_seats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6318,6 +6401,12 @@ export interface components {
         /** AssignIn */
         AssignIn: {
             /**
+             * Dispatch
+             * @description Dispatch it to the driver in the same step
+             * @default false
+             */
+            dispatch: boolean;
+            /**
              * Driver Id
              * Format: uuid
              */
@@ -6327,6 +6416,17 @@ export interface components {
              * Format: uuid
              */
             load_id: string;
+            /**
+             * Message
+             * @description A note to the driver with it
+             */
+            message?: string | null;
+            /**
+             * Notify
+             * @description Tell the driver in the app (and Telegram, where connected)
+             * @default true
+             */
+            notify: boolean;
             /** Reason */
             reason?: string | null;
             /** Trailer Id */
@@ -6553,6 +6653,18 @@ export interface components {
              */
             codes: string[];
             state: components["schemas"]["SecurityOut"];
+        };
+        /** BestMatchIn */
+        BestMatchIn: {
+            /** Load Ids */
+            load_ids: string[];
+        };
+        /** BestMatchOut */
+        BestMatchOut: {
+            /** Assigned */
+            assigned: components["schemas"]["Matched"][];
+            /** Failed */
+            failed: components["schemas"]["Unmatched"][];
         };
         /** Blocker */
         Blocker: {
@@ -8507,6 +8619,28 @@ export interface components {
             recorded_at: string;
             /** Speed Mph */
             speed_mph?: number | null;
+        };
+        /** DriverSeat */
+        DriverSeat: {
+            /**
+             * Driver Id
+             * Format: uuid
+             */
+            driver_id: string;
+            /** Moving */
+            moving: boolean | null;
+            /** Place */
+            place: string | null;
+            /** Position Minutes */
+            position_minutes: number | null;
+            /** Trailer */
+            trailer: string | null;
+            /** Trailer Type */
+            trailer_type: string | null;
+            /** Truck */
+            truck: string | null;
+            /** Vehicle Id */
+            vehicle_id: string | null;
         };
         /** DriverSummary */
         DriverSummary: {
@@ -10992,6 +11126,25 @@ export interface components {
             mapping: {
                 [key: string]: string | null;
             };
+        };
+        /** Matched */
+        Matched: {
+            /**
+             * Assignment Id
+             * Format: uuid
+             */
+            assignment_id: string;
+            /** Driver */
+            driver: string;
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Load Number */
+            load_number: string;
+            /** Version */
+            version: number;
         };
         /** Matrix */
         Matrix: {
@@ -14183,6 +14336,21 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** RescheduleIn */
+        RescheduleIn: {
+            /**
+             * Days
+             * @description Days to move every appointment by; negative is earlier
+             */
+            days: number;
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Version */
+            version: number;
+        };
         /** ResetIn */
         ResetIn: {
             /** New Password */
@@ -14735,6 +14903,8 @@ export interface components {
         Seat: {
             /** Miles To Pickup */
             miles_to_pickup?: number | null;
+            /** Moving */
+            moving?: boolean | null;
             /** Place */
             place?: string | null;
             /** Position Minutes */
@@ -17179,6 +17349,11 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** UndoIn */
+        UndoIn: {
+            /** Version */
+            version: number;
+        };
         /** UnitDriver */
         UnitDriver: {
             /**
@@ -17433,6 +17608,18 @@ export interface components {
             owners: string[];
             /** Revenue */
             revenue: string;
+        };
+        /** Unmatched */
+        Unmatched: {
+            /**
+             * Load Id
+             * Format: uuid
+             */
+            load_id: string;
+            /** Load Number */
+            load_number: string;
+            /** Reason */
+            reason: string;
         };
         /** UnreadOut */
         UnreadOut: {
@@ -23991,6 +24178,146 @@ export interface operations {
             };
         };
     };
+    undo_api_v1_dispatch_assignments__assignment_id__undo_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assignment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UndoIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    best_match_api_v1_dispatch_best_match_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BestMatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BestMatchOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     board_api_v1_dispatch_board_get: {
         parameters: {
             query?: {
@@ -24101,6 +24428,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EligibleResources"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    reschedule_api_v1_dispatch_reschedule_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadDetail"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    seats_api_v1_dispatch_seats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DriverSeat"][];
                 };
             };
             /** @description Unauthorized */
