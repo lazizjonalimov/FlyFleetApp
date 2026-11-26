@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -10,6 +11,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -148,6 +150,11 @@ class Organization(Base, IdMixin, TimestampMixin):
     invoice_number_prefix: Mapped[str] = mapped_column(String(10), default="INV", server_default="INV")
     # Per-company counters, incremented under a row lock.
     load_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    # The costs behind a load's margin estimate, per mile and per gallon.
+    cost_driver_pay_per_mile: Mapped[Decimal] = mapped_column(Numeric(8, 3), default=Decimal("0.62"), server_default="0.62")
+    cost_mpg: Mapped[Decimal] = mapped_column(Numeric(8, 3), default=Decimal("6.8"), server_default="6.8")
+    cost_fuel_price: Mapped[Decimal] = mapped_column(Numeric(8, 3), default=Decimal("3.92"), server_default="3.92")
+    cost_overhead_per_mile: Mapped[Decimal] = mapped_column(Numeric(8, 3), default=Decimal("1.65"), server_default="1.65")
     invoice_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     settlement_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     work_order_seq: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
