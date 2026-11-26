@@ -66,16 +66,19 @@ test("dispatch: assigning from the board, then arriving at pickup", async ({ pag
   await fleet(page);
   await book(page, account);
   await open(page, account, "dispatch");
-  // Dragging the load onto a driver opens the assignment with that driver chosen; nothing is saved until confirmed.
+  // The queue shows the chosen day and the next: the load picks up in two days.
+  await page.getByRole("button", { name: "Next day" }).click();
   const card = page.locator(".qcard", { hasText: "Lakeside Foods" });
-  await expect(card).toContainText(/Pickup in \d+h|Planned|Late pickup/);
-  await card.dragTo(page.locator(".tlrow", { hasText: "Avery Novak" }));
+  await expect(card).toContainText("Tomorrow");
+  await card.getByRole("button", { name: /^Assign L-/ }).click();
   const panel = page.getByRole("complementary", { name: "Assign load" });
   await expect(panel).toContainText("Avery Novak");
-  await expect(panel.locator("[aria-checked=true], .on, .sel").first()).toContainText("Avery Novak");
+  await expect(panel.locator("[aria-pressed=true]").first()).toContainText("Avery Novak");
   await expect(panel).toContainText("301");
-  await panel.getByRole("button", { name: "Assign & dispatch" }).click();
-  await expect(page.getByRole("status")).toContainText("assigned and dispatched to Avery Novak");
+  await expect(panel.getByRole("checkbox", { name: "Notify driver in app and Telegram" })).toBeChecked();
+  await panel.getByRole("button", { name: "Assign to Avery & dispatch" }).click();
+  await expect(page.getByRole("status")).toContainText("assigned to Avery Novak");
+  await expect(page.getByRole("status")).toContainText("driver notified");
   await expect(page.locator(".tlrow", { hasText: "Avery Novak" })).toBeVisible();
 
   await open(page, account, "loads");

@@ -18,6 +18,10 @@ import { formatNumber, initials, place } from "@/lib/format/text";
 
 type Candidate = Schema<"Candidate">;
 
+/** Outside render: how long ago something happened, and now. */
+const secondsSince = (iso: string) => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+const nowIso = () => new Date().toISOString();
+
 const why = (k: "ok" | "warn" | "bad", t: string) => ({ k, t, ic: k === "ok" ? I.check : k === "bad" ? I.deny : I.clock });
 
 /** Why a driver or unit can or can't take the load, as the API reasons it. */
@@ -86,7 +90,7 @@ function UnitPicker({ label, chosen, options, pick }: { label: string; chosen: C
  * API, which checks them all again when the assignment is saved; if someone else got there first, its answer
  * is shown here and nothing is lost.
  */
-export function AssignPanel({ loadId, close }: { loadId: string; close: () => void }) {
+export function AssignPanel({ loadId, close, onUndo }: { loadId: string; close: () => void; onUndo?: (assignmentId: string, version: number, number: string) => void }) {
   const { me, fin, notify, set, state } = useConsole();
   const org = me.organization;
   const zone = org.timezone;
@@ -99,6 +103,8 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [trailerId, setTrailerId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [message, setMessage] = useState("");
+  const [tell, setTell] = useState(true);
   const [pending, setPending] = useState(false);
   const [conflict, setConflict] = useState<{ title: string; text: string; loadId?: string | null; loadNumber?: string | null } | null>(null);
   const [key, setKey] = useState(idempotencyKey);
@@ -124,7 +130,7 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
     setPending(true);
     setConflict(null);
     try {
-      let saved = reassigning
+      const saved = reassigning
         ? await unwrap(
             api.PATCH("/api/v1/dispatch/assignments/{assignment_id}", {
               params: { path: { assignment_id: detail.assignment!.id } },
@@ -134,19 +140,26 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
         : await unwrap(
             api.POST("/api/v1/dispatch/assignments", {
               params: { header: { "idempotency-key": key } },
-              body: { load_id: detail.id, version: detail.version, driver_id: chosenDriver.id, vehicle_id: truck.id, trailer_id: trailer?.id ?? null, reason: note.trim() || null },
+              body: { load_id: detail.id, version: detail.version, driver_id: chosenDriver.id, vehicle_id: truck.id, trailer_id: trailer?.id ?? null, reason: null, dispatch: willDispatch, notify: tell, message: message.trim() || null },
             }),
           );
-      if (willDispatch && saved.allowed_actions.includes("dispatch")) saved = await changes.transition(saved, "dispatch");
-      else await changes.settle(saved);
-      notify(`${saved.load_number} ${reassigning ? "reassigned" : willDispatch && saved.status === "dispatched" ? "assigned and dispatched" : "assigned"} to ${chosenDriver.name}`);
+      await changes.settle(saved);
+      const zoneDay = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(iso));
+      const today = zoneDay(nowIso());
+      const shows = !reassigning && saved.pickup_at && zoneDay(saved.pickup_at) !== today ? ` · shows on ${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "short", day: "numeric" }).format(new Date(saved.pickup_at))}` : "";
+      const text = reassigning ? `${saved.load_number} reassigned to ${chosenDriver.name}` : `${saved.load_number} assigned to ${chosenDriver.name}${shows}${tell ? " · driver notified" : ""}`;
+      notify(text, false, !reassigning && saved.assignment && onUndo ? { ms: 7000, action: { label: "Undo", run: () => onUndo(saved.assignment!.id, saved.version, saved.load_number) } } : undefined);
       close();
     } catch (error) {
       setPending(false);
       setKey(idempotencyKey());
       const api = error instanceof ApiError ? error : null;
-      const other = api?.details as { load_id?: string; load_number?: string } | undefined;
-      setConflict({ title: api?.status === 409 ? `${chosenDriver.name} can’t take this load now` : "The assignment wasn’t saved", text: `${errorMessage(error)} Nothing was saved — your other choices are kept.`, loadId: other?.load_id, loadNumber: other?.load_number });
+      const other = api?.details as { load_id?: string; load_number?: string; assigned_by?: string | null; assigned_at?: string } | undefined;
+      const ago = other?.assigned_at ? secondsSince(other.assigned_at) : null;
+      const when = ago === null ? "" : ago < 60 ? ` ${ago} seconds ago` : ago < 3600 ? ` ${Math.round(ago / 60)} min ago` : "";
+      setConflict(other?.load_number && other.assigned_at
+        ? { title: `${chosenDriver.name} was just assigned elsewhere`, text: `${other.assigned_by ?? "Someone"} assigned them to ${other.load_number}${when}, which overlaps this load. Nothing was saved — your other choices are kept.`, loadId: other.load_id, loadNumber: other.load_number }
+        : { title: api?.status === 409 ? `${chosenDriver.name} can’t take this load now` : "The assignment wasn’t saved", text: `${errorMessage(error)} Nothing was saved — your other choices are kept.`, loadId: other?.load_id, loadNumber: other?.load_number });
       void eligible.refetch();
       void load.refetch();
     }
@@ -191,7 +204,7 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
               <div className="r g8" style={{ marginTop: "8px" }}>
                 <button className="btn sm" onClick={() => void eligible.refetch()}>
                   <Icon className="s14" d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15" />
-                  Refresh availability
+                  Refresh candidates
                 </button>
                 {conflict.loadId ? <button className="btn sm ghost" onClick={() => set({ screen: "loads", drawer: conflict.loadId, panel: "none" })}>{`View ${conflict.loadNumber ?? "that load"}`}</button> : null}
               </div>
@@ -200,7 +213,7 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
         ) : null}
         <div className="r g8">
           <span className="h3">Drivers</span>
-          <span className="fs12 mu">{resources ? `${eligibleCount} eligible · ${drivers.length - eligibleCount} not eligible` : "Checking who can take it…"}</span>
+          <span className="fs12 mu">{resources ? `${eligibleCount} eligible · ${drivers.length - eligibleCount} not eligible${me.scope?.team_name ? ` · ${me.scope.team_name} only` : ""}` : "Checking who can take it…"}</span>
         </div>
         <div className="c g6">
           {drivers.map((driver) => {
@@ -240,13 +253,18 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
         </div>
         <div className="r g8" style={{ marginTop: "4px" }}>
           <span className="h3">Equipment</span>
-          <span className="fs12 mu">Checked for this load’s times</span>
+          <span className="fs12 mu">Matched to the driver’s unit, checked for this load’s times</span>
         </div>
         <div className="card" style={{ boxShadow: "none" }}>
           <UnitPicker label="Truck" chosen={truck} options={vehicles} pick={setVehicleId} />
           {resources?.needs_trailer || trailers.length ? <UnitPicker label="Trailer" chosen={trailer} options={trailers} pick={setTrailerId} /> : null}
         </div>
-        <textarea className="inp" rows={2} placeholder="Note for the record (optional)" aria-label="Note for the record" value={note} onChange={(event) => setNote(event.target.value)} maxLength={500}></textarea>
+        {reassigning ? <textarea className="inp" rows={2} placeholder="Why it’s changing hands" aria-label="Reason for the change" value={note} onChange={(event) => setNote(event.target.value)} maxLength={200}></textarea> : (
+          <>
+            <label className="r g8 fs13" style={{ marginTop: "2px" }}><input type="checkbox" className="cbx" checked={tell} onChange={(event) => setTell(event.target.checked)} />Notify driver in app and Telegram</label>
+            <textarea className="inp" rows={2} placeholder="Message to driver (optional)" aria-label="Message to driver" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={1000} disabled={!tell}></textarea>
+          </>
+        )}
       </div>
       <div className="dfoot" style={{ padding: "12px 16px" }}>
         <span className="note" style={{ maxWidth: "190px" }}>
@@ -256,7 +274,7 @@ export function AssignPanel({ loadId, close }: { loadId: string; close: () => vo
         <span className="sp"></span>
         <button className="btn" onClick={close}>Cancel</button>
         <button className="btn pri" disabled={blocked} onClick={() => void save()}>
-          <span>{pending ? "Saving…" : reassigning ? "Save changes" : willDispatch ? "Assign & dispatch" : "Assign"}</span>
+          <span>{pending ? "Saving…" : !chosenDriver?.eligible ? "No eligible driver" : reassigning ? "Save changes" : willDispatch ? `Assign to ${chosenDriver.name.split(" ")[0]} & dispatch` : `Assign to ${chosenDriver.name.split(" ")[0]}`}</span>
         </button>
       </div>
     </aside>
