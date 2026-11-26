@@ -18,39 +18,52 @@ import { PERIODS, periodRange } from "@/lib/format/periods";
 import { formatNumber } from "@/lib/format/text";
 import { FuelReport, fuelReportUrl } from "./fuel-report";
 import { OnTimeReport, onTimeUrl } from "./on-time-report";
+import { DX_KEYS, DxReport, type DxKey } from "./dx-reports";
 
 type Report = Schema<"Report">;
-type Key = "on-time" | "loads-by-status" | "awaiting-pod" | "utilization" | "expiring" | "drivers" | "trucks" | "revenue-customer" | "ar-aging" | "expenses" | "driver-statements" | "fuel" | "revenue-month" | "revenue-terminal";
+type Key = "on-time" | "loads-by-status" | "awaiting-pod" | "utilization" | "expiring" | "drivers" | "trucks" | "revenue-customer" | "ar-aging" | "expenses" | "driver-statements" | "fuel" | "revenue-month" | "revenue-terminal" | DxKey;
+const FINANCE = ["reports.read", "loads.rates.read", "invoices.read", "expenses.read"];
 
 // The design's catalog first, then the reports FlyFleet adds. Each lists every permission it needs.
+// Three groups, as the dashboard has them. Financial reports need finance access. Each lists every permission it needs.
 const CATALOG: { l: string; items: { key: Key; l: string; needs: string[] }[] }[] = [
   {
     l: "Operational",
     items: [
       { key: "on-time", l: "On-time delivery", needs: ["reports.read"] },
+      { key: "dwell", l: "Dwell and pickup demand", needs: ["reports.read", "loads.read"] },
       { key: "loads-by-status", l: "Loads by status", needs: ["reports.read"] },
       { key: "awaiting-pod", l: "Delivered, awaiting POD", needs: ["reports.read"] },
-      { key: "utilization", l: "Equipment utilization", needs: ["reports.read"] },
-      { key: "expiring", l: "Expiring documents", needs: ["reports.read"] },
-      { key: "drivers", l: "Driver performance", needs: ["reports.read"] },
+    ],
+  },
+  {
+    l: "Fleet & drivers",
+    items: [
+      { key: "leaderboard", l: "Driver leaderboard", needs: ["reports.read", "drivers.read", "equipment.read"] },
+      { key: "utilization", l: "Fleet utilization", needs: ["reports.read", "drivers.read", "equipment.read"] },
+      { key: "safety", l: "Safety scorecard", needs: ["reports.read", "drivers.read", "equipment.read"] },
+      { key: "compliance", l: "Compliance & maintenance", needs: ["reports.read", "drivers.read", "equipment.read"] },
       { key: "trucks", l: "Truck performance", needs: ["reports.read"] },
     ],
   },
   {
     l: "Financial",
     items: [
-      { key: "revenue-customer", l: "Revenue by customer", needs: ["reports.read", "loads.rates.read"] },
-      { key: "ar-aging", l: "Invoice aging", needs: ["reports.read", "invoices.read"] },
-      { key: "expenses", l: "Expenses by category", needs: ["reports.read", "expenses.read"] },
-      { key: "driver-statements", l: "Driver statements", needs: ["reports.read", "settlements.read"] },
-      { key: "fuel", l: "Fuel & IFTA", needs: ["reports.read", "expenses.read"] },
-      { key: "revenue-month", l: "Revenue by month", needs: ["reports.read", "loads.rates.read"] },
-      { key: "revenue-terminal", l: "Revenue by terminal", needs: ["reports.read", "loads.rates.read"] },
+      { key: "revenue-cost", l: "Revenue and cost", needs: FINANCE },
+      { key: "lanes", l: "Lane profitability", needs: FINANCE },
+      { key: "ar-aging", l: "Invoice aging", needs: FINANCE },
+      { key: "cash", l: "Cash forecast", needs: FINANCE },
+      { key: "revenue-customer", l: "Revenue by customer", needs: FINANCE },
+      { key: "driver-statements", l: "Driver statements", needs: [...FINANCE, "settlements.read"] },
+      { key: "fuel", l: "Fuel & IFTA", needs: FINANCE },
+      { key: "expenses", l: "Expenses by category", needs: FINANCE },
+      { key: "revenue-month", l: "Revenue by month", needs: FINANCE },
+      { key: "revenue-terminal", l: "Revenue by terminal", needs: FINANCE },
     ],
   },
 ];
 const ON_LOADS = "Cancelled loads, loads not yet delivered";
-const DEFINITIONS: Record<Key, { what: string; term: string; sources: string; excludes: string }> = {
+const DEFINITIONS: Partial<Record<Key, { what: string; term: string; sources: string; excludes: string }>> = {
   "on-time": { what: "Share of delivery stops that arrived inside the appointment window", term: "", sources: "load_stops, load_status_events", excludes: "Cancelled, on-hold loads" },
   "loads-by-status": { what: "Where the loads picking up in the period stand now.", term: "Period — a load counts in the period of its first pickup appointment, or of when it was entered if it has none.", sources: "loads", excludes: "Nothing: every status is shown" },
   "awaiting-pod": { what: "Loads delivered whose proof of delivery hasn’t been approved yet. They can’t be invoiced until it is.", term: "Days waiting — whole days since the delivery, in the company’s time.", sources: "loads, load_stops, documents", excludes: "Loads not yet delivered, and completed loads" },
@@ -109,7 +122,8 @@ export function ReportsScreen() {
   const allowed = (needs: string[]) => needs.every((permission) => can(permission));
   const available = CATALOG.flatMap((group) => group.items).filter((item) => allowed(item.needs));
   const key = (available.find((item) => item.key === state.rpt)?.key ?? available[0]?.key ?? "on-time") as Key;
-  const custom = key === "fuel" || key === "on-time";
+  const dx = (DX_KEYS as string[]).includes(key) ? (key as DxKey) : null;
+  const custom = key === "fuel" || key === "on-time" || !!dx;
   const period = typeof state.rperiod === "string" ? state.rperiod : "this_month";
   const range = periodRange(period, today);
   const query = useQuery({
@@ -124,7 +138,7 @@ export function ReportsScreen() {
   });
   const report = query.data;
   const item = available.find((each) => each.key === key);
-  const definition = DEFINITIONS[key];
+  const definition = DEFINITIONS[key] ?? { what: "", term: "", sources: "", excludes: "" };
   const money = (value: unknown) => formatMoney(String(value ?? "0"), report?.currency ?? org.base_currency);
   // The first column names the row and reads in bold; dates read as dates; an empty value is a dash.
   const show = (kind: string, value: unknown, first = false): Cell =>
@@ -150,7 +164,7 @@ export function ReportsScreen() {
   const fuelTruck = typeof state.rtruck === "string" ? state.rtruck : "";
   const customer = typeof state.rcust === "string" ? state.rcust : "";
   const csv = key === "fuel" ? fuelReportUrl(fuelWeeks, fuelTruck, "csv") : key === "on-time" ? onTimeUrl(fuelWeeks, customer, "csv") : reportUrl(key, range.from, range.to, "csv");
-  const exportable = can("reports.export") || can("reports.read");
+  const exportable = (can("reports.export") || can("reports.read")) && (!dx || dx === "ar-aging");
 
   return (
     <div className="col">
@@ -197,6 +211,7 @@ export function ReportsScreen() {
         <div className="c g16" style={{ padding: "20px 24px 24px", overflow: "auto", minHeight: "0" }}>
           {key === "fuel" ? <FuelReport /> : null}
           {key === "on-time" ? <OnTimeReport /> : null}
+          {dx ? <DxReport kind={dx} /> : null}
           <div className="c g16 vz" hidden={custom}>
             <div className="r g12 ast">
               <div className="f1">
@@ -283,7 +298,7 @@ export function ReportsScreen() {
               </div>
             </section>
           </div>
-          <section className="card oh">
+          <section className="card oh" hidden={!exportable}>
             <div className="ch">
               <h2 className="h2">Exports</h2>
               <span className="fs12 mu">A CSV of the report as shown, for the chosen period</span>
