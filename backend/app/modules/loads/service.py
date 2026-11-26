@@ -399,7 +399,7 @@ def add_tracking(db: Session, p: Principal, load_id: uuid.UUID, body: s.Tracking
 # ---------------------------------------------------------------- transitions
 def transition(db: Session, p: Principal, load: Load, action: str, *, reason: str | None = None,
                stop_id: uuid.UUID | None = None, occurred_at: datetime | None = None,
-               check_permission: bool = True) -> Load:
+               check_permission: bool = True, notify: bool = True) -> Load:
     """Apply one lifecycle action to a locked load, or raise explaining why it isn't allowed."""
     if check_permission and not p.can(PERMISSION[action]):
         raise Forbidden("Your role does not allow this", details={"required": [PERMISSION[action]]})
@@ -431,8 +431,9 @@ def transition(db: Session, p: Principal, load: Load, action: str, *, reason: st
             raise Conflict(problems[0].message, code="ASSIGNMENT_CONFLICT",
                            details={"reasons": [r.model_dump(mode="json") for r in problems]})
         move(db, p, load, action, "dispatched", note)
-        from app.modules.messaging import service as messaging
-        messaging.on_dispatched(db, p, load, assignment)
+        if notify:
+            from app.modules.messaging import service as messaging
+            messaging.on_dispatched(db, p, load, assignment)
 
     elif action in ("arrive", "depart"):
         stops = stops_of(db, load.id)

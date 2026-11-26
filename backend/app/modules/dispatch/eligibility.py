@@ -55,6 +55,7 @@ class Seat(BaseModel):
     place: str | None = None
     position_minutes: int | None = None
     miles_to_pickup: int | None = None
+    moving: bool | None = None
 
 
 class Candidate(BaseModel):
@@ -193,7 +194,7 @@ def _on_day(other: OtherLoad, day: date, zone: str) -> bool:
     return start.astimezone(tz).date() <= day <= end.astimezone(tz).date()
 
 
-def _seats(db: Session, load: Load, driver_ids: list[uuid.UUID], now: datetime) -> dict[uuid.UUID, Seat]:
+def _seats(db: Session, load: Load | None, driver_ids: list[uuid.UUID], now: datetime) -> dict[uuid.UUID, Seat]:
     """For each driver: the truck they're seated in, the trailer it last pulled, where it last reported from and
     how far that is from the load's pickup."""
     from app.core import places
@@ -220,7 +221,7 @@ def _seats(db: Session, load: Load, driver_ids: list[uuid.UUID], now: datetime) 
         pulled.setdefault(vehicle_id, (unit, kind))
     positions = incidents.latest_positions(db, vehicle_ids)
     pickup = db.scalar(select(LoadStop).where(LoadStop.load_id == load.id, LoadStop.type == "pickup")
-                       .order_by(LoadStop.seq).limit(1))
+                       .order_by(LoadStop.seq).limit(1)) if load is not None else None
     there = places.locate(pickup.city, pickup.state) if pickup is not None else None
     out: dict[uuid.UUID, Seat] = {}
     for driver_id, (vehicle_id, unit) in by_driver.items():
@@ -231,6 +232,7 @@ def _seats(db: Session, load: Load, driver_ids: list[uuid.UUID], now: datetime) 
             lat, lon = float(pos.lat), float(pos.lon)
             seat.place = places.describe(lat, lon)
             seat.position_minutes = int((now - pos.recorded_at).total_seconds() // 60)
+            seat.moving = pos.speed_mph is not None and float(pos.speed_mph) >= 3
             if there is not None:
                 seat.miles_to_pickup = round(places.km(lat, lon, *there) * incidents.ROAD_FACTOR / 1.609344)
         out[driver_id] = seat

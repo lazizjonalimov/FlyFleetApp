@@ -26,6 +26,53 @@ class AssignIn(BaseModel):
     trailer_id: uuid.UUID | None = None
     version: int = Field(description="The load version you last saw")
     reason: str | None = Field(default=None, max_length=200)
+    dispatch: bool = Field(default=False, description="Dispatch it to the driver in the same step")
+    notify: bool = Field(default=True, description="Tell the driver in the app (and Telegram, where connected)")
+    message: str | None = Field(default=None, max_length=1000, description="A note to the driver with it")
+
+
+class UndoIn(BaseModel):
+    version: int
+
+
+class RescheduleIn(BaseModel):
+    load_id: uuid.UUID
+    version: int
+    days: int = Field(ge=-60, le=60, description="Days to move every appointment by; negative is earlier")
+
+
+class BestMatchIn(BaseModel):
+    load_ids: list[uuid.UUID] = Field(min_length=1, max_length=50)
+
+
+class Matched(BaseModel):
+    load_id: uuid.UUID
+    load_number: str
+    driver: str
+    assignment_id: uuid.UUID
+    version: int
+
+
+class Unmatched(BaseModel):
+    load_id: uuid.UUID
+    load_number: str
+    reason: str
+
+
+class BestMatchOut(BaseModel):
+    assigned: list[Matched]
+    failed: list[Unmatched]
+
+
+class DriverSeat(BaseModel):
+    driver_id: uuid.UUID
+    truck: str | None
+    vehicle_id: uuid.UUID | None
+    trailer: str | None
+    trailer_type: str | None
+    place: str | None
+    moving: bool | None
+    position_minutes: int | None
 
 
 class ReassignIn(BaseModel):
@@ -78,6 +125,14 @@ def assign(body: AssignIn, p: Principal = Depends(require("dispatch.assign")), d
             raise loads.illegal(load, "assign")
         service.assign(db, p, load, body.driver_id, body.vehicle_id, body.trailer_id, reason=body.reason)
         db.flush()
+        if body.dispatch and load.status == "assigned":
+            loads.transition(db, p, load, "dispatch", notify=body.notify)
+            db.flush()
+        if body.message and body.message.strip() and body.notify:
+            from app.modules.messaging import service as messaging
+            messaging.tell_driver(db, p.org_id, body.driver_id, event="dispatch_note",
+                                  title=f"Note from {p.full_name} about {load.load_number}", body=body.message.strip(),
+                                  load_id=load.id)
         return 201, loads.load_detail(db, p, load.id)
     return run_idempotent(db, p, idempotency_key, "POST /dispatch/assignments", body.model_dump(mode="json"), work)
 
@@ -119,3 +174,51 @@ def release(assignment_id: uuid.UUID, body: ReleaseIn, p: Principal = Depends(re
     service.unassign(db, p, load, reason=body.reason)
     db.commit()
     return loads.load_detail(db, p, load.id)
+
+
+@router.get("/seats", response_model=list[DriverSeat])
+def seats(p: Principal = Depends(require("dispatch.read")), db: Session = Depends(get_db)):
+    """For each active driver on the board: the truck they're seated in, the trailer it last pulled, and where it
+    last reported from (and whether it's moving)."""
+    from sqlalchemy import select
+
+    from app.core import scope as team_scope
+    from app.modules.drivers.models import Driver
+    ids = list(db.scalars(team_scope.where(select(Driver.id).where(Driver.status == "active"),
+                                           team_scope.drivers(p.scope, Driver.id))))
+    found = eligibility._seats(db, None, ids, datetime.now(UTC))
+    return [DriverSeat(driver_id=d, truck=s.unit_number, vehicle_id=s.vehicle_id, trailer=s.trailer_unit,
+                       trailer_type=s.trailer_type, place=s.place, moving=s.moving, position_minutes=s.position_minutes)
+            for d, s in found.items()]
+
+
+@router.post("/assignments/{assignment_id}/undo", response_model=ls.LoadDetail)
+def undo(assignment_id: uuid.UUID, body: UndoIn, p: Principal = Depends(require("dispatch.assign")),
+         db: Session = Depends(get_db)):
+    """Take back an assignment made a moment ago: the load goes back to planned, dispatched or not, as long as the
+    truck hasn't reached the pickup. A driver who was told is told it was taken back."""
+    assignment, load = _active(db, p, assignment_id)
+    loads.check_version(load, body.version)
+    service.undo(db, p, load, assignment)
+    db.commit()
+    return loads.load_detail(db, p, load.id)
+
+
+@router.post("/reschedule", response_model=ls.LoadDetail)
+def reschedule(body: RescheduleIn, p: Principal = Depends(require("dispatch.assign")), db: Session = Depends(get_db)):
+    """Move a load's appointments by whole days. A driver already on it is checked again for the new days."""
+    loads.visible(db, p, body.load_id)
+    load = loads.lock_load(db, body.load_id, p)
+    loads.check_version(load, body.version)
+    service.reschedule(db, p, load, body.days)
+    db.commit()
+    return loads.load_detail(db, p, load.id)
+
+
+@router.post("/best-match", response_model=BestMatchOut)
+def best_match(body: BestMatchIn, p: Principal = Depends(require("dispatch.assign")), db: Session = Depends(get_db)):
+    """Give each load, in pickup order, the nearest eligible driver with their truck and a free trailer. Loads no
+    one can take are reported, not assigned."""
+    assigned, failed = service.best_match(db, p, body.load_ids)
+    db.commit()
+    return BestMatchOut(assigned=[Matched(**a) for a in assigned], failed=[Unmatched(**f) for f in failed])

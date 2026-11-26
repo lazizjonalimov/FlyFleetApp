@@ -1681,6 +1681,12 @@
       },
       "AssignIn": {
         "properties": {
+          "dispatch": {
+            "default": false,
+            "description": "Dispatch it to the driver in the same step",
+            "title": "Dispatch",
+            "type": "boolean"
+          },
           "driver_id": {
             "format": "uuid",
             "title": "Driver Id",
@@ -1690,6 +1696,25 @@
             "format": "uuid",
             "title": "Load Id",
             "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A note to the driver with it",
+            "title": "Message"
+          },
+          "notify": {
+            "default": true,
+            "description": "Tell the driver in the app (and Telegram, where connected)",
+            "title": "Notify",
+            "type": "boolean"
           },
           "reason": {
             "anyOf": [
@@ -2357,6 +2382,49 @@
           "state"
         ],
         "title": "BackupCodesOut",
+        "type": "object"
+      },
+      "BestMatchIn": {
+        "properties": {
+          "load_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Load Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "load_ids"
+        ],
+        "title": "BestMatchIn",
+        "type": "object"
+      },
+      "BestMatchOut": {
+        "properties": {
+          "assigned": {
+            "items": {
+              "$ref": "#/components/schemas/Matched"
+            },
+            "title": "Assigned",
+            "type": "array"
+          },
+          "failed": {
+            "items": {
+              "$ref": "#/components/schemas/Unmatched"
+            },
+            "title": "Failed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assigned",
+          "failed"
+        ],
+        "title": "BestMatchOut",
         "type": "object"
       },
       "Blocker": {
@@ -8404,6 +8472,105 @@
           "lon"
         ],
         "title": "DriverSampleIn",
+        "type": "object"
+      },
+      "DriverSeat": {
+        "properties": {
+          "driver_id": {
+            "format": "uuid",
+            "title": "Driver Id",
+            "type": "string"
+          },
+          "moving": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moving"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Place"
+          },
+          "position_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Minutes"
+          },
+          "trailer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer"
+          },
+          "trailer_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trailer Type"
+          },
+          "truck": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Truck"
+          },
+          "vehicle_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Id"
+          }
+        },
+        "required": [
+          "driver_id",
+          "truck",
+          "vehicle_id",
+          "trailer",
+          "trailer_type",
+          "place",
+          "moving",
+          "position_minutes"
+        ],
+        "title": "DriverSeat",
         "type": "object"
       },
       "DriverSummary": {
@@ -16382,6 +16549,41 @@
           "mapping"
         ],
         "title": "MappingIn",
+        "type": "object"
+      },
+      "Matched": {
+        "properties": {
+          "assignment_id": {
+            "format": "uuid",
+            "title": "Assignment Id",
+            "type": "string"
+          },
+          "driver": {
+            "title": "Driver",
+            "type": "string"
+          },
+          "load_id": {
+            "format": "uuid",
+            "title": "Load Id",
+            "type": "string"
+          },
+          "load_number": {
+            "title": "Load Number",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "load_id",
+          "load_number",
+          "driver",
+          "assignment_id",
+          "version"
+        ],
+        "title": "Matched",
         "type": "object"
       },
       "Matrix": {
@@ -26161,6 +26363,33 @@
         "title": "ReportColumn",
         "type": "object"
       },
+      "RescheduleIn": {
+        "properties": {
+          "days": {
+            "description": "Days to move every appointment by; negative is earlier",
+            "maximum": 60.0,
+            "minimum": -60.0,
+            "title": "Days",
+            "type": "integer"
+          },
+          "load_id": {
+            "format": "uuid",
+            "title": "Load Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "load_id",
+          "version",
+          "days"
+        ],
+        "title": "RescheduleIn",
+        "type": "object"
+      },
       "ResetIn": {
         "properties": {
           "new_password": {
@@ -27728,6 +27957,17 @@
               }
             ],
             "title": "Miles To Pickup"
+          },
+          "moving": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moving"
           },
           "place": {
             "anyOf": [
@@ -35475,6 +35715,19 @@
         "title": "TypeCount",
         "type": "object"
       },
+      "UndoIn": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "UndoIn",
+        "type": "object"
+      },
       "UnitDriver": {
         "properties": {
           "id": {
@@ -36235,6 +36488,30 @@
           "driver_pay_by"
         ],
         "title": "UnitWeekOut",
+        "type": "object"
+      },
+      "Unmatched": {
+        "properties": {
+          "load_id": {
+            "format": "uuid",
+            "title": "Load Id",
+            "type": "string"
+          },
+          "load_number": {
+            "title": "Load Number",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "load_id",
+          "load_number",
+          "reason"
+        ],
+        "title": "Unmatched",
         "type": "object"
       },
       "UnreadOut": {
@@ -46381,6 +46658,192 @@
         ]
       }
     },
+    "/api/v1/dispatch/assignments/{assignment_id}/undo": {
+      "post": {
+        "description": "Take back an assignment made a moment ago: the load goes back to planned, dispatched or not, as long as the\ntruck hasn't reached the pickup. A driver who was told is told it was taken back.",
+        "operationId": "undo_api_v1_dispatch_assignments__assignment_id__undo_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UndoIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Undo",
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/api/v1/dispatch/best-match": {
+      "post": {
+        "description": "Give each load, in pickup order, the nearest eligible driver with their truck and a free trailer. Loads no\none can take are reported, not assigned.",
+        "operationId": "best_match_api_v1_dispatch_best_match_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BestMatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BestMatchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Best Match",
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
     "/api/v1/dispatch/board": {
       "get": {
         "description": "The loads a dispatcher is working, filtered, sorted and paged in the database.",
@@ -46952,6 +47415,174 @@
           }
         ],
         "summary": "Eligible Resources",
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/api/v1/dispatch/reschedule": {
+      "post": {
+        "description": "Move a load's appointments by whole days. A driver already on it is checked again for the new days.",
+        "operationId": "reschedule_api_v1_dispatch_reschedule_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reschedule",
+        "tags": [
+          "dispatch"
+        ]
+      }
+    },
+    "/api/v1/dispatch/seats": {
+      "get": {
+        "description": "For each active driver on the board: the truck they're seated in, the trailer it last pulled, and where it\nlast reported from (and whether it's moving).",
+        "operationId": "seats_api_v1_dispatch_seats_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DriverSeat"
+                  },
+                  "title": "Response Seats Api V1 Dispatch Seats Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Seats",
         "tags": [
           "dispatch"
         ]
